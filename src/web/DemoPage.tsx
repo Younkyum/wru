@@ -1,8 +1,10 @@
+import { useEffect, useRef } from 'react';
 import type { DemoState, PersonId, Presence, PresenceState, Task } from '../shared/contracts';
 import { PERSON_IDS, PERSON_LABEL_KO, STATE_LABEL_KO, localHHMM } from '../shared/contracts';
 import type { Fit, MessageType, NegotiationMessage, NegotiationRecord } from '../shared/negotiation';
 import { REASON_CODE_TEXT } from '../shared/negotiation';
 import type { Condition, LeakReport } from '../shared/leak-report';
+import type { PanelName } from './demoSteps';
 
 export interface DemoPageProps {
   state: DemoState;
@@ -16,6 +18,29 @@ export interface DemoPageProps {
   onApprove: (negotiationId: string) => void;
   report: LeakReport | null;
   onShowReport: () => void;
+  onStartDemo?: () => void;
+  demo?: DemoView | null;
+}
+
+/** 데모 모드 진행 상태 */
+export interface DemoView {
+  step: number;
+  total: number;
+  title: string;
+  caption: string;
+  focus: PanelName;
+  /** 협상 타임라인에서 지금까지 보여 줄 메시지 수 (애니메이션) */
+  reveal: number | null;
+  /** 누수 패널에서 보여 줄 조건 */
+  conditions: Condition[];
+  busy: boolean;
+  onNext: () => void;
+  onExit: () => void;
+}
+
+function panelClass(base: string, name: PanelName, demo?: DemoView | null): string {
+  if (!demo) return `panel ${base}`;
+  return `panel ${base} ${demo.focus === name ? 'spotlight' : 'dim'}`;
 }
 
 // 거리 링은 상태 단계만 나타낸다. 실제 방향·거리와 무관한 고정 배치.
@@ -39,9 +64,9 @@ function etaText(p: Presence): string {
   return p.eta_minutes === null ? '—' : `약 ${p.eta_minutes}분`;
 }
 
-function MapPanel({ presence }: { presence: Presence[] }) {
+function MapPanel({ presence, demo }: { presence: Presence[]; demo?: DemoView | null }) {
   return (
-    <section className="panel map-panel" aria-label="맵">
+    <section className={panelClass('map-panel', 'map', demo)} aria-label="맵">
       <h2>맵 <span className="hint">상태만 · 핀 없음</span></h2>
       <svg viewBox="0 0 360 360" className="map" role="img" aria-label="가족 상태 링">
         <circle cx={C} cy={C} r={150} className="ring ring-transit" />
@@ -96,11 +121,17 @@ function messageText(m: NegotiationMessage, task: Task | undefined): string {
   }
 }
 
-function Timeline({ record, task }: { record: NegotiationRecord; task: Task | undefined }) {
+function Timeline({ record, task, reveal }: { record: NegotiationRecord; task: Task | undefined; reveal?: number | null }) {
+  const shown = reveal == null ? record.messages : record.messages.slice(0, reveal);
+  const list = useRef<HTMLOListElement>(null);
+  // 새 메시지가 보이면 타임라인 안에서 맨 아래로
+  useEffect(() => {
+    if (reveal != null && list.current) list.current.scrollTop = list.current.scrollHeight;
+  }, [reveal]);
   return (
-    <ol className="timeline" aria-label="협상 타임라인">
-      {record.messages.map((m, i) => (
-        <li key={m.id} className={`msg msg-${m.type}`}>
+    <ol className="timeline" aria-label="협상 타임라인" ref={list}>
+      {shown.map((m, i) => (
+        <li key={m.id} className={`msg msg-${m.type}${reveal != null && i === shown.length - 1 ? ' msg-new' : ''}`}>
           {(i === 0 || record.messages[i - 1]!.round !== m.round) && <div className="round">라운드 {m.round}</div>}
           <div className="msg-row">
             <span className={`type-badge type-${m.type}`}>{TYPE_LABEL[m.type]}</span>
@@ -118,13 +149,14 @@ function InboxPanel(props: {
   state: DemoState;
   onSubmitHeroTask: () => void;
   onNegotiate: (taskId: string) => void;
+  demo?: DemoView | null;
 }) {
   const { state } = props;
   const log = [...state.log].reverse();
   const latest = state.negotiations.at(-1);
   const latestTask = latest && state.tasks.find((t) => t.task_id === latest.task_id);
   return (
-    <section className="panel inbox-panel" aria-label="인박스와 협상">
+    <section className={panelClass('inbox-panel', 'inbox', props.demo)} aria-label="인박스와 협상">
       <h2>인박스 · 협상 <span className="hint">Muse: {state.muse === 'meta' ? 'Meta Model API' : 'mock'}</span></h2>
       <button className="primary" onClick={props.onSubmitHeroTask}>＋ 태스크 투입: 6시에 민아 픽업 + 우유</button>
       {state.tasks.length === 0 ? (
@@ -158,7 +190,7 @@ function InboxPanel(props: {
       {latest && (
         <>
           <h3>협상 타임라인 <span className="hint">{latest.rounds}라운드 · 메시지 {latest.messages.length}개</span></h3>
-          <Timeline record={latest} task={latestTask} />
+          <Timeline record={latest} task={latestTask} reveal={props.demo?.reveal} />
         </>
       )}
       <details className="log-wrap">
@@ -177,14 +209,15 @@ function InboxPanel(props: {
   );
 }
 
-function AssignmentPanel({ state, onApprove }: { state: DemoState; onApprove: (id: string) => void }) {
+function AssignmentPanel({ state, onApprove, demo }: { state: DemoState; onApprove: (id: string) => void; demo?: DemoView | null }) {
   const latest = state.negotiations.at(-1);
-  if (!latest) {
+  const revealing = demo?.reveal != null && latest != null && demo.reveal < latest.messages.length;
+  if (!latest || revealing) {
     return (
-      <section className="panel assignment-panel" aria-label="역할 배정">
+      <section className={panelClass('assignment-panel', 'assignment', demo)} aria-label="역할 배정">
         <h2>역할 배정</h2>
         <div className="placeholder">
-          <p>태스크를 넣고 협상을 맡기면 Muse 3명이 offer → counter → commit으로 역할을 정해요.</p>
+          <p>{revealing ? 'Muse 3명이 협상하는 중이에요…' : '태스크를 넣고 협상을 맡기면 Muse 3명이 offer → counter → commit으로 역할을 정해요.'}</p>
           <p className="hint">결과에는 역할만 나오고, 위치는 나오지 않아요.</p>
         </div>
       </section>
@@ -193,7 +226,7 @@ function AssignmentPanel({ state, onApprove }: { state: DemoState; onApprove: (i
   const task = state.tasks.find((t) => t.task_id === latest.task_id);
   const { assignment } = latest;
   return (
-    <section className="panel assignment-panel" aria-label="역할 배정">
+    <section className={panelClass('assignment-panel', 'assignment', demo)} aria-label="역할 배정">
       <h2>역할 배정 <span className={`status status-${latest.status}`}>{latest.status === 'approved' ? '승인됨' : '승인 대기'}</span></h2>
       <ul className="roles">
         {assignment.assignments.map((a) => (
@@ -253,9 +286,18 @@ function Bar({ label, rate, chance }: { label: string; rate: number; chance: num
   );
 }
 
-function ReportPanel({ report, onShowReport }: { report: LeakReport | null; onShowReport: () => void }) {
+function ReportPanel({
+  report,
+  onShowReport,
+  demo,
+}: {
+  report: LeakReport | null;
+  onShowReport: () => void;
+  demo?: DemoView | null;
+}) {
+  const shown = demo?.conditions ?? (['off', 'filter_only', 'on'] as const);
   return (
-    <section className="panel report-panel" aria-label="누수 테스트">
+    <section className={panelClass('report-panel', 'report', demo)} aria-label="누수 테스트">
       <h2>
         누수 테스트 <span className="hint">협상 로그만 보고 집 · 학교가 서울 25개 구 중 어디인지 맞히기</span>
       </h2>
@@ -264,7 +306,7 @@ function ReportPanel({ report, onShowReport }: { report: LeakReport | null; onSh
       ) : (
         <>
           <div className="report-grid">
-            {(['off', 'filter_only', 'on'] as const).map((k) => {
+            {shown.map((k) => {
               const g = report.gates[k];
               return (
                 <div key={k} className={`report-card cond-${k}`}>
@@ -289,32 +331,67 @@ function ReportPanel({ report, onShowReport }: { report: LeakReport | null; onSh
   );
 }
 
-export function DemoPage(props: DemoPageProps) {
-  const { state, playing, error } = props;
+function DemoBar({ demo }: { demo: DemoView }) {
+  const last = demo.step === demo.total - 1;
   return (
-    <div className="demo">
+    <div className="demo-bar" role="region" aria-label="데모 진행">
+      <div className="demo-steps" aria-hidden>
+        {Array.from({ length: demo.total }, (_, i) => (
+          <span key={i} className={i < demo.step ? 'done' : i === demo.step ? 'now' : ''} />
+        ))}
+      </div>
+      <div className="demo-text">
+        <div className="demo-title">
+          {demo.step + 1}/{demo.total} · {demo.title}
+        </div>
+        <div className="demo-caption">{demo.caption}</div>
+      </div>
+      <div className="demo-actions">
+        <button className="primary" disabled={demo.busy} onClick={last ? demo.onExit : demo.onNext}>
+          {last ? '데모 끝내기' : '다음 ▶'}
+        </button>
+        {!last && <button onClick={demo.onExit}>나가기</button>}
+      </div>
+    </div>
+  );
+}
+
+export function DemoPage(props: DemoPageProps) {
+  const { state, playing, error, demo } = props;
+  return (
+    <div className={`demo${demo ? ' demo-on' : ''}`}>
       <header>
         <div className="brand">
           <strong>WRU</strong>
-          <span>좌표 없이 가족 일을 나누는 협상 레이어</span>
+          <span>좌표 없이, 가족의 Muse들이 할 일을 나눠요</span>
         </div>
         <div className="controls">
           <span className="clock" aria-label="시뮬 시계">{state.clock.label}</span>
-          <button onClick={() => props.onAdvance(1)}>+1분</button>
-          <button onClick={() => props.onAdvance(5)}>+5분</button>
-          <button onClick={() => props.onAdvance(10)}>+10분</button>
-          <button onClick={props.onTogglePlay}>{playing ? '⏸ 일시정지' : '▶ 재생'}</button>
-          <button onClick={props.onReset}>리셋</button>
+          {!demo && (
+            <>
+              <button onClick={() => props.onAdvance(1)}>+1분</button>
+              <button onClick={() => props.onAdvance(5)}>+5분</button>
+              <button onClick={() => props.onAdvance(10)}>+10분</button>
+              <button onClick={props.onTogglePlay}>{playing ? '⏸ 일시정지' : '▶ 재생'}</button>
+              <button onClick={props.onReset}>리셋</button>
+              {props.onStartDemo && (
+                <button className="demo-start" onClick={props.onStartDemo}>
+                  ▶ 데모 모드
+                </button>
+              )}
+            </>
+          )}
         </div>
       </header>
+      {demo && <DemoBar demo={demo} />}
       {error && <div className="error">{error}</div>}
       <main>
-        <MapPanel presence={state.presence} />
-        <InboxPanel state={state} onSubmitHeroTask={props.onSubmitHeroTask} onNegotiate={props.onNegotiate} />
-        <AssignmentPanel state={state} onApprove={props.onApprove} />
+        <MapPanel presence={state.presence} demo={demo} />
+        <InboxPanel state={state} onSubmitHeroTask={props.onSubmitHeroTask} onNegotiate={props.onNegotiate} demo={demo} />
+        <AssignmentPanel state={state} onApprove={props.onApprove} demo={demo} />
       </main>
-      <ReportPanel report={props.report} onShowReport={props.onShowReport} />
-      <footer>좌표·주소·학교명은 수집하지도, 표시하지도 않습니다. WhereCtx에서는 상태와 ETA만 받아요.</footer>
+      {(!demo || demo.focus === 'report') && <ReportPanel report={props.report} onShowReport={props.onShowReport} demo={demo} />}
+      <footer>좌표 · 주소 · 학교 이름은 받지도, 보여 주지도 않아요. WhereCtx에서는 상태와 ETA만 받습니다.</footer>
     </div>
   );
 }
