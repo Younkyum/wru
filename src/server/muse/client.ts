@@ -14,7 +14,26 @@ export interface AgentTurnInput {
   max_rounds: number;
   /** 지금까지 오간 협상 메시지 (모든 참여자가 똑같이 본다) */
   transcript: NegotiationMessage[];
+  /** 게이트 off 실험에서만 채워지는 상세 위치. 운영 경로(게이트 on)에서는 항상 없다 */
+  detail?: LocationDetail;
 }
+
+/** 게이트 off일 때 WhereCtx가 내주는 상세 위치 (누수 실험 전용) */
+export interface LocationDetail {
+  /** 지금 있는 동 이름 */
+  area: string;
+  /** 집까지 거리 */
+  distance_km: number;
+  /** 말투: 거리만 말하는지, 동네 이름을 어떤 식으로 섞는지 */
+  style: DetailStyle;
+}
+
+/**
+ * 게이트 off 실험의 말투. plain은 동네 이름 없이 거리 · 정확한 ETA만,
+ * 나머지는 동네 이름을 정식(area) · 어간(stem) · 띄어 쓰기(spaced) · 제로폭 문자(zw) · 역 이름(station)으로 섞는다.
+ */
+export const DETAIL_STYLES = ['plain', 'area', 'stem', 'spaced', 'zw', 'station'] as const;
+export type DetailStyle = (typeof DETAIL_STYLES)[number];
 
 export interface AgentDecision {
   action: AgentAction;

@@ -18,6 +18,8 @@ function render(state: any) {
       onSubmitHeroTask={noop}
       onNegotiate={noop}
       onApprove={noop}
+      report={null}
+      onShowReport={noop}
     />,
   );
 }

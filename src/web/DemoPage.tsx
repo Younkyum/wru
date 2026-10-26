@@ -2,6 +2,7 @@ import type { DemoState, PersonId, Presence, PresenceState, Task } from '../shar
 import { PERSON_IDS, PERSON_LABEL_KO, STATE_LABEL_KO, localHHMM } from '../shared/contracts';
 import type { Fit, MessageType, NegotiationMessage, NegotiationRecord } from '../shared/negotiation';
 import { REASON_CODE_TEXT } from '../shared/negotiation';
+import type { Condition, LeakReport } from '../shared/leak-report';
 
 export interface DemoPageProps {
   state: DemoState;
@@ -13,6 +14,8 @@ export interface DemoPageProps {
   onSubmitHeroTask: () => void;
   onNegotiate: (taskId: string) => void;
   onApprove: (negotiationId: string) => void;
+  report: LeakReport | null;
+  onShowReport: () => void;
 }
 
 // 거리 링은 상태 단계만 나타낸다. 실제 방향·거리와 무관한 고정 배치.
@@ -85,7 +88,7 @@ function messageText(m: NegotiationMessage, task: Task | undefined): string {
     case 'offer':
       return `${subtaskLabel(task, m.subtask_id)} 할게요 — ${m.reason}`;
     case 'counter':
-      return m.reason;
+      return `${subtaskLabel(task, m.subtask_id)} → ${subtaskLabel(task, m.alternative)} — ${m.reason}`;
     case 'commit':
       return `${subtaskLabel(task, m.subtask_id)} 확정`;
     case 'refuse':
@@ -227,6 +230,65 @@ function AssignmentPanel({ state, onApprove }: { state: DemoState; onApprove: (i
   );
 }
 
+const CONDITION_LABEL: Record<Condition, { title: string; desc: string }> = {
+  off: { title: '게이트 off', desc: '동네 이름 · 거리 · 정확한 ETA를 그대로 말할 때' },
+  filter_only: { title: '게이트 on · 에이전트가 위치를 알 때', desc: '말하려 해도 자유 문장은 내보내지 않음' },
+  on: { title: '게이트 on (WRU 기본)', desc: '상세 위치 거절 · 상태 템플릿 · ETA 구간' },
+};
+
+function pct(v: number): string {
+  return `${Math.round(v * 1000) / 10}%`;
+}
+
+function Bar({ label, rate, chance }: { label: string; rate: number; chance: number }) {
+  return (
+    <div className="bar-row">
+      <span className="bar-label">{label}</span>
+      <div className="bar-track">
+        <div className="bar-fill" style={{ width: `${Math.max(rate * 100, 0.8)}%` }} />
+        <div className="bar-chance" style={{ left: `${chance * 100}%` }} title="우연 수준" />
+      </div>
+      <span className="bar-value">{pct(rate)}</span>
+    </div>
+  );
+}
+
+function ReportPanel({ report, onShowReport }: { report: LeakReport | null; onShowReport: () => void }) {
+  return (
+    <section className="panel report-panel" aria-label="누수 테스트">
+      <h2>
+        누수 테스트 <span className="hint">협상 로그만 보고 집 · 학교가 서울 25개 구 중 어디인지 맞히기</span>
+      </h2>
+      {!report ? (
+        <button onClick={onShowReport}>누수 테스트 결과 보기</button>
+      ) : (
+        <>
+          <div className="report-grid">
+            {(['off', 'filter_only', 'on'] as const).map((k) => {
+              const g = report.gates[k];
+              return (
+                <div key={k} className={`report-card cond-${k}`}>
+                  <div className="report-title">{CONDITION_LABEL[k].title}</div>
+                  <div className="report-desc">{CONDITION_LABEL[k].desc}</div>
+                  <Bar label="집" rate={g.home_rate} chance={report.chance} />
+                  <Bar label="학교" rate={g.school_rate} chance={report.chance} />
+                  <div className="report-foot">
+                    로그 속 위치 단서 {g.location_hints}개 · 템플릿으로 바뀐 메시지 {g.filtered}/{g.messages}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <p className="report-note">
+            조건마다 {report.trials}회 (시드마다 집 · 학교 · 경로가 다름) · 적대자{' '}
+            {report.adversary === 'meta' ? 'Muse' : 'mock 추론기'} · 세로선은 우연 수준 {pct(report.chance)}
+          </p>
+        </>
+      )}
+    </section>
+  );
+}
+
 export function DemoPage(props: DemoPageProps) {
   const { state, playing, error } = props;
   return (
@@ -251,6 +313,7 @@ export function DemoPage(props: DemoPageProps) {
         <InboxPanel state={state} onSubmitHeroTask={props.onSubmitHeroTask} onNegotiate={props.onNegotiate} />
         <AssignmentPanel state={state} onApprove={props.onApprove} />
       </main>
+      <ReportPanel report={props.report} onShowReport={props.onShowReport} />
       <footer>좌표·주소·학교명은 수집하지도, 표시하지도 않습니다. WhereCtx에서는 상태와 ETA만 받아요.</footer>
     </div>
   );

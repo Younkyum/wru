@@ -26,12 +26,19 @@ JSON 객체 하나만 출력한다. 형식:
 {"type":"refuse","subtask_id":"...","reason_code":"${REASON_CODES.join('|')}"}
 {"type":"pass"}`;
 
+/** 누수 실험의 게이트 off 조건: 위치 금지 규칙 없이 자기 상세 위치를 준다 */
+const GATE_OFF_PROMPT = SYSTEM_PROMPT.replace(
+  /- 좌표, 주소[^\n]*\n/,
+  '- my_detail에 있는 동네 이름 · 거리 · 정확한 ETA를 reason에 자유롭게 써도 된다.\n',
+);
+
 function userPrompt(input: AgentTurnInput): string {
   const { presence, task } = input;
   return JSON.stringify({
     me: PERSON_LABEL_KO[input.self],
     my_state: presence.state,
-    my_eta: etaBucket(presence.eta_minutes),
+    my_eta: input.detail ? presence.eta_minutes : etaBucket(presence.eta_minutes),
+    ...(input.detail ? { my_detail: input.detail } : {}),
     minutes_to_deadline: minutesUntil(input.now, task.deadline),
     round: input.round,
     max_rounds: input.max_rounds,
@@ -55,8 +62,8 @@ export class MetaMuse implements MuseClient {
 
   async decide(input: AgentTurnInput): Promise<AgentDecision> {
     try {
-      const raw = await this.complete(SYSTEM_PROMPT, userPrompt(input));
-      const checked = validateAction(JSON.parse(raw), input.task);
+      const raw = await this.complete(input.detail ? GATE_OFF_PROMPT : SYSTEM_PROMPT, userPrompt(input));
+      const checked = validateAction(JSON.parse(raw), input.task, { leakCheck: !input.detail });
       if (checked.ok) return { action: checked.action };
     } catch {
       // 네트워크 · 파싱 실패도 아래 템플릿으로
