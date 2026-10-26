@@ -30,6 +30,10 @@ describe('누수 가드', () => {
     expect(leaks('서울대치초등학교 앞')).not.toHaveLength(0);
     expect(leaks('집까지 3.2km')).not.toHaveLength(0);
     expect(leaks('퇴근길 20분 남았어요')).toEqual([]);
+    expect(leaks('퇴근길 20분이면 도착')).toEqual([]);
+    for (const addr of ['강남대로 396 시티타워 앞', '반포대로 58 분수대', '테헤란로 152 초입', '세종대로 175']) {
+      expect(leaks(addr)).not.toHaveLength(0);
+    }
     expect(leaks('{"lat":37.5665,"lng":126.978}')).not.toHaveLength(0);
     expect(leaks('37.5665, 126.9780')).not.toHaveLength(0);
     expect(leaks('{"raw_coords":[1,2]}')).not.toHaveLength(0);

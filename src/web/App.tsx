@@ -79,9 +79,12 @@ export function App() {
       async () => setReport(await api.leakReport()),
       async () => {},
     ];
-    await run(actions[step]!);
-    setReveal(step === NEGOTIATION_STEP ? 0 : null);
-    setDemoStep(step);
+    const ok = await run(actions[step]!);
+    // API가 실패하면 컷을 넘기지 않는다 (에러는 화면 위에 표시)
+    if (ok) {
+      setReveal(step === NEGOTIATION_STEP ? 0 : null);
+      setDemoStep(step);
+    }
     setBusy(false);
   };
 
