@@ -62,3 +62,8 @@ export const PLACE_WORDS: string[] = [
     DISTRICTS.flatMap((d) => [d.name, ...(d.short.length >= 2 && !NOT_PLACE_WORDS.has(d.short) ? [d.short] : []), ...d.dongs]),
   ),
 ].sort((a, b) => b.length - a.length);
+
+/** 동 이름에서 '동'을 뗀 두 글자 이상 어간 (예: 망원). 라벨 검사 · 적대자가 쓴다 */
+export const PLACE_STEMS: string[] = [
+  ...new Set(DISTRICTS.flatMap((d) => d.dongs.map((dong) => dong.slice(0, -1)).filter((s) => s.length >= 2))),
+];

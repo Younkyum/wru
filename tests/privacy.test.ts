@@ -73,8 +73,27 @@ describe('메시지 필터', () => {
     '합정역에서 픽업',
     '대치초 앞 픽업',
     '올림픽대로 쪽 픽업',
+    '민아 픽업 (망원 쪽)',
+    '민아 픽업 (대치)',
+    '민아 픽업 (Mangwon)',
+    '민아 픽업 (MAPO-GU)',
+    '망원시장 앞',
+    '서울숲 픽업',
+    '홍대입구 픽업',
+    '2호선 픽업',
+    '이마트 앞 픽업',
   ])('인박스 라벨 검사가 막는다: %s', (label) => {
     expect(labelHints(label).length).toBeGreaterThan(0);
+  });
+
+  it('알려진 오탐: "동"으로 끝나는 일상어 라벨은 거절된다 (감수)', () => {
+    expect(labelHints('봉사활동 데려가기').length).toBeGreaterThan(0);
+  });
+
+  it('counter 이유에는 라벨이 들어가지 않는다', () => {
+    const labelled = { ...task, subtasks: [{ id: 'pickup', label: '라벨A', kind: 'pickup' as const }, { id: 'milk', label: '라벨B', kind: 'errand' as const }] };
+    const { body } = filterMessage({ type: 'counter', subtask_id: 'pickup', alternative: 'milk', fit: 'high', reason: 'x' }, dad, labelled);
+    expect((body as { reason: string }).reason).not.toMatch(/라벨/);
   });
 
   it('평범한 라벨은 통과', () => {

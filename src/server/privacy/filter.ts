@@ -7,7 +7,7 @@ import type { Presence, Subtask, Task } from '../../shared/contracts.js';
 import { findLeaks } from '../../shared/leak.js';
 import type { MessageBody } from '../../shared/negotiation.js';
 import { counterReason, offerReason } from '../muse/policy.js';
-import { PLACE_WORDS } from './gazetteer.js';
+import { PLACE_STEMS, PLACE_WORDS } from './gazetteer.js';
 
 export type Gate = 'on' | 'off';
 
@@ -46,11 +46,24 @@ export function locationHints(text: string): string[] {
   return [...new Set(hints)];
 }
 
-/** 태스크 라벨 검사: 위치 단서에 더해 "○○동/역/로/길" 꼴 단어도 막는다 */
+/** 라벨에 흔한 장소 꼴 (노선 · 역 출구 · 시장 · 공원 · 마트 · 아파트 단지 등) */
+const LANDMARK = /호선|입구|시장|공원|마트|아파트|단지|타워|병원|숲(?![가-힣])/;
+
+/**
+ * 태스크 라벨 검사. 라벨은 사용자가 쓴 자유 문장이라 통지 · 이벤트 로그에 그대로 보이므로 넓게 막는다.
+ * 위치 단서 + 동 이름 어간(예: 망원) + "○○동/역/로/길" 꼴 + 장소 꼴 + 로마자.
+ * "봉사활동"처럼 '동'으로 끝나는 일상어도 걸리는 오탐은 감수한다.
+ */
 export function labelHints(label: string): string[] {
   const hints = locationHints(label);
-  const suffix = PLACE_SUFFIX.exec(label.normalize('NFKC'));
+  const t = normalize(label);
+  const stem = PLACE_STEMS.find((s) => t.includes(s));
+  if (stem) hints.push(`지명 어간: ${stem}`);
+  const suffix = PLACE_SUFFIX.exec(clean(label));
   if (suffix) hints.push(`지명 꼴: ${suffix[0]}`);
+  const landmark = LANDMARK.exec(clean(label)) ?? LANDMARK.exec(t);
+  if (landmark) hints.push(`장소 꼴: ${landmark[0]}`);
+  if (/[A-Za-z]/.test(clean(label))) hints.push('로마자');
   return hints;
 }
 
@@ -66,14 +79,10 @@ export interface FilterResult {
 export function filterMessage(body: MessageBody, presence: Presence, task: Task): FilterResult {
   if (body.type !== 'offer' && body.type !== 'counter') return { body, filtered: false };
   const find = (id: string) => task.subtasks.find((s) => s.id === id)!;
-  let reason =
+  const reason =
     body.type === 'offer'
       ? offerReason(presence, find(body.subtask_id))
       : counterReason(presence, find(body.subtask_id), find(body.alternative));
-  // 안전망: counter 템플릿에는 라벨이 들어가므로, 그래도 단서가 보이면 라벨 없는 문장으로
-  if (body.type === 'counter' && locationHints(reason).length) {
-    reason = `더 잘 맞는 제안이 있어서 다른 일을 맡을게요 — ${offerReason(presence, find(body.alternative))}`;
-  }
   return { body: { ...body, reason }, filtered: reason !== body.reason };
 }
 

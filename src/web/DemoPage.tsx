@@ -88,7 +88,7 @@ function messageText(m: NegotiationMessage, task: Task | undefined): string {
     case 'offer':
       return `${subtaskLabel(task, m.subtask_id)} 할게요 — ${m.reason}`;
     case 'counter':
-      return m.reason;
+      return `${subtaskLabel(task, m.subtask_id)} → ${subtaskLabel(task, m.alternative)} — ${m.reason}`;
     case 'commit':
       return `${subtaskLabel(task, m.subtask_id)} 확정`;
     case 'refuse':

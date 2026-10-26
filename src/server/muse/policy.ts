@@ -109,6 +109,11 @@ export function topic(word: string): string {
   return `${word}${hasBatchim ? '은' : '는'}`;
 }
 
+const KIND_WORD: Record<SubtaskKind, string> = { pickup: '픽업', errand: '심부름' };
+
+/** counter 이유. 사용자가 쓴 라벨은 넣지 않고 일의 종류만 말한다 (라벨이 메시지로 새지 않게) */
 export function counterReason(presence: Presence, from: Subtask, alternative: Subtask, detail?: LocationDetail): string {
-  return `${topic(from.label)} 더 잘 맞는 제안이 있어요. 대신 ${alternative.label} — ${offerReason(presence, alternative, detail)}`;
+  const [a, b] = [KIND_WORD[subtaskKind(from)], KIND_WORD[subtaskKind(alternative)]];
+  const alt = a === b ? '다른 일' : b;
+  return `${topic(a)} 더 잘 맞는 제안이 있어요. 대신 ${alt} — ${offerReason(presence, alternative, detail)}`;
 }
