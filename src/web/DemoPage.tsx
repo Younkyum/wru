@@ -1,5 +1,5 @@
 import type { DemoState, PersonId, Presence, PresenceState, Task } from '../shared/contracts';
-import { PERSON_IDS, PERSON_LABEL_KO, STATE_LABEL_KO } from '../shared/contracts';
+import { PERSON_IDS, PERSON_LABEL_KO, STATE_LABEL_KO, localHHMM } from '../shared/contracts';
 import type { Fit, MessageType, NegotiationMessage, NegotiationRecord } from '../shared/negotiation';
 import { REASON_CODE_TEXT } from '../shared/negotiation';
 
@@ -134,7 +134,7 @@ function InboxPanel(props: {
               <li key={t.task_id} className="task">
                 <div className="task-head">
                   <code>{t.task_id}</code>
-                  <span className="deadline">마감 {t.deadline.slice(11, 16)}</span>
+                  <span className="deadline">마감 {localHHMM(t.deadline)}</span>
                 </div>
                 <div className="chips">
                   {t.subtasks.map((s) => (

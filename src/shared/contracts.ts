@@ -94,6 +94,13 @@ export const FORBIDDEN_LOCATION_KEYS = [
   'geo',
 ] as const;
 
+/** ISO8601 → 서울 기준 HH:MM */
+export function localHHMM(iso: string): string {
+  return new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Seoul', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(
+    new Date(iso),
+  );
+}
+
 export function isPersonId(value: string): value is PersonId {
   return (PERSON_IDS as readonly string[]).includes(value);
 }

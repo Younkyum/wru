@@ -16,6 +16,8 @@ export const LEAK_RULES: LeakRule[] = [
   { name: '도로명 주소', pattern: /[가-힣0-9]+(대로|로|길)\s?\d+(번길|-\d+)?/ },
   { name: '번지', pattern: /\d+\s?번지/ },
   { name: '학교 고유명', pattern: /[가-힣A-Za-z]{2,}(초등학교|중학교|고등학교|초교|중교|고교)/ },
+  { name: '학교 약칭', pattern: /[가-힣]{2,}(초|중|고)\s?(앞|정문|후문|근처)/ },
+  { name: '역 이름', pattern: /[가-힣]{2,}역(?![가-힣])/ },
   { name: '거리', pattern: /\d+(\.\d+)?\s?(km|㎞|킬로|미터)|\d+\s?m\b/i },
 ];
 

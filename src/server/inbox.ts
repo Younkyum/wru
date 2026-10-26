@@ -1,5 +1,6 @@
 // 태스크 인박스 (메모리 저장).
 
+import { findLeaks } from '../shared/leak.js';
 import { SUBTASK_KINDS, findForbiddenKey, type Subtask, type Task, type TaskConstraints } from '../shared/contracts.js';
 
 export interface TaskInput {
@@ -55,6 +56,7 @@ export class TaskInbox {
       if (!s || typeof s.id !== 'string' || !ID.test(s.id) || typeof s.label !== 'string' || !s.label.trim()) {
         return { ok: false, error: 'subtask에는 id와 label이 필요해요.' };
       }
+      if (findLeaks(s.label).length) return { ok: false, error: 'subtask 이름에 위치 정보를 넣을 수 없어요.' };
       if (subtasks.some((x) => x.id === s.id)) return { ok: false, error: `subtask id가 겹쳐요: ${s.id}` };
       if (s.kind !== undefined && !(SUBTASK_KINDS as readonly string[]).includes(s.kind)) {
         return { ok: false, error: 'subtask kind는 pickup 또는 errand여야 해요.' };

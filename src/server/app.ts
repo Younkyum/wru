@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import {
   PERSON_LABEL_KO,
+  localHHMM,
   isForbiddenLocationKey,
   isPersonId,
   type DemoState,
@@ -58,7 +59,7 @@ export function createApp(options: AppOptions = {}) {
   const logSubmit = (result: SubmitResult) => {
     if (!result.ok) return;
     const labels = result.task.subtasks.map((s) => s.label).join(' + ');
-    log.add('task_received', `인박스에 태스크 도착: ${labels} (마감 ${result.task.deadline.slice(11, 16)})`);
+    log.add('task_received', `인박스에 태스크 도착: ${labels} (마감 ${localHHMM(result.task.deadline)})`);
   };
 
   const app = new Hono().basePath('/api');

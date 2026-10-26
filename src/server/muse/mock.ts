@@ -31,7 +31,7 @@ export function readTranscript(transcript: NegotiationMessage[]) {
 }
 
 /** a가 b보다 우선인가: 적합도가 높거나, 같으면 사람 순서가 앞인 쪽 */
-function beats(aFit: Fit, aPerson: PersonId, bFit: Fit, bPerson: PersonId): boolean {
+export function beats(aFit: Fit, aPerson: PersonId, bFit: Fit, bPerson: PersonId): boolean {
   if (FIT_SCORE[aFit] !== FIT_SCORE[bFit]) return FIT_SCORE[aFit] > FIT_SCORE[bFit];
   return PERSON_IDS.indexOf(aPerson) < PERSON_IDS.indexOf(bPerson);
 }

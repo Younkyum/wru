@@ -234,3 +234,60 @@ describe('샘플 협상 로그', () => {
     expect(leaks(text)).toEqual([]);
   });
 });
+
+describe('리뷰 반영', () => {
+  it('엔진은 더 약한 claim의 commit을 막는다 (실제 Muse가 규칙을 어겨도)', async () => {
+    // 엄마는 라운드 2에서 바로 commit하려 하지만 아빠의 high offer에 밀린다
+    const scripted: MuseClient = {
+      kind: 'meta',
+      decide: async (input) => {
+        if (input.self === 'mom') {
+          return { action: input.round === 1 ? { type: 'offer', subtask_id: 'pickup', fit: 'low', reason: '집에서 갈게요' } : { type: 'commit', subtask_id: 'pickup' } };
+        }
+        return { action: decideMock(input) };
+      },
+    };
+    const r = await runNegotiation({ task: heroTask(), agents: agentsFrom(HERO_PRESENCE, scripted), now: NOW });
+    expect(r.messages.find((m) => m.from === 'mom' && m.round === 2)).toMatchObject({ type: 'refuse', reason_code: 'better_fit_available' });
+    expect(r.assignment.assignments.find((a) => a.subtask === 'pickup')?.person).toBe('dad');
+  });
+
+  it('같은 라운드에 낸 claim은 바로 commit할 수 없다', async () => {
+    const hasty: MuseClient = {
+      kind: 'meta',
+      decide: async (input) =>
+        input.transcript.some((m) => m.from === input.self)
+          ? { action: { type: 'commit', subtask_id: 'pickup' } }
+          : { action: { type: 'offer', subtask_id: 'pickup', fit: 'high', reason: '갈게요' } },
+    };
+    const r = await runNegotiation({ task: heroTask(), agents: agentsFrom(HERO_PRESENCE, hasty).slice(0, 1), now: NOW, max_rounds: 2 });
+    expect(r.messages.map((m) => m.type)).toEqual(['offer', 'commit']);
+    expect(r.messages[1]!.round).toBe(2);
+  });
+
+  it('시간 예산을 넘기면 남은 차례는 템플릿으로', async () => {
+    let calls = 0;
+    const slow: MuseClient = { kind: 'meta', decide: async (input) => { calls += 1; return { action: decideMock(input) }; } };
+    const r = await runNegotiation({ task: heroTask(), agents: agentsFrom(HERO_PRESENCE, slow), now: NOW, budget_ms: -1 });
+    expect(calls).toBe(0);
+    expect(r.messages.every((m) => m.fallback)).toBe(true);
+    expect(r.assignment.assignments).toHaveLength(2);
+  });
+
+  it('라벨에 위치가 있으면 인박스가 거절', async () => {
+    const app = makeApp();
+    for (const label of ['대치초등학교 민아 픽업', '강남역 앞 픽업', '대치초 앞 픽업']) {
+      const res = await req(app, 'POST', '/api/tasks', { deadline: '18:00', subtasks: [{ id: 'pickup', label }] });
+      expect(res.status).toBe(400);
+    }
+  });
+
+  it('UTC 마감도 서울 시각으로 통지', async () => {
+    const r = await runNegotiation({
+      task: heroTask({ deadline: '2026-10-26T09:00:00Z' }),
+      agents: agentsFrom(HERO_PRESENCE),
+      now: NOW,
+    });
+    expect(r.assignment.notify.dad).toContain('18:00까지');
+  });
+});
