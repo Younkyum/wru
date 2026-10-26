@@ -1,9 +1,9 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import type { DemoState, PersonId, Presence, PresenceState, Task } from '../shared/contracts';
 import { PERSON_IDS, PERSON_LABEL_KO, STATE_LABEL_KO, localHHMM } from '../shared/contracts';
+import type { Condition, LeakReport } from '../shared/leak-report';
 import type { Fit, MessageType, NegotiationMessage, NegotiationRecord } from '../shared/negotiation';
 import { REASON_CODE_TEXT } from '../shared/negotiation';
-import type { Condition, LeakReport } from '../shared/leak-report';
 import type { PanelName } from './demoSteps';
 
 export interface DemoPageProps {
@@ -29,7 +29,7 @@ export interface DemoView {
   title: string;
   caption: string;
   focus: PanelName;
-  /** 협상 타임라인에서 지금까지 보여 줄 메시지 수 (애니메이션) */
+  /** 협상 메시지를 지금까지 몇 개 보여 줄지 (애니메이션) */
   reveal: number | null;
   /** 누수 패널에서 보여 줄 조건 */
   conditions: Condition[];
@@ -38,82 +38,32 @@ export interface DemoView {
   onExit: () => void;
 }
 
-function panelClass(base: string, name: PanelName, demo?: DemoView | null): string {
-  if (!demo) return `panel ${base}`;
-  return `panel ${base} ${demo.focus === name ? 'spotlight' : 'dim'}`;
-}
+const INITIAL: Record<PersonId, string> = { mom: '엄', dad: '아', sibling: '형' };
 
-// 거리 링은 상태 단계만 나타낸다. 실제 방향·거리와 무관한 고정 배치.
-const RING_RADIUS: Record<PresenceState, number> = { home: 0, near_home: 92, in_transit: 150, unknown: 150 };
-const PERSON_ANGLE: Record<PersonId, number> = { mom: -90, dad: 30, sibling: 150 };
-const PERSON_EMOJI: Record<PersonId, string> = { mom: '👩', dad: '👨', sibling: '🧑' };
-const HOME_SLOT: Record<PersonId, [number, number]> = { mom: [-26, 30], dad: [0, 38], sibling: [26, 30] };
-const C = 180;
-
-function slot(p: Presence): [number, number] {
-  if (p.state === 'home') {
-    const [dx, dy] = HOME_SLOT[p.person_id];
-    return [C + dx, C + dy];
-  }
-  const rad = (PERSON_ANGLE[p.person_id] * Math.PI) / 180;
-  const r = RING_RADIUS[p.state];
-  return [Math.round(C + r * Math.cos(rad)), Math.round(C + r * Math.sin(rad))];
+function Avatar({ person, size = 'md' }: { person: PersonId; size?: 'sm' | 'md' }) {
+  return (
+    <span className={`avatar avatar-${person} avatar-${size}`} aria-hidden>
+      {INITIAL[person]}
+    </span>
+  );
 }
 
 function etaText(p: Presence): string {
-  return p.eta_minutes === null ? '—' : `약 ${p.eta_minutes}분`;
-}
-
-function MapPanel({ presence, demo }: { presence: Presence[]; demo?: DemoView | null }) {
-  return (
-    <section className={panelClass('map-panel', 'map', demo)} aria-label="맵">
-      <h2>맵 <span className="hint">상태만 · 핀 없음</span></h2>
-      <svg viewBox="0 0 360 360" className="map" role="img" aria-label="가족 상태 링">
-        <circle cx={C} cy={C} r={150} className="ring ring-transit" />
-        <circle cx={C} cy={C} r={92} className="ring ring-near" />
-        <circle cx={C} cy={C} r={44} className="ring ring-home" />
-        <text x={C} y={C - 156} className="ring-label">이동 중</text>
-        <text x={C} y={C - 98} className="ring-label">집 근처</text>
-        <text x={C} y={C + 6} className="home-icon">🏠</text>
-        {presence.map((p) => {
-          const [x, y] = slot(p);
-          return (
-            <g key={p.person_id} transform={`translate(${x} ${y})`} className={`avatar state-${p.state}`}>
-              <circle r={17} />
-              <text y={6} className="avatar-emoji">{PERSON_EMOJI[p.person_id]}</text>
-              {p.state !== 'home' && (
-                <text y={33} className="avatar-label">{`${PERSON_LABEL_KO[p.person_id]} · ${etaText(p)}`}</text>
-              )}
-            </g>
-          );
-        })}
-      </svg>
-      <ul className="badges">
-        {presence.map((p) => (
-          <li key={p.person_id} data-person={p.person_id}>
-            <span className="who">{PERSON_EMOJI[p.person_id]} {PERSON_LABEL_KO[p.person_id]}</span>
-            <span className={`badge state-${p.state}`}>{STATE_LABEL_KO[p.state]}</span>
-            <span className="eta">ETA {etaText(p)}</span>
-          </li>
-        ))}
-      </ul>
-    </section>
-  );
+  return p.eta_minutes === null ? '지금 집이에요' : `집까지 약 ${p.eta_minutes}분`;
 }
 
 function subtaskLabel(task: Task | undefined, id: string): string {
   return task?.subtasks.find((s) => s.id === id)?.label ?? id;
 }
 
-const TYPE_LABEL: Record<MessageType, string> = { offer: 'offer', counter: 'counter', commit: 'commit', refuse: 'refuse' };
 const FIT_LABEL: Record<Fit, string> = { high: '적합 높음', medium: '적합 보통', low: '적합 낮음' };
 
 function messageText(m: NegotiationMessage, task: Task | undefined): string {
   switch (m.type) {
     case 'offer':
-      return `${subtaskLabel(task, m.subtask_id)} 할게요 — ${m.reason}`;
+      return `${subtaskLabel(task, m.subtask_id)} 할게요`;
     case 'counter':
-      return `${subtaskLabel(task, m.subtask_id)} → ${subtaskLabel(task, m.alternative)} — ${m.reason}`;
+      return `${subtaskLabel(task, m.subtask_id)} 대신 ${subtaskLabel(task, m.alternative)}`;
     case 'commit':
       return `${subtaskLabel(task, m.subtask_id)} 확정`;
     case 'refuse':
@@ -121,145 +71,230 @@ function messageText(m: NegotiationMessage, task: Task | undefined): string {
   }
 }
 
-function Timeline({ record, task, reveal }: { record: NegotiationRecord; task: Task | undefined; reveal?: number | null }) {
-  const shown = reveal == null ? record.messages : record.messages.slice(0, reveal);
-  const list = useRef<HTMLOListElement>(null);
-  // 새 메시지가 보이면 타임라인 안에서 맨 아래로
-  useEffect(() => {
-    if (reveal != null && list.current) list.current.scrollTop = list.current.scrollHeight;
-  }, [reveal]);
+function messageDetail(m: NegotiationMessage): string | null {
+  return m.type === 'offer' || m.type === 'counter' ? `${m.reason} · ${FIT_LABEL[m.fit]}` : null;
+}
+
+function TypeBadge({ type }: { type: MessageType }) {
+  return <span className={`type type-${type}`}>{type}</span>;
+}
+
+// ── 폰: 각자 자기 상태와 자기 Muse가 한 말만 본다 ──────────────────────
+
+const RING: Record<PresenceState, number> = { home: 0, near_home: 27, in_transit: 44, unknown: 44 };
+
+/** 자기 점 하나만 찍힌 추상 링. 방향은 의미 없고 거리 단계만 나타낸다 */
+function SelfRing({ presence }: { presence: Presence }) {
+  const r = RING[presence.state];
+  const x = Math.round(50 + r * Math.cos(-Math.PI / 4));
+  const y = Math.round(50 + r * Math.sin(-Math.PI / 4));
   return (
-    <ol className="timeline" aria-label="협상 타임라인" ref={list}>
-      {shown.map((m, i) => (
-        <li key={m.id} className={`msg msg-${m.type}${reveal != null && i === shown.length - 1 ? ' msg-new' : ''}`}>
-          {(i === 0 || record.messages[i - 1]!.round !== m.round) && <div className="round">라운드 {m.round}</div>}
-          <div className="msg-row">
-            <span className={`type-badge type-${m.type}`}>{TYPE_LABEL[m.type]}</span>
-            <span className="from">{PERSON_EMOJI[m.from]} {PERSON_LABEL_KO[m.from]}</span>
-            {(m.type === 'offer' || m.type === 'counter') && <span className="fit">{FIT_LABEL[m.fit]}</span>}
-          </div>
-          <div className="msg-text">{messageText(m, task)}</div>
-        </li>
-      ))}
-    </ol>
+    <svg viewBox="0 0 100 100" className="self-ring" aria-hidden>
+      <circle cx={50} cy={50} r={44} className="ring" />
+      <circle cx={50} cy={50} r={27} className="ring" />
+      <circle cx={50} cy={50} r={12} className={`ring-home${presence.state === 'home' ? ' is-home' : ''}`} />
+      <path d="M44 52 L50 46 L56 52 L56 57 L44 57 Z" className="house" />
+      {presence.state !== 'home' && <circle cx={x} cy={y} r={6} className={`dot dot-${presence.state}`} />}
+    </svg>
   );
 }
 
-function InboxPanel(props: {
+interface PhoneProps {
+  person: PersonId;
+  presence: Presence;
+  clock: string;
+  task: Task | undefined;
+  messages: NegotiationMessage[];
+  role: string | null;
+}
+
+function Phone({ person, presence, clock, task, messages, role }: PhoneProps) {
+  const feed = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (feed.current) feed.current.scrollTop = feed.current.scrollHeight;
+  }, [messages.length, role]);
+  return (
+    <article className={`phone phone-${person}`} aria-label={`${PERSON_LABEL_KO[person]}의 폰`}>
+      <div className="phone-screen">
+        <div className="phone-status">
+          <span>{clock}</span>
+          <span className="notch" />
+          <span>WRU</span>
+        </div>
+        <header className="phone-head">
+          <Avatar person={person} />
+          <div>
+            <div className="phone-owner">{PERSON_LABEL_KO[person]}</div>
+            <div className="phone-sub">내 상태 · 내 Muse</div>
+          </div>
+        </header>
+        <section className="me zone-presence">
+          <SelfRing presence={presence} />
+          <div>
+            <div className={`state state-${presence.state}`}>{STATE_LABEL_KO[presence.state]}</div>
+            <div className="eta">{etaText(presence)}</div>
+          </div>
+        </section>
+        <div className="feed zone-feed" ref={feed}>
+          {!task && <p className="feed-empty">다른 가족의 위치는 이 폰에 없어요.</p>}
+          {task && (
+            <div className="note">
+              <div className="note-title">가족 일 · {localHHMM(task.deadline)}까지</div>
+              <div className="note-body">{task.subtasks.map((s) => s.label).join(' + ')}</div>
+            </div>
+          )}
+          {messages.map((m) => (
+            <div key={m.id} className="bubble">
+              <TypeBadge type={m.type} />
+              <span>{messageText(m, task)}</span>
+            </div>
+          ))}
+          {role && <div className={`role-card zone-role${role.includes('없어요') ? ' role-none' : ''}`}>{role}</div>}
+        </div>
+      </div>
+    </article>
+  );
+}
+
+// ── WRU 바: 태스크 → 협상 → 결과 → 승인 ────────────────────────────
+
+interface HubProps {
   state: DemoState;
+  task: Task | undefined;
+  latest: NegotiationRecord | undefined;
+  revealing: boolean;
+  shown: number;
   onSubmitHeroTask: () => void;
   onNegotiate: (taskId: string) => void;
-  demo?: DemoView | null;
-}) {
-  const { state } = props;
-  const log = [...state.log].reverse();
-  const latest = state.negotiations.at(-1);
-  const latestTask = latest && state.tasks.find((t) => t.task_id === latest.task_id);
+  onApprove: (id: string) => void;
+}
+
+function Hub({ state, task, latest, revealing, shown, onSubmitHeroTask, onNegotiate, onApprove }: HubProps) {
+  let body: ReactNode;
+  if (!task) {
+    body = (
+      <>
+        <div className="hub-text">
+          <div className="hub-title">가족 일이 없어요</div>
+          <div className="hub-sub">태스크를 넣으면 Muse 3명이 역할을 나눠요</div>
+        </div>
+        <button className="btn btn-primary" onClick={onSubmitHeroTask}>
+          ＋ 6시에 민아 픽업 + 우유
+        </button>
+      </>
+    );
+  } else if (!latest || latest.task_id !== task.task_id) {
+    body = (
+      <>
+        <div className="hub-text">
+          <div className="hub-title">
+            {task.subtasks.map((s) => s.label).join(' + ')}
+            <span className="hub-deadline">{localHHMM(task.deadline)}까지</span>
+          </div>
+          <div className="hub-sub">
+            {task.constraints.max_subtasks_per_person === 1 ? '한 사람은 한 가지 일만' : '인원 제한 없음'} · {task.task_id}
+          </div>
+        </div>
+        <button className="btn btn-primary" onClick={() => onNegotiate(task.task_id)}>
+          Muse 3명에게 맡기기
+        </button>
+      </>
+    );
+  } else if (revealing) {
+    body = (
+      <div className="hub-text">
+        <div className="hub-title">Muse 3명이 협상하는 중</div>
+        <div className="hub-sub">
+          메시지 {shown}/{latest.messages.length}
+        </div>
+      </div>
+    );
+  } else {
+    body = (
+      <>
+        <div className="hub-roles">
+          {latest.assignment.assignments.map((a) => (
+            <span key={a.subtask} className="hub-role">
+              <Avatar person={a.person} size="sm" />
+              {PERSON_LABEL_KO[a.person]} = {subtaskLabel(task, a.subtask)}
+            </span>
+          ))}
+          {latest.assignment.unassigned.map((id) => (
+            <span key={id} className="hub-role hub-role-none">
+              미배정 · {subtaskLabel(task, id)}
+            </span>
+          ))}
+        </div>
+        {latest.status === 'approved' ? (
+          <span className="hub-ok">승인됨 · 각자 자기 역할만 받았어요</span>
+        ) : (
+          <button className="btn btn-primary" onClick={() => onApprove(latest.negotiation_id)}>
+            이대로 승인하고 통지 보내기
+          </button>
+        )}
+      </>
+    );
+  }
   return (
-    <section className={panelClass('inbox-panel', 'inbox', props.demo)} aria-label="인박스와 협상">
-      <h2>인박스 · 협상 <span className="hint">Muse: {state.muse === 'meta' ? 'Meta Model API' : 'mock'}</span></h2>
-      <button className="primary" onClick={props.onSubmitHeroTask}>＋ 태스크 투입: 6시에 민아 픽업 + 우유</button>
-      {state.tasks.length === 0 ? (
-        <p className="empty">아직 들어온 태스크가 없어요.</p>
+    <section className="hub zone-hub" aria-label="WRU 인박스와 역할">
+      <span className="hub-label">WRU</span>
+      {body}
+      <span className="hub-muse">Muse: {state.muse === 'meta' ? 'Meta Model API' : 'mock'}</span>
+    </section>
+  );
+}
+
+// ── 오른쪽 열: Muse 채널 / 누수 테스트 ─────────────────────────────
+
+interface ChannelProps {
+  messages: NegotiationMessage[];
+  task: Task | undefined;
+  total: number;
+  log: DemoState['log'];
+}
+
+function Channel({ messages, task, total, log }: ChannelProps) {
+  const list = useRef<HTMLOListElement>(null);
+  useEffect(() => {
+    if (list.current) list.current.scrollTop = list.current.scrollHeight;
+  }, [messages.length]);
+  return (
+    <>
+      <div className="side-head">
+        <h2>Muse 채널</h2>
+        <span>{total ? `메시지 ${messages.length}/${total}` : 'WRU가 중계하는 메시지 전부'}</span>
+      </div>
+      {messages.length === 0 ? (
+        <p className="side-empty">아직 오간 메시지가 없어요. 여기에는 메시지만 지나가고, 위치는 지나가지 않아요.</p>
       ) : (
-        <ul className="tasks">
-          {state.tasks.map((t) => {
-            const negotiated = state.negotiations.some((n) => n.task_id === t.task_id);
-            return (
-              <li key={t.task_id} className="task">
-                <div className="task-head">
-                  <code>{t.task_id}</code>
-                  <span className="deadline">마감 {localHHMM(t.deadline)}</span>
-                </div>
-                <div className="chips">
-                  {t.subtasks.map((s) => (
-                    <span key={s.id} className="chip">{s.label}</span>
-                  ))}
-                </div>
-                {t.constraints.max_subtasks_per_person !== null && (
-                  <div className="constraint">한 사람당 최대 {t.constraints.max_subtasks_per_person}개</div>
-                )}
-                {!negotiated && (
-                  <button className="negotiate" onClick={() => props.onNegotiate(t.task_id)}>Muse 3명에게 협상 맡기기</button>
-                )}
-              </li>
-            );
-          })}
-        </ul>
-      )}
-      {latest && (
-        <>
-          <h3>협상 타임라인 <span className="hint">{latest.rounds}라운드 · 메시지 {latest.messages.length}개</span></h3>
-          <Timeline record={latest} task={latestTask} reveal={props.demo?.reveal} />
-        </>
-      )}
-      <details className="log-wrap">
-        <summary>이벤트 로그 ({log.length})</summary>
-        <ol className="log">
-          {log.map((e) => (
-            <li key={e.id} className={`log-${e.kind}`}>
-              <time>{e.at.slice(11, 16)}</time>
-              <span className="kind">{e.kind}</span>
-              <span>{e.text}</span>
+        <ol className="channel" ref={list} aria-label="협상 타임라인">
+          {messages.map((m, i) => (
+            <li key={m.id} className="msg">
+              {(i === 0 || messages[i - 1]!.round !== m.round) && <div className="round">라운드 {m.round}</div>}
+              <div className="msg-row">
+                <Avatar person={m.from} size="sm" />
+                <span className="msg-from">{PERSON_LABEL_KO[m.from]}</span>
+                <TypeBadge type={m.type} />
+              </div>
+              <div className="msg-text">{messageText(m, task)}</div>
+              {messageDetail(m) && <div className="msg-detail">{messageDetail(m)}</div>}
             </li>
           ))}
         </ol>
-      </details>
-    </section>
-  );
-}
-
-function AssignmentPanel({ state, onApprove, demo }: { state: DemoState; onApprove: (id: string) => void; demo?: DemoView | null }) {
-  const latest = state.negotiations.at(-1);
-  const revealing = demo?.reveal != null && latest != null && demo.reveal < latest.messages.length;
-  if (!latest || revealing) {
-    return (
-      <section className={panelClass('assignment-panel', 'assignment', demo)} aria-label="역할 배정">
-        <h2>역할 배정</h2>
-        <div className="placeholder">
-          <p>{revealing ? 'Muse 3명이 협상하는 중이에요…' : '태스크를 넣고 협상을 맡기면 Muse 3명이 offer → counter → commit으로 역할을 정해요.'}</p>
-          <p className="hint">결과에는 역할만 나오고, 위치는 나오지 않아요.</p>
-        </div>
-      </section>
-    );
-  }
-  const task = state.tasks.find((t) => t.task_id === latest.task_id);
-  const { assignment } = latest;
-  return (
-    <section className={panelClass('assignment-panel', 'assignment', demo)} aria-label="역할 배정">
-      <h2>역할 배정 <span className={`status status-${latest.status}`}>{latest.status === 'approved' ? '승인됨' : '승인 대기'}</span></h2>
-      <ul className="roles">
-        {assignment.assignments.map((a) => (
-          <li key={a.subtask}>
-            <span className="role-person">{PERSON_EMOJI[a.person]} {PERSON_LABEL_KO[a.person]}</span>
-            <span className="role-arrow">=</span>
-            <span className="role-task">{subtaskLabel(task, a.subtask)}</span>
-          </li>
-        ))}
-        {assignment.unassigned.map((id) => (
-          <li key={id} className="unassigned">
-            <span className="role-person">미배정</span>
-            <span className="role-arrow">·</span>
-            <span className="role-task">{subtaskLabel(task, id)}</span>
-          </li>
-        ))}
-      </ul>
-      {latest.status === 'awaiting_approval' ? (
-        <button className="primary" onClick={() => onApprove(latest.negotiation_id)}>이대로 승인하고 통지 보내기</button>
-      ) : (
-        <>
-          <h3>사람별 통지 <span className="hint">각자 자기 역할만 받아요</span></h3>
-          <ul className="notify">
-            {PERSON_IDS.map((p) => (
-              <li key={p} className="phone" data-person={p}>
-                <div className="phone-head">{PERSON_EMOJI[p]} {PERSON_LABEL_KO[p]}의 화면</div>
-                <div className="phone-body">{assignment.notify[p]}</div>
+      )}
+      {log.length > 0 && (
+        <details className="log">
+          <summary>이벤트 로그 {log.length}</summary>
+          <ol>
+            {[...log].reverse().map((e) => (
+              <li key={e.id}>
+                <time>{e.at.slice(11, 16)}</time> <code>{e.kind}</code> {e.text}
               </li>
             ))}
-          </ul>
-        </>
+          </ol>
+        </details>
       )}
-    </section>
+    </>
   );
 }
 
@@ -273,84 +308,84 @@ function pct(v: number): string {
   return `${Math.round(v * 1000) / 10}%`;
 }
 
-function Bar({ label, rate, chance }: { label: string; rate: number; chance: number }) {
+function Metric({ label, rate, chance }: { label: string; rate: number; chance: number }) {
   return (
-    <div className="bar-row">
-      <span className="bar-label">{label}</span>
-      <div className="bar-track">
-        <div className="bar-fill" style={{ width: `${Math.max(rate * 100, 0.8)}%` }} />
-        <div className="bar-chance" style={{ left: `${chance * 100}%` }} title="우연 수준" />
+    <div className="metric">
+      <span className="metric-label">{label}</span>
+      <div className="metric-track">
+        <div className="metric-fill" style={{ width: `${Math.max(rate * 100, 1)}%` }} />
+        <div className="metric-chance" style={{ left: `${chance * 100}%` }} />
       </div>
-      <span className="bar-value">{pct(rate)}</span>
+      <span className="metric-value">{pct(rate)}</span>
     </div>
   );
 }
 
-function ReportPanel({
-  report,
-  onShowReport,
-  demo,
-}: {
+interface LeakPanelProps {
   report: LeakReport | null;
+  conditions: Condition[];
   onShowReport: () => void;
-  demo?: DemoView | null;
-}) {
-  const shown = demo?.conditions ?? (['off', 'filter_only', 'on'] as const);
+}
+
+function LeakPanel({ report, conditions, onShowReport }: LeakPanelProps) {
   return (
-    <section className={panelClass('report-panel', 'report', demo)} aria-label="누수 테스트">
-      <h2>
-        누수 테스트 <span className="hint">협상 로그만 보고 집 · 학교가 서울 25개 구 중 어디인지 맞히기</span>
-      </h2>
+    <>
+      <div className="side-head">
+        <h2>누수 테스트</h2>
+        <span>협상 로그만 보고 집 · 학교가 서울 25개 구 중 어디인지 맞히기</span>
+      </div>
       {!report ? (
-        <button onClick={onShowReport}>누수 테스트 결과 보기</button>
+        <button className="btn" onClick={onShowReport}>
+          누수 테스트 결과 보기
+        </button>
       ) : (
         <>
-          <div className="report-grid">
-            {shown.map((k) => {
+          <div className="leak">
+            {conditions.map((k) => {
               const g = report.gates[k];
               return (
-                <div key={k} className={`report-card cond-${k}`}>
-                  <div className="report-title">{CONDITION_LABEL[k].title}</div>
-                  <div className="report-desc">{CONDITION_LABEL[k].desc}</div>
-                  <Bar label="집" rate={g.home_rate} chance={report.chance} />
-                  <Bar label="학교" rate={g.school_rate} chance={report.chance} />
-                  <div className="report-foot">
-                    로그 속 위치 단서 {g.location_hints}개 · 템플릿으로 바뀐 메시지 {g.filtered}/{g.messages}
-                  </div>
-                </div>
+                <section key={k} className={`leak-card leak-${k}`}>
+                  <div className="leak-title">{CONDITION_LABEL[k].title}</div>
+                  <div className="leak-desc">{CONDITION_LABEL[k].desc}</div>
+                  <Metric label="집" rate={g.home_rate} chance={report.chance} />
+                  <Metric label="학교" rate={g.school_rate} chance={report.chance} />
+                </section>
               );
             })}
           </div>
-          <p className="report-note">
-            조건마다 {report.trials}회 (시드마다 집 · 학교 · 경로가 다름) · 적대자{' '}
-            {report.adversary === 'meta' ? 'Muse' : 'mock 추론기'} · 세로선은 우연 수준 {pct(report.chance)}
+          <p className="leak-note">
+            조건마다 {report.trials}회 · 적대자 {report.adversary === 'meta' ? 'Muse' : 'mock 추론기'} · 세로선은 우연 수준{' '}
+            {pct(report.chance)}
           </p>
         </>
       )}
-    </section>
+    </>
   );
 }
+
+// ── 데모 진행 막대 ───────────────────────────────────────────────
 
 function DemoBar({ demo }: { demo: DemoView }) {
   const last = demo.step === demo.total - 1;
   return (
     <div className="demo-bar" role="region" aria-label="데모 진행">
-      <div className="demo-steps" aria-hidden>
-        {Array.from({ length: demo.total }, (_, i) => (
-          <span key={i} className={i < demo.step ? 'done' : i === demo.step ? 'now' : ''} />
-        ))}
+      <div className="demo-count">
+        {demo.step + 1}
+        <span>/{demo.total}</span>
       </div>
       <div className="demo-text">
-        <div className="demo-title">
-          {demo.step + 1}/{demo.total} · {demo.title}
-        </div>
+        <div className="demo-title">{demo.title}</div>
         <div className="demo-caption">{demo.caption}</div>
       </div>
       <div className="demo-actions">
-        <button className="primary" disabled={demo.busy} onClick={last ? demo.onExit : demo.onNext}>
+        {!last && (
+          <button className="btn btn-ghost" onClick={demo.onExit}>
+            나가기
+          </button>
+        )}
+        <button className="btn btn-light" disabled={demo.busy} onClick={last ? demo.onExit : demo.onNext}>
           {last ? '데모 끝내기' : '다음 ▶'}
         </button>
-        {!last && <button onClick={demo.onExit}>나가기</button>}
       </div>
     </div>
   );
@@ -358,24 +393,40 @@ function DemoBar({ demo }: { demo: DemoView }) {
 
 export function DemoPage(props: DemoPageProps) {
   const { state, playing, error, demo } = props;
+  const [tab, setTab] = useState<'channel' | 'report'>('channel');
+
+  const latest = state.negotiations.at(-1);
+  const negotiatedTask = latest && state.tasks.find((t) => t.task_id === latest.task_id);
+  const task = state.tasks.at(-1);
+  const all = latest?.messages ?? [];
+  const reveal = demo?.reveal ?? null;
+  const shown = reveal === null ? all : all.slice(0, reveal);
+  const revealing = reveal !== null && reveal < all.length;
+  const approved = latest?.status === 'approved' && !revealing;
+  const side = demo ? (demo.focus === 'report' ? 'report' : 'channel') : tab;
+
   return (
-    <div className={`demo${demo ? ' demo-on' : ''}`}>
-      <header>
+    <div className={`wru${demo ? ` demo-on focus-${demo.focus}` : ''}`}>
+      <header className="top">
         <div className="brand">
           <strong>WRU</strong>
           <span>좌표 없이, 가족의 Muse들이 할 일을 나눠요</span>
         </div>
         <div className="controls">
-          <span className="clock" aria-label="시뮬 시계">{state.clock.label}</span>
+          <span className="clock" aria-label="시뮬 시계">
+            {state.clock.label}
+          </span>
           {!demo && (
             <>
-              <button onClick={() => props.onAdvance(1)}>+1분</button>
-              <button onClick={() => props.onAdvance(5)}>+5분</button>
-              <button onClick={() => props.onAdvance(10)}>+10분</button>
-              <button onClick={props.onTogglePlay}>{playing ? '⏸ 일시정지' : '▶ 재생'}</button>
-              <button onClick={props.onReset}>리셋</button>
+              <div className="seg">
+                <button onClick={() => props.onAdvance(1)}>+1분</button>
+                <button onClick={() => props.onAdvance(5)}>+5분</button>
+                <button onClick={() => props.onAdvance(10)}>+10분</button>
+                <button onClick={props.onTogglePlay}>{playing ? '⏸ 일시정지' : '▶ 재생'}</button>
+                <button onClick={props.onReset}>리셋</button>
+              </div>
               {props.onStartDemo && (
-                <button className="demo-start" onClick={props.onStartDemo}>
+                <button className="btn btn-primary" onClick={props.onStartDemo}>
                   ▶ 데모 모드
                 </button>
               )}
@@ -383,14 +434,65 @@ export function DemoPage(props: DemoPageProps) {
           )}
         </div>
       </header>
+
       {demo && <DemoBar demo={demo} />}
       {error && <div className="error">{error}</div>}
-      <main>
-        <MapPanel presence={state.presence} demo={demo} />
-        <InboxPanel state={state} onSubmitHeroTask={props.onSubmitHeroTask} onNegotiate={props.onNegotiate} demo={demo} />
-        <AssignmentPanel state={state} onApprove={props.onApprove} demo={demo} />
-      </main>
-      {(!demo || demo.focus === 'report') && <ReportPanel report={props.report} onShowReport={props.onShowReport} demo={demo} />}
+
+      <Hub
+        state={state}
+        task={task}
+        latest={latest}
+        revealing={revealing}
+        shown={shown.length}
+        onSubmitHeroTask={props.onSubmitHeroTask}
+        onNegotiate={props.onNegotiate}
+        onApprove={props.onApprove}
+      />
+
+      <div className="stage">
+        <div className="phones zone-phones">
+          {PERSON_IDS.map((p) => (
+            <Phone
+              key={p}
+              person={p}
+              presence={state.presence.find((x) => x.person_id === p)!}
+              clock={state.clock.label}
+              task={task}
+              messages={shown.filter((m) => m.from === p)}
+              role={approved && latest ? latest.assignment.notify[p] : null}
+            />
+          ))}
+        </div>
+        <aside className="side zone-side">
+          {!demo && (
+            <div className="tabs" role="tablist">
+              <button role="tab" aria-selected={side === 'channel'} onClick={() => setTab('channel')}>
+                Muse 채널
+              </button>
+              <button
+                role="tab"
+                aria-selected={side === 'report'}
+                onClick={() => {
+                  setTab('report');
+                  if (!props.report) props.onShowReport();
+                }}
+              >
+                누수 테스트
+              </button>
+            </div>
+          )}
+          {side === 'channel' ? (
+            <Channel messages={shown} task={negotiatedTask} total={all.length} log={demo ? [] : state.log} />
+          ) : (
+            <LeakPanel
+              report={props.report}
+              conditions={demo?.conditions ?? ['off', 'filter_only', 'on']}
+              onShowReport={props.onShowReport}
+            />
+          )}
+        </aside>
+      </div>
+
       <footer>좌표 · 주소 · 학교 이름은 받지도, 보여 주지도 않아요. WhereCtx에서는 상태와 ETA만 받습니다.</footer>
     </div>
   );
