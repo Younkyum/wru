@@ -16,12 +16,17 @@ import type { MuseClient } from './muse/client.js';
 import { createMuseClient } from './muse/factory.js';
 import { runNegotiation, type Agent } from './negotiation/engine.js';
 import type { NegotiationRecord } from '../shared/negotiation.js';
+import type { LeakReport } from '../shared/leak-report.js';
+import { runLeakExperiment } from './privacy/experiment.js';
+import { readFile } from 'node:fs/promises';
 import { PERSON_IDS } from '../shared/contracts.js';
 
 export interface AppOptions {
   sim?: SimulatorOptions;
   /** 없으면 환경변수로 고른다 (MODEL_API_KEY 있으면 실제 Muse) */
   muse?: MuseClient;
+  /** 누수 리포트 JSON 경로. 파일이 없으면 mock으로 즉석 계산한다 */
+  leakReportPath?: string;
 }
 
 /** 쿼리에 좌표·상세 위치를 달라는 흔적이 있는지 (?include=raw_coords, ?lat= 등) */
@@ -138,6 +143,15 @@ export function createApp(options: AppOptions = {}) {
     if (!result.ok) return c.json({ error: result.error }, 500);
     logSubmit(result);
     return c.json(result.task, 201);
+  });
+
+  // 누수 테스트 리포트: npm run leak이 만든 파일을 우선 쓰고, 없으면 mock으로 계산(결정론)
+  let leakReport: Promise<LeakReport> | null = null;
+  app.get('/leak-report', async (c) => {
+    leakReport ??= readFile(options.leakReportPath ?? 'samples/leak-report.json', 'utf8')
+      .then((text) => JSON.parse(text) as LeakReport)
+      .catch(() => runLeakExperiment());
+    return c.json(await leakReport);
   });
 
   app.get('/negotiations', (c) => c.json(negotiations));

@@ -48,11 +48,14 @@ describe('Presence 계약', () => {
 
   it('좌표 요청은 refuse', () => {
     const adapter = new SimWhereCtx(new Simulator({ date: SIM_DATE }));
-    expect(adapter.request_location_detail('mom', 'raw_coords')).toMatchObject({
+    expect(adapter.request_location_detail('dad', 'raw_coords')).toMatchObject({
       refused: true,
-      person_id: 'mom',
+      person_id: 'dad',
       reason_code: 'location_detail_refused',
     });
+    // home 반경 안(집 · 집 근처)은 home_zone_refused
+    expect(adapter.request_location_detail('mom', 'raw_coords').reason_code).toBe('home_zone_refused');
+    expect(adapter.request_location_detail('sibling', 'address').reason_code).toBe('home_zone_refused');
   });
 });
 

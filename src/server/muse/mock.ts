@@ -58,14 +58,14 @@ export function decideMock(input: AgentTurnInput): AgentAction {
     // 첫 차례: 마감이 급한 순(태스크 순서)으로 할 수 있는 첫 일에 손을 든다
     const first = feasible[0];
     if (!first) return { type: 'refuse', subtask_id: open[0]!.id, reason_code: infeasibleCode(presence) };
-    return { type: 'offer', subtask_id: first.s.id, fit: first.a.fit, reason: offerReason(presence, first.s) };
+    return { type: 'offer', subtask_id: first.s.id, fit: first.a.fit, reason: offerReason(presence, first.s, input.detail) };
   }
 
   if (!mine) {
     // 주장이 없으면(거절했거나 커밋 후 여유가 남음) 이길 수 있는 일이 생겼을 때만 다시 나선다
     const next = feasible.find(({ s, a }) => wouldWin(s, a.fit));
     return next
-      ? { type: 'offer', subtask_id: next.s.id, fit: next.a.fit, reason: offerReason(presence, next.s) }
+      ? { type: 'offer', subtask_id: next.s.id, fit: next.a.fit, reason: offerReason(presence, next.s, input.detail) }
       : { type: 'pass' };
   }
 
@@ -85,7 +85,7 @@ export function decideMock(input: AgentTurnInput): AgentAction {
       subtask_id: claimed.id,
       alternative: alt.s.id,
       fit: alt.a.fit,
-      reason: counterReason(presence, claimed, alt.s),
+      reason: counterReason(presence, claimed, alt.s, input.detail),
     };
   }
   return {

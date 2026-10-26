@@ -3,7 +3,8 @@
 
 import { PERSON_LABEL_KO, localHHMM, type PersonId, type Presence, type Task } from '../../shared/contracts.js';
 import type { Assignment, MessageBody, NegotiationMessage } from '../../shared/negotiation.js';
-import type { MuseClient } from '../muse/client.js';
+import type { LocationDetail, MuseClient } from '../muse/client.js';
+import { filterMessage, type Gate } from '../privacy/filter.js';
 import { beats, decideMock, readTranscript } from '../muse/mock.js';
 import { validateAction } from './validate.js';
 
@@ -11,6 +12,8 @@ import { validateAction } from './validate.js';
 export interface SelfWhereCtx {
   readonly person_id: PersonId;
   presence(): Presence;
+  /** 게이트 off 실험에서만 쓰는 상세 위치. 게이트 on이면 엔진이 부르지 않는다 */
+  detail?(): LocationDetail | null;
 }
 
 export interface Agent {
@@ -26,6 +29,8 @@ export interface NegotiationInput {
   max_rounds?: number;
   /** 협상 전체 시간 예산. 넘기면 남은 차례는 템플릿 판단으로 진행한다 */
   budget_ms?: number;
+  /** 프라이버시 게이트. 기본 on. off는 누수 실험에서만 쓴다 */
+  gate?: Gate;
 }
 
 export interface NegotiationResult {
@@ -42,6 +47,7 @@ export const DEFAULT_BUDGET_MS = 45_000;
 export async function runNegotiation(input: NegotiationInput): Promise<NegotiationResult> {
   const { task, agents, now } = input;
   const maxRounds = input.max_rounds ?? DEFAULT_MAX_ROUNDS;
+  const gate = input.gate ?? 'on';
   const messages: NegotiationMessage[] = [];
   const capacity = task.constraints.max_subtasks_per_person ?? Infinity;
   const deadline = Date.now() + (input.budget_ms ?? DEFAULT_BUDGET_MS);
@@ -54,7 +60,17 @@ export async function runNegotiation(input: NegotiationInput): Promise<Negotiati
     for (const agent of agents) {
       if (allCommitted()) break;
       const presence = agent.wherectx.presence();
-      const turn = { self: agent.person_id, presence, now, task, round, max_rounds: maxRounds, transcript: [...messages] };
+      const detail = gate === 'off' ? agent.wherectx.detail?.() ?? undefined : undefined;
+      const turn = {
+        self: agent.person_id,
+        presence,
+        now,
+        task,
+        round,
+        max_rounds: maxRounds,
+        transcript: [...messages],
+        ...(detail ? { detail } : {}),
+      };
       const decision =
         Date.now() > deadline
           ? { action: decideMock(turn), fallback: true }
@@ -62,15 +78,26 @@ export async function runNegotiation(input: NegotiationInput): Promise<Negotiati
 
       // 검증을 못 넘으면 같은 입력의 템플릿 판단으로 대체
       let fallback = decision.fallback ?? false;
-      let checked = validateAction(decision.action, task);
+      let checked = validateAction(decision.action, task, { leakCheck: gate === 'on' });
       if (!checked.ok) {
         fallback = true;
         checked = { ok: true, action: decideMock(turn) };
       }
       if (checked.action.type === 'pass') continue;
 
-      const body = enforceProtocol(checked.action, agent.person_id, messages, capacity, round);
-      messages.push({ ...body, id: messages.length + 1, round, at: now, from: agent.person_id, ...(fallback ? { fallback } : {}) });
+      // 게이트 on: 위치 단서가 섞인 reason은 상태 템플릿으로
+      const { body: filteredBody, filtered } =
+        gate === 'on' ? filterMessage(checked.action, presence, task) : { body: checked.action, filtered: false };
+      const body = enforceProtocol(filteredBody, agent.person_id, messages, capacity, round);
+      messages.push({
+        ...body,
+        id: messages.length + 1,
+        round,
+        at: now,
+        from: agent.person_id,
+        ...(fallback ? { fallback } : {}),
+        ...(filtered ? { filtered } : {}),
+      });
       spoke = true;
     }
     if (!spoke) break;

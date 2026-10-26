@@ -14,6 +14,18 @@ export interface AgentTurnInput {
   max_rounds: number;
   /** 지금까지 오간 협상 메시지 (모든 참여자가 똑같이 본다) */
   transcript: NegotiationMessage[];
+  /** 게이트 off 실험에서만 채워지는 상세 위치. 운영 경로(게이트 on)에서는 항상 없다 */
+  detail?: LocationDetail;
+}
+
+/** 게이트 off일 때 WhereCtx가 내주는 상세 위치 (누수 실험 전용) */
+export interface LocationDetail {
+  /** 지금 있는 동 이름 */
+  area: string;
+  /** 집까지 거리 */
+  distance_km: number;
+  /** 동네 이름까지 말하는 사람인지 (말투 차이) */
+  verbose: boolean;
 }
 
 export interface AgentDecision {

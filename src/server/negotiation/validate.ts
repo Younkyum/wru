@@ -12,12 +12,13 @@ function isStr(v: unknown): v is string {
   return typeof v === 'string' && v.length > 0;
 }
 
-export function validateAction(raw: unknown, task: Task): Validation {
+export function validateAction(raw: unknown, task: Task, opts: { leakCheck?: boolean } = {}): Validation {
+  const leakCheck = opts.leakCheck ?? true;
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return { ok: false, error: 'not an object' };
   if (findForbiddenKey(raw)) return { ok: false, error: 'forbidden location key' };
   const r = raw as Record<string, unknown>;
   const has = (id: unknown) => isStr(id) && task.subtasks.some((s) => s.id === id);
-  const reasonOk = (v: unknown) => isStr(v) && v.length <= MAX_REASON && findLeaks(v).length === 0;
+  const reasonOk = (v: unknown) => isStr(v) && v.length <= MAX_REASON && (!leakCheck || findLeaks(v).length === 0);
   const fitOk = (v: unknown) => (FITS as readonly unknown[]).includes(v);
 
   switch (r.type) {

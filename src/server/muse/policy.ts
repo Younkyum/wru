@@ -3,6 +3,7 @@
 
 import { subtaskKind, type Presence, type PresenceState, type Subtask, type SubtaskKind } from '../../shared/contracts.js';
 import type { Fit, ReasonCode } from '../../shared/negotiation.js';
+import type { LocationDetail } from './client.js';
 
 /** 상태별로 일을 끝내는 데 드는 대략의 분 (in_transit은 ETA를 더한다) */
 const NEEDED_MINUTES: Record<SubtaskKind, Record<Exclude<PresenceState, 'unknown'>, number>> = {
@@ -64,9 +65,30 @@ const OFFER_TEXT: Record<SubtaskKind, Record<Exclude<PresenceState, 'unknown'>, 
 };
 
 /** 상태 기반 offer 이유 템플릿 */
-export function offerReason(presence: Presence, subtask: Subtask): string {
+export function offerReason(presence: Presence, subtask: Subtask, detail?: LocationDetail): string {
   if (presence.state === 'unknown') return '지금 상태를 알 수 없어요';
+  if (detail) return verboseReason(presence, detail);
   return OFFER_TEXT[subtaskKind(subtask)][presence.state](etaBucket(presence.eta_minutes));
+}
+
+/**
+ * 게이트 off 실험용: 필터가 없으면 에이전트가 할 법한 말. 동네 이름 · 거리 · 정확한 ETA가 그대로 들어간다.
+ * 운영 경로에서는 detail이 없어서 쓰이지 않는다.
+ */
+function verboseReason(presence: Presence, d: LocationDetail): string {
+  const km = d.distance_km.toFixed(1);
+  switch (presence.state) {
+    case 'in_transit':
+      return d.verbose
+        ? `지금 ${d.area} 지나는 중이에요. 집까지 ${km}km, ${presence.eta_minutes}분 남았어요`
+        : `집까지 ${km}km, ${presence.eta_minutes}분 남았어요`;
+    case 'near_home':
+      return d.verbose
+        ? `${d.area} 근처라 금방 가요 (집에서 ${Math.round(d.distance_km * 1000)}m)`
+        : `집에서 ${Math.round(d.distance_km * 1000)}m라 금방 가요`;
+    default:
+      return d.verbose ? `집(${d.area})에 있어서 바로 나갈 수 있어요` : '집에 있어서 바로 나갈 수 있어요';
+  }
 }
 
 /** 받침에 맞춰 은/는 */
@@ -76,6 +98,6 @@ export function topic(word: string): string {
   return `${word}${hasBatchim ? '은' : '는'}`;
 }
 
-export function counterReason(presence: Presence, from: Subtask, alternative: Subtask): string {
-  return `${topic(from.label)} 더 잘 맞는 제안이 있어요. 대신 ${alternative.label} — ${offerReason(presence, alternative)}`;
+export function counterReason(presence: Presence, from: Subtask, alternative: Subtask, detail?: LocationDetail): string {
+  return `${topic(from.label)} 더 잘 맞는 제안이 있어요. 대신 ${alternative.label} — ${offerReason(presence, alternative, detail)}`;
 }

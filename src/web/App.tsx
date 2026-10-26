@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { DemoState } from '../shared/contracts';
+import type { LeakReport } from '../shared/leak-report';
 import { api } from './client';
 import { DemoPage } from './DemoPage';
 
@@ -7,6 +8,7 @@ export function App() {
   const [state, setState] = useState<DemoState | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [playing, setPlaying] = useState(false);
+  const [report, setReport] = useState<LeakReport | null>(null);
 
   const run = useCallback(async (action: () => Promise<unknown>) => {
     try {
@@ -38,8 +40,11 @@ export function App() {
       playing={playing}
       error={error}
       onAdvance={(m) => void run(() => api.advance(m))}
+      report={report}
+      onShowReport={() => void run(async () => setReport(await api.leakReport()))}
       onReset={() => {
         setPlaying(false);
+        setReport(null);
         void run(api.reset);
       }}
       onTogglePlay={() => setPlaying((p) => !p)}

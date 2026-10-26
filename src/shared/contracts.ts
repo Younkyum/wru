@@ -29,7 +29,8 @@ export interface Refusal {
   refused: true;
   person_id: PersonId;
   requested: string;
-  reason_code: 'location_detail_refused';
+  /** home_zone_refused: home 반경(집 · 집 근처) 안이라 거절 */
+  reason_code: 'location_detail_refused' | 'home_zone_refused';
   message: string;
 }
 

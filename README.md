@@ -23,6 +23,8 @@ npm run dev
 | `npm test` | 계약 테스트와 누수 가드 (vitest) |
 | `npm run build` | 타입 검사 후 UI 빌드 (`dist/web`) |
 | `npm start` | 빌드된 UI와 API를 8787 포트 하나로 서빙 |
+| `npm run leak` | 누수 테스트 → `leak-report.md`, `samples/leak-report.json` |
+| `npm run samples` | 샘플 협상 로그 → `samples/negotiation-hero.json` |
 
 ## 환경변수
 
@@ -47,7 +49,9 @@ src/server/app.ts              Hono API
 src/web/                       /demo 페이지 (맵 · 인박스/로그 · 역할 배정)
 src/server/muse/               MuseClient 인터페이스, mock(결정론), Meta Model API 클라이언트
 src/server/negotiation/        협상 엔진(라운드 · 용량 제약 · 최대 라운드), 출력 검증
+src/server/privacy/            메시지 필터, 서울 25개 구 지명 사전, 시나리오, 적대자, 누수 실험
 samples/negotiation-hero.json  히어로 시나리오 협상 로그 샘플 (npm run samples)
+samples/leak-report.json       누수 테스트 결과 (npm run leak)
 tests/                         계약 · 협상 · 누수 테스트
 ```
 
@@ -78,6 +82,7 @@ tests/                         계약 · 협상 · 누수 테스트
 | POST | `/api/tasks/:id/negotiate` | Muse 3명 협상 실행 → offer/counter/commit/refuse 메시지와 assignment |
 | GET | `/api/negotiations`, `/api/negotiations/:id` | 협상 기록 |
 | POST | `/api/negotiations/:id/approve` | 사람 승인 1회 → 사람별 통지 |
+| GET | `/api/leak-report` | 누수 테스트 결과 (samples/leak-report.json, 없으면 mock으로 계산) |
 | POST | `/api/sim/advance` | `{ "minutes": 5 }`만큼 시계 진행 |
 | POST | `/api/sim/reset` | 시계 · 인박스 · 로그 초기화 |
 
@@ -86,9 +91,28 @@ curl -X POST localhost:8787/api/tasks -H 'content-type: application/json' \
   -d '{"deadline":"18:00","subtasks":[{"id":"pickup","label":"민아 픽업"},{"id":"milk","label":"우유 사기"}],"constraints":{"max_subtasks_per_person":1}}'
 ```
 
+## 프라이버시 게이트와 누수 테스트
+
+게이트는 세 겹입니다.
+
+1. **WhereCtx 어댑터**: 좌표 · 상세 위치 요청을 거절합니다. home 반경(집 · 집 근처) 안이면 `home_zone_refused`로 거절합니다.
+2. **출력 검증**: 실제 Muse의 JSON 출력에 좌표 키, 도로명, 학교명, 역 이름, 거리가 있으면 템플릿 판단으로 대체합니다.
+3. **메시지 필터**: reason에 서울 구 · 동 이름이나 정확한 분 단위 ETA가 섞이면 상태 템플릿으로 바꿉니다. ETA는 "10분 이내" 같은 구간으로만 나갑니다.
+
+`npm run leak`은 시드 50개로 집 · 학교 · 경로가 다른 시나리오를 만들고, 협상 로그만 적대자에게 줘서 집과 학교가 서울 25개 구 중 어디인지 맞히게 합니다. 결과는 [leak-report.md](leak-report.md)와 `/demo`의 누수 테스트 패널에 나옵니다.
+
+| 조건 | 집 적중 | 학교 적중 |
+| --- | --- | --- |
+| 게이트 off (동네명 · 거리 · 정확한 ETA 그대로) | 82% | 74% |
+| 게이트 on, 에이전트가 위치를 알 때 (필터 · 검증만) | 6% | 0% |
+| 게이트 on (WRU 기본) | 6% | 0% |
+| 우연 수준 (1/25) | 4% | 4% |
+
+키가 없을 때 적대자는 mock 추론기입니다. 로그 속 동네 이름 · "집까지 X km" · 상태 문구만으로 구를 추정하는 휴리스틱이고, 시나리오 정답에는 접근하지 않습니다. `MODEL_API_KEY`가 있으면 협상 에이전트와 적대자 모두 Muse를 씁니다.
+
 ## 프라이버시 원칙
 
-좌표, 정확한 주소, 학교명은 API 응답 · 로그 · UI 어디에도 넣지 않습니다. `tests/leak.test.tsx`는 시뮬 시계를 70분 돌리면서 모든 API 응답과 UI 렌더 결과를 직렬화해 `lat`, `lng`, `latitude`, `longitude`, `coords`, 소수점 좌표 패턴이 0건인지 확인합니다. 위치 키가 들어 있는 태스크는 인박스가 받지 않습니다.
+좌표, 정확한 주소, 학교명은 API 응답 · 로그 · UI 어디에도 넣지 않습니다. `tests/quality-gate.test.tsx`는 API 응답 · 이벤트 로그 · UI 렌더 · `samples/` · 리포트에서 lat/lng, 도로명, 학교 고유명, 지명이 0건인지 확인합니다. `tests/leak.test.tsx`는 시뮬 시계를 70분 돌리면서 모든 API 응답과 UI 렌더 결과를 직렬화해 `lat`, `lng`, `latitude`, `longitude`, `coords`, 소수점 좌표 패턴이 0건인지 확인합니다. 위치 키가 들어 있는 태스크는 인박스가 받지 않습니다.
 
 ## 데모 6컷
 
@@ -96,5 +120,5 @@ curl -X POST localhost:8787/api/tasks -H 'content-type: application/json' \
 2. 태스크 투입: "6시에 민아 픽업 + 우유"가 인박스에 들어옵니다 (Day1 ✅)
 3. 협상 로그: offer → counter → commit (Day2 ✅)
 4. 역할 통지: "아빠=픽업, 형=우유" (Day2 ✅)
-5. 누수 컷: 적대 Muse의 추정 성공/실패율 (Day3)
-6. 게이트 비교 (선택, Day3)
+5. 누수 컷: 적대자의 집 · 학교 추정 성공률 (Day3 ✅)
+6. 게이트 비교: on/off 성공률 대비 (Day3 ✅)

@@ -17,6 +17,6 @@ export class SimWhereCtx implements WhereCtxAdapter {
   }
 
   request_location_detail(person_id: PersonId, _requested: string): Refusal {
-    return refuseLocationDetail(person_id);
+    return refuseLocationDetail(person_id, this.sim.presence(person_id).state);
   }
 }

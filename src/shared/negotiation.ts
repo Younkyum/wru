@@ -62,8 +62,10 @@ export type NegotiationMessage = MessageBody & {
   round: number;
   at: string;
   from: PersonId;
-  /** 실제 Muse 출력이 검증·필터를 못 넘어 템플릿으로 바뀌었는지 */
+  /** 실제 Muse 출력이 검증을 못 넘어 템플릿으로 바뀌었는지 */
   fallback?: boolean;
+  /** 프라이버시 게이트가 reason의 위치 단서를 템플릿으로 바꿨는지 */
+  filtered?: boolean;
 };
 
 export interface Assignment {

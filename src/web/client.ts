@@ -1,5 +1,6 @@
 import type { DemoState, Task } from '../shared/contracts';
 import type { NegotiationRecord } from '../shared/negotiation';
+import type { LeakReport } from '../shared/leak-report';
 
 async function call<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`/api${path}`, {
@@ -16,5 +17,6 @@ export const api = {
   reset: () => call<DemoState>('/sim/reset', { method: 'POST' }),
   submitHeroTask: () => call<Task>('/tasks/hero', { method: 'POST' }),
   negotiate: (taskId: string) => call<NegotiationRecord>(`/tasks/${taskId}/negotiate`, { method: 'POST' }),
+  leakReport: () => call<LeakReport>('/leak-report'),
   approve: (negotiationId: string) => call<NegotiationRecord>(`/negotiations/${negotiationId}/approve`, { method: 'POST' }),
 };
