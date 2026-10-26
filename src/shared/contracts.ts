@@ -1,6 +1,8 @@
 // WRU 데이터 계약 (docs/PLAN.md "데이터 계약").
 // 필드는 추가할 수 있지만 좌표·정확한 주소 필드는 금지한다.
 
+import type { NegotiationRecord } from './negotiation';
+
 export const PERSON_IDS = ['mom', 'dad', 'sibling'] as const;
 export type PersonId = (typeof PERSON_IDS)[number];
 
@@ -31,9 +33,18 @@ export interface Refusal {
   message: string;
 }
 
+export const SUBTASK_KINDS = ['pickup', 'errand'] as const;
+export type SubtaskKind = (typeof SUBTASK_KINDS)[number];
+
 export interface Subtask {
   id: string;
   label: string;
+  /** pickup: 마감까지 데리러 가야 하는 일, errand: 집 근처 심부름. 없으면 id로 추정 */
+  kind?: SubtaskKind;
+}
+
+export function subtaskKind(s: Subtask): SubtaskKind {
+  return s.kind ?? (s.id.includes('pickup') ? 'pickup' : 'errand');
 }
 
 export interface TaskConstraints {
@@ -51,7 +62,7 @@ export interface Task {
   received_at: string;
 }
 
-export type LogKind = 'task_received' | 'clock' | 'refusal' | 'reset';
+export type LogKind = 'task_received' | 'clock' | 'refusal' | 'reset' | 'negotiation' | 'approval';
 
 export interface LogEntry {
   id: number;
@@ -62,8 +73,10 @@ export interface LogEntry {
 
 export interface DemoState {
   clock: { now: string; label: string };
+  muse: 'mock' | 'meta';
   presence: Presence[];
   tasks: Task[];
+  negotiations: NegotiationRecord[];
   log: LogEntry[];
 }
 
@@ -80,6 +93,13 @@ export const FORBIDDEN_LOCATION_KEYS = [
   'address',
   'geo',
 ] as const;
+
+/** ISO8601 → 서울 기준 HH:MM */
+export function localHHMM(iso: string): string {
+  return new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Seoul', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(
+    new Date(iso),
+  );
+}
 
 export function isPersonId(value: string): value is PersonId {
   return (PERSON_IDS as readonly string[]).includes(value);

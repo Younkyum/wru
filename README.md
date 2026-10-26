@@ -30,8 +30,9 @@ npm run dev
 
 | 이름 | 설명 |
 | --- | --- |
-| `MODEL_API_KEY` | Meta Model API 키. Day2 Muse 연결 때 씁니다. 지금은 비워 둡니다 |
+| `MODEL_API_KEY` | Meta Model API 키. 비어 있으면 결정론적 mock Muse를 씁니다 |
 | `MODEL_API_BASE_URL` | 기본값 `https://api.meta.ai/v1` (OpenAI 호환) |
+| `MUSE_MODEL` | 기본값 `muse-spark-1.3` (가정값, 실제 id로 덮어쓰기) |
 | `WRU_API_PORT` | API 서버 포트. 기본값 8787 |
 
 ## 구조 (Day1)
@@ -44,8 +45,22 @@ src/server/wherectx/sim-adapter.ts  시뮬레이터 구현. 실제 WhereCtx MCP�
 src/server/inbox.ts            태스크 인박스 (메모리)
 src/server/app.ts              Hono API
 src/web/                       /demo 페이지 (맵 · 인박스/로그 · 역할 배정)
-tests/                         계약 테스트, 누수 가드
+src/server/muse/               MuseClient 인터페이스, mock(결정론), Meta Model API 클라이언트
+src/server/negotiation/        협상 엔진(라운드 · 용량 제약 · 최대 라운드), 출력 검증
+samples/negotiation-hero.json  히어로 시나리오 협상 로그 샘플 (npm run samples)
+tests/                         계약 · 협상 · 누수 테스트
 ```
+
+### 협상 규칙 (mock Muse)
+
+각 에이전트는 자기 presence와 마감까지 남은 시간만 보고 subtask마다 할 수 있는지(feasible)와 적합도(high/medium/low)를 정합니다. 다른 사람의 위치는 모르고, 협상 메시지로 공개된 적합도만 압니다.
+
+1. 첫 차례에는 할 수 있는 첫 subtask에 offer합니다. 할 수 있는 게 없으면 refuse합니다.
+2. 같은 subtask에 더 높은 적합도(같으면 엄마 → 아빠 → 형 순)가 있으면 counter로 다른 subtask를 제안하고, 이길 대안이 없으면 refuse합니다.
+3. 한 라운드 동안 밀리지 않은 주장은 commit합니다. 엔진은 중복 · 용량 초과 · 주장 없는 commit을 refuse로 바꿉니다.
+4. 최대 라운드(기본 4)가 지나면 남은 subtask는 미배정입니다.
+
+17:30에는 아빠=픽업, 형=우유가 나오고, 17:45에는 아빠=픽업, 엄마=우유, 17:52에는 아무도 마감을 못 맞춰 미배정이 됩니다. `MODEL_API_KEY`가 있으면 실제 Muse가 JSON으로 답하고, 스키마 검증이나 위치 누수 검사를 못 넘으면 같은 입력의 템플릿 판단으로 대체합니다.
 
 시뮬 시계는 17:30에서 시작합니다. 이때 엄마는 집, 아빠는 이동 중(약 20분), 형은 집 근처입니다. 상단 버튼으로 시계를 +1/+5/+10분 돌리거나, 재생(실제 1초 = 시뮬 1분)하거나, 리셋할 수 있습니다.
 
@@ -60,6 +75,9 @@ tests/                         계약 테스트, 누수 가드
 | GET | `/api/tasks`, `/api/tasks/:id` | 인박스 조회 |
 | POST | `/api/tasks` | 태스크 투입 (`deadline`은 `"HH:MM"` 또는 ISO8601) |
 | POST | `/api/tasks/hero` | "6시에 민아 픽업 + 우유" 투입 |
+| POST | `/api/tasks/:id/negotiate` | Muse 3명 협상 실행 → offer/counter/commit/refuse 메시지와 assignment |
+| GET | `/api/negotiations`, `/api/negotiations/:id` | 협상 기록 |
+| POST | `/api/negotiations/:id/approve` | 사람 승인 1회 → 사람별 통지 |
 | POST | `/api/sim/advance` | `{ "minutes": 5 }`만큼 시계 진행 |
 | POST | `/api/sim/reset` | 시계 · 인박스 · 로그 초기화 |
 
@@ -76,7 +94,7 @@ curl -X POST localhost:8787/api/tasks -H 'content-type: application/json' \
 
 1. 맵: 3명이 상태와 ETA로만 표시됩니다 (Day1 ✅)
 2. 태스크 투입: "6시에 민아 픽업 + 우유"가 인박스에 들어옵니다 (Day1 ✅)
-3. 협상 로그: offer → counter → commit (Day2)
-4. 역할 통지: "아빠=픽업, 형=우유" (Day2)
+3. 협상 로그: offer → counter → commit (Day2 ✅)
+4. 역할 통지: "아빠=픽업, 형=우유" (Day2 ✅)
 5. 누수 컷: 적대 Muse의 추정 성공/실패율 (Day3)
 6. 게이트 비교 (선택, Day3)
