@@ -152,3 +152,31 @@ button.negotiate { margin-top: 10px; width: 100%; border-color: var(--transit); 
 .bar-value { text-align: right; font-variant-numeric: tabular-nums; font-weight: 700; }
 .report-foot { font-size: 11px; color: var(--muted); margin-top: 8px; }
 .report-note { font-size: 12px; color: var(--muted); margin: 10px 0 0; }
+
+/* 데모 모드 */
+button.demo-start { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 600; }
+button:disabled { opacity: 0.45; cursor: default; }
+.demo-bar {
+  position: sticky; top: 8px; z-index: 5;
+  display: grid; grid-template-columns: auto 1fr auto; gap: 16px; align-items: center;
+  background: var(--ink); color: #fff; border-radius: 14px; padding: 14px 16px; margin-bottom: 14px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.12);
+}
+@media (max-width: 720px) { .demo-bar { grid-template-columns: 1fr; } }
+.demo-steps { display: flex; gap: 5px; }
+.demo-steps span { width: 18px; height: 6px; border-radius: 3px; background: rgba(255, 255, 255, 0.25); }
+.demo-steps span.done { background: rgba(255, 255, 255, 0.6); }
+.demo-steps span.now { background: #fff; }
+.demo-title { font-weight: 700; font-size: 15px; }
+.demo-caption { font-size: 14px; line-height: 1.5; opacity: 0.88; margin-top: 2px; }
+.demo-actions { display: flex; gap: 6px; }
+.demo-bar button.primary { width: auto; background: #fff; color: var(--ink); border-color: #fff; padding: 9px 16px; }
+.demo-bar button:not(.primary) { background: transparent; color: #fff; border-color: rgba(255, 255, 255, 0.35); }
+.panel { transition: opacity 0.3s ease, box-shadow 0.3s ease; }
+.panel.dim { opacity: 0.38; }
+.panel.spotlight { box-shadow: 0 0 0 2px var(--ink); }
+.msg-new { animation: msg-in 0.35s ease; }
+@keyframes msg-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+/* 데모 모드에서는 한 화면에 3면이 다 보이도록 타임라인을 패널 안에서 스크롤 */
+.demo-on .timeline { max-height: 330px; overflow-y: auto; padding-right: 4px; }
+.demo-on .log-wrap { display: none; }
