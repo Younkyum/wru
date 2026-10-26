@@ -128,3 +128,15 @@ describe('품질 게이트', () => {
     for (const f of files) expect([f, scan(readFileSync(f, 'utf8'))]).toEqual([f, []]);
   });
 });
+
+describe('제출 문서 수치', () => {
+  it('README · SUBMISSION · COPY · VIDEO_SCRIPT의 누수 수치가 리포트와 같다', () => {
+    const r = JSON.parse(readFileSync('samples/leak-report.json', 'utf8'));
+    const pct = (v: number) => `${Math.round(v * 100)}%`;
+    const expected = [pct(r.gates.on.home_rate), pct(r.gates.on.school_rate), pct(r.gates.off.home_rate), pct(r.gates.off.school_rate), pct(r.chance)];
+    for (const f of ['README.md', 'docs/SUBMISSION.md', 'docs/COPY.md', 'docs/VIDEO_SCRIPT.md']) {
+      const text = readFileSync(f, 'utf8');
+      for (const v of expected) expect([f, text.includes(v)]).toEqual([f, true]);
+    }
+  });
+});
