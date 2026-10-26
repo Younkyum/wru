@@ -24,9 +24,16 @@ export interface LocationDetail {
   area: string;
   /** 집까지 거리 */
   distance_km: number;
-  /** 동네 이름까지 말하는 사람인지 (말투 차이) */
-  verbose: boolean;
+  /** 말투: 거리만 말하는지, 동네 이름을 어떤 식으로 섞는지 */
+  style: DetailStyle;
 }
+
+/**
+ * 게이트 off 실험의 말투. plain은 동네 이름 없이 거리 · 정확한 ETA만,
+ * 나머지는 동네 이름을 정식(area) · 어간(stem) · 띄어 쓰기(spaced) · 제로폭 문자(zw) · 역 이름(station)으로 섞는다.
+ */
+export const DETAIL_STYLES = ['plain', 'area', 'stem', 'spaced', 'zw', 'station'] as const;
+export type DetailStyle = (typeof DETAIL_STYLES)[number];
 
 export interface AgentDecision {
   action: AgentAction;

@@ -9,7 +9,7 @@ import { offerReason } from '../src/server/muse/policy';
 import { runNegotiation, type Agent } from '../src/server/negotiation/engine';
 import { guessMock, MuseAdversary, PRIOR } from '../src/server/privacy/adversary';
 import { renderLeakReport, runLeakExperiment } from '../src/server/privacy/experiment';
-import { filterMessage, findPlaceWords, locationHints, sanitizeLabel } from '../src/server/privacy/filter';
+import { filterMessage, findPlaceWords, labelHints, locationHints, normalize, sanitizeLabel } from '../src/server/privacy/filter';
 import { DISTRICTS, PLACE_WORDS } from '../src/server/privacy/gazetteer';
 import { makeScenario } from '../src/server/privacy/scenarios';
 import { SIM_DATE } from './helpers';
@@ -55,8 +55,30 @@ describe('메시지 필터', () => {
     }
   });
 
+  it('깨끗해 보이는 LLM 문장도 템플릿으로 다시 쓴다 (자유 문장은 내보내지 않음)', () => {
+    const { body, filtered } = filterMessage({ type: 'offer', subtask_id: 'pickup', fit: 'high', reason: '제가 갈게요!' }, dad, task);
+    expect(filtered).toBe(true);
+    expect(body).toMatchObject({ reason: offerReason(dad, task.subtasks[0]!) });
+  });
+
   it('commit · refuse는 건드리지 않는다', () => {
     expect(filterMessage({ type: 'commit', subtask_id: 'pickup' }, dad, task).filtered).toBe(false);
+  });
+
+  it.each([
+    '민아 픽업 (망원동 쪽)',
+    '망 원 동 픽업',
+    '망\u200b원동 픽업',
+    '연남동 픽업',
+    '합정역에서 픽업',
+    '대치초 앞 픽업',
+    '올림픽대로 쪽 픽업',
+  ])('인박스 라벨 검사가 막는다: %s', (label) => {
+    expect(labelHints(label).length).toBeGreaterThan(0);
+  });
+
+  it('평범한 라벨은 통과', () => {
+    for (const label of ['민아 픽업', '우유 사기', '분리수거', '이름 없는 일']) expect(labelHints(label)).toEqual([]);
   });
 
   it('라벨의 위치 설명을 지운다', () => {
@@ -83,13 +105,48 @@ describe('게이트 on 협상', () => {
     },
   };
   const agents = (muse: MuseClient): Agent[] =>
-    PERSON_IDS.map((id) => ({ person_id: id, muse, wherectx: { person_id: id, presence: () => PRESENCE[id], detail: () => ({ area: '망원동', distance_km: 3, verbose: true }) } }));
+    PERSON_IDS.map((id) => ({ person_id: id, muse, wherectx: { person_id: id, presence: () => PRESENCE[id], detail: () => ({ area: '망원동', distance_km: 3, style: 'area' as const }) } }));
 
   it('LLM이 지명을 써도 로그에는 남지 않고, 결과는 그대로', async () => {
     const r = await runNegotiation({ task, agents: agents(leakyLLM), now: NOW });
-    expect(locationHints(JSON.stringify(r.messages))).toEqual([]);
+    for (const m of r.messages) if ('reason' in m) expect(locationHints(m.reason)).toEqual([]);
     expect(r.messages.filter((m) => m.filtered).length).toBeGreaterThan(0);
     expect(Object.fromEntries(r.assignment.assignments.map((a) => [a.subtask, a.person]))).toEqual({ pickup: 'dad', milk: 'sibling' });
+  });
+
+  // 리뷰에서 나온 우회 표현들. 게이트 on이면 어떤 것도 로그에 남지 않아야 한다
+  const BYPASS = [
+    '망원 근처예요',
+    '망 원 동',
+    '망\u200b원동',
+    'Mangwon-dong',
+    'Gangnam station',
+    '합정역에서 내려요',
+    '홍대입구 2호선',
+    '올림픽대로 타는 중',
+    '이마트 앞',
+    '연남동',
+    '17:45 도착',
+    '십오 분',
+    '15min',
+    '120분 이내',
+    '３ｋｍ',
+    '집까지 삼 킬로',
+  ];
+  const TOKENS = ['망원', 'Mangwon', 'Gangnam', '합정', '홍대', '2호선', '올림픽', '이마트', '연남', '17:45', '십오', '15min', '120', '3km', '삼킬로'];
+
+  it.each(BYPASS)('우회 표현도 로그에 남지 않는다: %s', async (phrase) => {
+    const bypass: MuseClient = {
+      kind: 'meta',
+      decide: async (input) => {
+        const a = decideMock(input);
+        return { action: a.type === 'offer' || a.type === 'counter' ? { ...a, reason: phrase } : a };
+      },
+    };
+    const r = await runNegotiation({ task, agents: agents(bypass), now: NOW });
+    const log = normalize(JSON.stringify(r.messages.map((m) => ('reason' in m ? m.reason : ''))));
+    for (const token of TOKENS) expect(log).not.toContain(token);
+    expect(r.assignment.assignments).toHaveLength(2);
   });
 
   it('게이트 on이면 엔진이 상세 위치를 에이전트에게 넘기지 않는다', async () => {
@@ -120,10 +177,27 @@ describe('적대자', () => {
     expect(guessMock(log)).toEqual({ home: PRIOR.name, school: PRIOR.name });
   });
 
-  it('적대자 모듈은 시나리오(정답)를 import하지 않는다', () => {
-    const src = readFileSync('src/server/privacy/adversary.ts', 'utf8');
-    expect(src).not.toMatch(/scenarios|experiment|makeScenario/);
-    expect(guessMock.length).toBe(1);
+  it('적대자는 공개 로그만 받는다 (정답 필드 없음)', async () => {
+    const seen: unknown[] = [];
+    const spy = { kind: 'mock' as const, guess: async (log: unknown) => (seen.push(log), { home: null, school: null }) };
+    await runLeakExperiment({ trials: 3, muse: new MockMuse(), adversary: spy });
+    expect(seen).toHaveLength(9);
+    for (const log of seen as { subtasks: object[]; messages: object[] }[]) {
+      expect(Object.keys(log).sort()).toEqual(['messages', 'subtasks']);
+      for (const s of log.subtasks) expect(Object.keys(s).sort()).toEqual(['id', 'label']);
+      const text = JSON.stringify(log);
+      expect(text).not.toMatch(/"(home|school|seed|scenario|area|distance_km|style)"/);
+    }
+    // 적대자 모듈은 시나리오 모듈을 import하지 않는다
+    expect(readFileSync('src/server/privacy/adversary.ts', 'utf8')).not.toMatch(/scenarios|experiment/);
+  });
+
+  it('mock 추론기는 우회 말투(어간 · 띄어 쓰기 · 제로폭 · 역)와 ETA로도 추론한다', () => {
+    const home = DISTRICTS[13]!;
+    const at = (reason: string) => ({ subtasks: [], messages: [{ id: 1, round: 1, at: NOW, from: 'sibling', type: 'offer', subtask_id: 'pickup', fit: 'high', reason }] as never });
+    for (const name of [home.dongs[0], [...home.dongs[0]].join(' '), [...home.dongs[0]].join('\u200b'), `${home.dongs[0].slice(0, -1)}역`]) {
+      expect(guessMock(at(`${name} 근처라 금방 가요`)).home).toBe(home.name);
+    }
   });
 
   it('Muse 적대자: 후보에 없는 답은 무효', async () => {
@@ -141,6 +215,15 @@ describe('누수 실험', () => {
     expect(makeScenario(7)).toEqual(makeScenario(7));
     const homes = new Set(Array.from({ length: 50 }, (_, i) => makeScenario(i + 1).home.name));
     expect(homes.size).toBeGreaterThanOrEqual(15);
+  });
+
+  it('게이트 on 라벨은 인박스 검사를 통과하는 라벨이다 (운영과 같은 조건)', () => {
+    for (let i = 1; i <= 50; i += 1) {
+      const s = makeScenario(i);
+      const original = s.labelHasSchoolArea ? `민아 픽업 (${s.schoolArea} 쪽)` : '민아 픽업';
+      expect(labelHints(sanitizeLabel(original))).toEqual([]);
+      if (s.labelHasSchoolArea) expect(labelHints(original).length).toBeGreaterThan(0);
+    }
   });
 
   it('20회 이상 · 게이트 on은 우연 수준 근처, off는 크게 높다', async () => {

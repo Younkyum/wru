@@ -4,7 +4,8 @@
 import type { NegotiationMessage } from '../../shared/negotiation.js';
 import type { MuseClient } from '../muse/client.js';
 import { MetaMuse } from '../muse/meta.js';
-import { DISTRICTS, DISTRICT_NAMES, distanceKm, districtOf, districtOfDong, type District } from './gazetteer.js';
+import { normalize } from './filter.js';
+import { DISTRICTS, DISTRICT_NAMES, distanceKm, districtOf, type District } from './gazetteer.js';
 
 /** 적대자가 보는 것: subtask 라벨과 협상 메시지 */
 export interface PublicLog {
@@ -27,50 +28,68 @@ export const PRIOR: District = DISTRICTS.reduce((best, d) =>
   DISTRICTS.reduce((s, o) => s + distanceKm(d, o), 0) < DISTRICTS.reduce((s, o) => s + distanceKm(best, o), 0) ? d : best,
 );
 
-const DONG = /([가-힣]{1,4}동)/g;
-const KM = /집까지\s*(\d+(?:\.\d+)?)\s*km/;
+const CAR_KM_PER_MIN = 0.5;
 
 function textOf(m: NegotiationMessage): string {
   return m.type === 'offer' || m.type === 'counter' ? m.reason : '';
 }
 
+/** 텍스트에 나온 동네 → 구. 정식 이름 또는 두 글자 이상 어간(예: 망원)으로 찾는다 */
+function districtsIn(text: string): District[] {
+  const t = normalize(text);
+  const found: District[] = [];
+  for (const d of DISTRICTS) {
+    for (const dong of d.dongs) {
+      const stem = dong.length >= 3 ? dong.slice(0, -1) : dong;
+      if (t.includes(dong) || t.includes(stem)) found.push(d);
+    }
+  }
+  return [...new Set(found)];
+}
+
 /**
- * mock 추론기 (휴리스틱):
- * 1. "○○동 근처", "집(○○동)"처럼 집 쪽 동네를 말하면 그 동의 구에 큰 점수
- * 2. "지금 ○○동 지나는 중 … 집까지 X km"면 그 구에서 X km 떨어진 구들에 점수 (원 위의 후보)
- * 3. 픽업 라벨 괄호에 동네가 있으면 학교 구로, 없으면 학교는 집 근처라고 본다
- * 4. 단서가 없으면 가장 가운데 구를 찍는다
+ * mock 추론기 (휴리스틱). 로그 문장만 읽는다.
+ * 1. 띄어 쓰기 · 제로폭 문자를 정리하고 동네 이름(정식 · 어간 · 역 이름)을 찾는다
+ * 2. "근처", "집(…)"과 함께 나오면 집 쪽 동네로 보고 그 구에 큰 점수
+ * 3. "지나는 중", "…에서 내려서"와 함께 나오면 지나는 곳으로 보고,
+ *    "집까지 X km"(없으면 "N분 남았어요" × 자동차 속도)만큼 떨어진 구들에 점수 (원 위의 후보)
+ * 4. 픽업 라벨 괄호에 동네가 있으면 학교 구로, 없으면 학교는 집 근처라고 본다
+ * 5. 단서가 없으면 가장 가운데 구를 찍는다
  */
 export function guessMock(log: PublicLog): Guess {
   const score = new Map<string, number>(DISTRICT_NAMES.map((n) => [n, 0]));
   const add = (name: string, v: number) => score.set(name, (score.get(name) ?? 0) + v);
 
   for (const m of log.messages) {
-    const text = textOf(m);
-    if (!text) continue;
-    const dongs = [...text.matchAll(DONG)].map((x) => districtOfDong(x[1]!)).filter((d): d is District => !!d);
-    const km = KM.exec(text);
-    for (const d of dongs) {
-      if (/지나는 중/.test(text) && km) {
-        // 지나는 곳에서 X km 떨어진 구들
-        const r = Number(km[1]);
+    const raw = textOf(m);
+    if (!raw) continue;
+    const t = normalize(raw);
+    const places = districtsIn(raw);
+    if (/지나는중|에서내려/.test(t)) {
+      const km = /집까지\s*(\d+(?:\.\d+)?)\s*km/.exec(t)?.[1];
+      const min = /(\d+)분남았/.exec(t)?.[1];
+      const r = km ? Number(km) : min ? Number(min) * CAR_KM_PER_MIN : null;
+      if (r === null) continue;
+      for (const d of places) {
         for (const c of DISTRICTS) {
           const err = Math.abs(distanceKm(c, d) - r);
           if (err <= 3) add(c.name, 3 - err);
         }
-      } else if (/근처|집\(/.test(text)) {
-        add(d.name, 10);
       }
+    } else if (/근처|집\(/.test(t)) {
+      for (const d of places) add(d.name, 10);
     }
   }
 
-  const ranked = [...score.entries()].sort((a, b) => b[1] - a[1] || distanceKm(districtOf(a[0])!, PRIOR) - distanceKm(districtOf(b[0])!, PRIOR));
+  const ranked = [...score.entries()].sort(
+    (a, b) => b[1] - a[1] || distanceKm(districtOf(a[0])!, PRIOR) - distanceKm(districtOf(b[0])!, PRIOR),
+  );
   const home = ranked[0]![1] > 0 ? ranked[0]![0] : PRIOR.name;
 
   let school = home;
   for (const s of log.subtasks) {
     const inParen = /\(([^)]*)\)/.exec(s.label)?.[1] ?? '';
-    const d = [...inParen.matchAll(DONG)].map((x) => districtOfDong(x[1]!)).find(Boolean);
+    const d = districtsIn(inParen)[0];
     if (d) school = d.name;
   }
   return { home, school };

@@ -8,7 +8,7 @@ export interface GateResult {
   school_rate: number;
   /** 필터나 출력 검증이 템플릿으로 바꾼 메시지 수 */
   filtered: number;
-  /** 로그에 남은 위치 단서(지명 · 거리 · 정확한 ETA 등) 개수 */
+  /** 위치 단서(지명 · 거리 · 정확한 ETA 등)가 남은 메시지 · 라벨 수 */
   location_hints: number;
   messages: number;
 }

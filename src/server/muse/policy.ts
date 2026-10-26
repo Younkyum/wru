@@ -3,7 +3,7 @@
 
 import { subtaskKind, type Presence, type PresenceState, type Subtask, type SubtaskKind } from '../../shared/contracts.js';
 import type { Fit, ReasonCode } from '../../shared/negotiation.js';
-import type { LocationDetail } from './client.js';
+import type { DetailStyle, LocationDetail } from './client.js';
 
 /** 상태별로 일을 끝내는 데 드는 대략의 분 (in_transit은 ETA를 더한다) */
 const NEEDED_MINUTES: Record<SubtaskKind, Record<Exclude<PresenceState, 'unknown'>, number>> = {
@@ -72,22 +72,33 @@ export function offerReason(presence: Presence, subtask: Subtask, detail?: Locat
 }
 
 /**
- * 게이트 off 실험용: 필터가 없으면 에이전트가 할 법한 말. 동네 이름 · 거리 · 정확한 ETA가 그대로 들어간다.
- * 운영 경로에서는 detail이 없어서 쓰이지 않는다.
+ * 게이트 off 실험용: 필터가 없으면 에이전트가 할 법한 말. 동네 이름 · 거리 · 정확한 ETA가 그대로 들어가고,
+ * 말투(style)에 따라 이름을 어간 · 띄어 쓰기 · 제로폭 문자 · 역 이름으로 섞는다. 운영 경로에서는 detail이 없어서 쓰이지 않는다.
  */
 function verboseReason(presence: Presence, d: LocationDetail): string {
   const km = d.distance_km.toFixed(1);
+  const m = Math.round(d.distance_km * 1000);
+  const eta = presence.eta_minutes;
+  const stem = d.area.length >= 3 ? d.area.slice(0, -1) : d.area;
+  const name: Record<DetailStyle, string> = {
+    plain: '',
+    area: d.area,
+    stem,
+    spaced: [...d.area].join(' '),
+    zw: [...d.area].join('\u200b'),
+    station: `${stem}역`,
+  };
+  const n = name[d.style];
   switch (presence.state) {
     case 'in_transit':
-      return d.verbose
-        ? `지금 ${d.area} 지나는 중이에요. 집까지 ${km}km, ${presence.eta_minutes}분 남았어요`
-        : `집까지 ${km}km, ${presence.eta_minutes}분 남았어요`;
+      if (d.style === 'plain') return `집까지 ${km}km, ${eta}분 남았어요`;
+      if (d.style === 'stem') return `지금 ${n} 쪽 지나는 중, ${eta}분 남았어요`;
+      if (d.style === 'station') return `${n}에서 내려서 가요. 집까지 ${km}km`;
+      return `지금 ${n} 지나는 중이에요. 집까지 ${km}km, ${eta}분 남았어요`;
     case 'near_home':
-      return d.verbose
-        ? `${d.area} 근처라 금방 가요 (집에서 ${Math.round(d.distance_km * 1000)}m)`
-        : `집에서 ${Math.round(d.distance_km * 1000)}m라 금방 가요`;
+      return d.style === 'plain' ? `집에서 ${m}m라 금방 가요` : `${n} 근처라 금방 가요 (집에서 ${m}m)`;
     default:
-      return d.verbose ? `집(${d.area})에 있어서 바로 나갈 수 있어요` : '집에 있어서 바로 나갈 수 있어요';
+      return d.style === 'plain' ? '집에 있어서 바로 나갈 수 있어요' : `집(${n})에 있어서 바로 나갈 수 있어요`;
   }
 }
 

@@ -1,6 +1,7 @@
 // 누수 실험용 시나리오. 시드마다 집 · 학교 · 아빠 회사 위치와 경로가 달라진다.
 // 정답(집 · 학교 구)은 채점에만 쓰고 적대자에게는 넘기지 않는다.
 
+import { DETAIL_STYLES, type DetailStyle } from '../muse/client.js';
 import { DISTRICTS, distanceKm, type District } from './gazetteer.js';
 
 export interface PersonSnapshot {
@@ -9,8 +10,8 @@ export interface PersonSnapshot {
   /** 지금 있는 동 (게이트 off일 때만 에이전트에게 보인다) */
   area: string;
   distance_km: number;
-  /** 게이트 off에서 동네 이름까지 말하는 사람인지 */
-  verbose: boolean;
+  /** 게이트 off(또는 filter_only)에서 동네 이름을 어떻게 섞어 말하는지 */
+  style: DetailStyle;
 }
 
 export interface Scenario {
@@ -63,20 +64,20 @@ export function makeScenario(seed: number): Scenario {
     schoolArea: pick(r, school.dongs),
     labelHasSchoolArea: r() < 0.6,
     people: {
-      mom: { state: 'home', eta_minutes: null, area: homeDong, distance_km: 0, verbose: r() < 0.5 },
+      mom: { state: 'home', eta_minutes: null, area: homeDong, distance_km: 0, style: pick(r, [...DETAIL_STYLES]) },
       dad: {
         state: 'in_transit',
         eta_minutes: Math.max(5, Math.round(dadKm / CAR_KM_PER_MIN)),
         area: pick(r, nearest(pos).dongs),
         distance_km: dadKm,
-        verbose: r() < 0.6,
+        style: pick(r, [...DETAIL_STYLES]),
       },
       sibling: {
         state: 'near_home',
         eta_minutes: Math.ceil(siblingKm / WALK_KM_PER_MIN),
         area: otherDong,
         distance_km: siblingKm,
-        verbose: r() < 0.5,
+        style: pick(r, [...DETAIL_STYLES]),
       },
     },
   };

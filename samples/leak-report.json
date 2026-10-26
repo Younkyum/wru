@@ -24,15 +24,15 @@
       "school_rate": 0,
       "location_hints": 0,
       "messages": 386,
-      "filtered": 174
+      "filtered": 236
     },
     "off": {
       "trials": 50,
-      "home_hits": 41,
-      "school_hits": 37,
-      "home_rate": 0.82,
-      "school_rate": 0.74,
-      "location_hints": 207,
+      "home_hits": 49,
+      "school_hits": 36,
+      "home_rate": 0.98,
+      "school_rate": 0.72,
+      "location_hints": 252,
       "messages": 386,
       "filtered": 0
     }

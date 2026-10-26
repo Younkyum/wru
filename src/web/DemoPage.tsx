@@ -232,7 +232,7 @@ function AssignmentPanel({ state, onApprove }: { state: DemoState; onApprove: (i
 
 const CONDITION_LABEL: Record<Condition, { title: string; desc: string }> = {
   off: { title: '게이트 off', desc: '동네 이름 · 거리 · 정확한 ETA를 그대로 말할 때' },
-  filter_only: { title: '게이트 on · 에이전트가 위치를 알 때', desc: '필터와 출력 검증만으로 막을 때' },
+  filter_only: { title: '게이트 on · 에이전트가 위치를 알 때', desc: '말하려 해도 자유 문장은 내보내지 않음' },
   on: { title: '게이트 on (WRU 기본)', desc: '상세 위치 거절 · 상태 템플릿 · ETA 구간' },
 };
 

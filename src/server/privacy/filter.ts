@@ -1,5 +1,7 @@
 // 프라이버시 게이트의 메시지 필터.
-// 에이전트(특히 LLM)가 쓴 reason에 위치어나 정확한 분 단위 ETA가 섞이면 상태 템플릿으로 바꾼다.
+// 게이트 on에서는 에이전트(특히 LLM)가 쓴 자유 문장을 내보내지 않는다.
+// offer · counter의 reason은 항상 상태 템플릿으로 다시 쓰고, LLM 문장은 판단 신호로만 쓴다.
+// 위치어 검사(locationHints)는 라벨 검사 · 리포트 · 테스트용 보조 수단이다. 이것만으로 막는다고 기대하지 않는다.
 
 import type { Presence, Subtask, Task } from '../../shared/contracts.js';
 import { findLeaks } from '../../shared/leak.js';
@@ -10,17 +12,45 @@ import { PLACE_WORDS } from './gazetteer.js';
 export type Gate = 'on' | 'off';
 
 /** ETA 구간 표현("10분 이내" 등)을 뺀 뒤에도 분 단위 숫자가 남으면 정확한 ETA로 본다 */
-const BUCKET = /(10|20|30)분 (이내|넘게)/g;
-const EXACT_MINUTES = /\d+\s*분/;
+const BUCKET = /(?<!\d)(10|20|30)분\s*(이내|넘게)/g;
+const EXACT_MINUTES = /\d+\s*(분|min)|\d{1,2}:\d{2}/i;
+/** "○○동 · ○○역 · ○○로 · ○○길"처럼 끝나는 단어 (뒤에 조사가 와도 된다) */
+const PLACE_SUFFIX = /[가-힣]{2,}(동|역|로|길)(?=$|[\s,.)!?]|[은는이가에을를의서도])/;
 
+/** 우회 문자 정리: 전각 → 반각, 제로폭 · 서식 문자 제거 */
+export function clean(text: string): string {
+  return text.normalize('NFKC').replace(/\p{Cf}/gu, '');
+}
+
+/** clean + 한글 사이 공백 제거 ("망 원 동" → "망원동") */
+export function normalize(text: string): string {
+  return clean(text).replace(/(?<=[가-힣])\s+(?=[가-힣])/g, '');
+}
+
+/** 동 · 구로 끝나는 세 글자 이상 정식 이름은 일상어와 겹치지 않아서, 붙여 쓴 문장에서도 찾는다 */
+const FULL_NAMES = PLACE_WORDS.filter((w) => w.length >= 3 && /[동구]$/.test(w));
+
+/** 지명 사전에 있는 단어. 앞에 한글이 붙어 있으면(예: 홍길동) 다른 단어로 본다 */
 export function findPlaceWords(text: string): string[] {
-  return PLACE_WORDS.filter((w) => text.includes(w));
+  const spaced = clean(text);
+  const collapsed = normalize(text);
+  return PLACE_WORDS.filter(
+    (w) => new RegExp(`(?<![가-힣])${w}`).test(spaced) || (FULL_NAMES.includes(w) && collapsed.includes(w)),
+  );
 }
 
 /** 위치를 드러내는 표현 목록 (좌표 · 도로명 · 학교명 · 거리 · 지명 · 정확한 ETA) */
 export function locationHints(text: string): string[] {
-  const hints = [...findLeaks(text), ...findPlaceWords(text).map((w) => `지명: ${w}`)];
-  if (EXACT_MINUTES.test(text.replace(BUCKET, ''))) hints.push('정확한 ETA');
+  const hints = [...findLeaks(text), ...findLeaks(normalize(text)), ...findPlaceWords(text).map((w) => `지명: ${w}`)];
+  if (EXACT_MINUTES.test(normalize(text).replace(BUCKET, ''))) hints.push('정확한 ETA');
+  return [...new Set(hints)];
+}
+
+/** 태스크 라벨 검사: 위치 단서에 더해 "○○동/역/로/길" 꼴 단어도 막는다 */
+export function labelHints(label: string): string[] {
+  const hints = locationHints(label);
+  const suffix = PLACE_SUFFIX.exec(label.normalize('NFKC'));
+  if (suffix) hints.push(`지명 꼴: ${suffix[0]}`);
   return hints;
 }
 
@@ -29,22 +59,31 @@ export interface FilterResult {
   filtered: boolean;
 }
 
-/** 게이트 on: offer · counter의 reason을 검사해 위치 단서가 있으면 템플릿으로 교체 */
+/**
+ * 게이트 on: offer · counter의 reason을 항상 상태 템플릿으로 다시 쓴다.
+ * filtered는 원래 문장이 템플릿과 달랐는지(= 에이전트 문장이 버려졌는지).
+ */
 export function filterMessage(body: MessageBody, presence: Presence, task: Task): FilterResult {
   if (body.type !== 'offer' && body.type !== 'counter') return { body, filtered: false };
-  if (locationHints(body.reason).length === 0) return { body, filtered: false };
   const find = (id: string) => task.subtasks.find((s) => s.id === id)!;
-  const reason =
+  let reason =
     body.type === 'offer'
       ? offerReason(presence, find(body.subtask_id))
       : counterReason(presence, find(body.subtask_id), find(body.alternative));
-  return { body: { ...body, reason }, filtered: true };
+  // 안전망: counter 템플릿에는 라벨이 들어가므로, 그래도 단서가 보이면 라벨 없는 문장으로
+  if (body.type === 'counter' && locationHints(reason).length) {
+    reason = `더 잘 맞는 제안이 있어서 다른 일을 맡을게요 — ${offerReason(presence, find(body.alternative))}`;
+  }
+  return { body: { ...body, reason }, filtered: reason !== body.reason };
 }
 
-/** 게이트 on: 라벨 괄호 속 위치 설명을 지운다 (예: "민아 픽업 (○○동 쪽)" → "민아 픽업") */
+/**
+ * 요청자가 위치 설명을 지우고 다시 쓴 라벨 (예: "민아 픽업 (○○동 쪽)" → "민아 픽업").
+ * 운영 인박스는 위치가 든 라벨을 거절하므로, 누수 실험의 게이트 on 조건은 이렇게 다시 쓴 라벨로 투입한다.
+ */
 export function sanitizeLabel(label: string): string {
-  const stripped = label.replace(/\s*\([^)]*\)/g, (m) => (locationHints(m).length ? '' : m)).trim();
-  return locationHints(stripped).length ? '이름 없는 일' : stripped;
+  const stripped = label.replace(/\s*\([^)]*\)/g, (m) => (labelHints(m).length ? '' : m)).trim();
+  return labelHints(stripped).length ? '이름 없는 일' : stripped;
 }
 
 export function sanitizeSubtasks(subtasks: Subtask[]): Subtask[] {
