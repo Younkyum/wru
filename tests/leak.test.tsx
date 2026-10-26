@@ -16,12 +16,17 @@ function render(state: any) {
       onReset={noop}
       onTogglePlay={noop}
       onSubmitHeroTask={noop}
+      onNegotiate={noop}
+      onApprove={noop}
     />,
   );
 }
 
 describe('누수 가드', () => {
-  it('누수 패턴 자체가 좌표를 잡아낸다 (가드의 가드)', () => {
+  it('누수 패턴 자체가 위치를 잡아낸다 (가드의 가드)', () => {
+    expect(leaks('테헤란로 152')).not.toHaveLength(0);
+    expect(leaks('서울대치초등학교 앞')).not.toHaveLength(0);
+    expect(leaks('집까지 3.2km')).not.toHaveLength(0);
     expect(leaks('{"lat":37.5665,"lng":126.978}')).not.toHaveLength(0);
     expect(leaks('37.5665, 126.9780')).not.toHaveLength(0);
     expect(leaks('{"raw_coords":[1,2]}')).not.toHaveLength(0);
@@ -38,6 +43,8 @@ describe('누수 가드', () => {
     };
 
     await collect('POST', '/api/tasks/hero');
+    await collect('POST', '/api/tasks/t_pickup_milk_001/negotiate');
+    await collect('POST', '/api/negotiations/n_001/approve');
     await collect('POST', '/api/tasks', { deadline: '19:00', subtasks: [{ id: 'trash', label: '분리수거' }] });
     for (let minute = 0; minute <= 70; minute += 1) {
       for (const id of PERSON_IDS) {
@@ -50,6 +57,7 @@ describe('누수 가드', () => {
       await collect('GET', '/api/tasks');
       const state = await collect('GET', '/api/state');
       outputs.push(render(state.json));
+      if (minute % 10 === 5) await collect('POST', '/api/tasks/t_pickup_milk_001/negotiate');
       await collect('POST', '/api/sim/advance', { minutes: 1 });
     }
     await collect('POST', '/api/sim/reset');

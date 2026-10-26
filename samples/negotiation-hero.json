@@ -1,0 +1,151 @@
+{
+  "scenario": "17:30 · 6시에 민아 픽업 + 우유",
+  "presence": [
+    {
+      "person_id": "mom",
+      "state": "home",
+      "eta_minutes": null,
+      "updated_at": "2026-10-26T17:30:00+09:00"
+    },
+    {
+      "person_id": "dad",
+      "state": "in_transit",
+      "eta_minutes": 20,
+      "updated_at": "2026-10-26T17:30:00+09:00"
+    },
+    {
+      "person_id": "sibling",
+      "state": "near_home",
+      "eta_minutes": 8,
+      "updated_at": "2026-10-26T17:30:00+09:00"
+    }
+  ],
+  "task": {
+    "task_id": "t_pickup_milk_001",
+    "deadline": "2026-10-26T18:00:00+09:00",
+    "subtasks": [
+      {
+        "id": "pickup",
+        "label": "민아 픽업",
+        "kind": "pickup"
+      },
+      {
+        "id": "milk",
+        "label": "우유 사기",
+        "kind": "errand"
+      }
+    ],
+    "constraints": {
+      "max_subtasks_per_person": 1
+    },
+    "received_at": "2026-10-26T17:30:00+09:00"
+  },
+  "negotiation": {
+    "negotiation_id": "n_001",
+    "task_id": "t_pickup_milk_001",
+    "muse": "mock",
+    "messages": [
+      {
+        "type": "offer",
+        "subtask_id": "pickup",
+        "fit": "low",
+        "reason": "집에서 출발하면 맞출 수 있어요",
+        "id": 1,
+        "round": 1,
+        "at": "2026-10-26T17:30:00+09:00",
+        "from": "mom"
+      },
+      {
+        "type": "offer",
+        "subtask_id": "pickup",
+        "fit": "high",
+        "reason": "이동 중이라 가는 길에 들를 수 있어요 (도착 20분 이내)",
+        "id": 2,
+        "round": 1,
+        "at": "2026-10-26T17:30:00+09:00",
+        "from": "dad"
+      },
+      {
+        "type": "offer",
+        "subtask_id": "pickup",
+        "fit": "medium",
+        "reason": "집 근처라 다녀올 수 있어요",
+        "id": 3,
+        "round": 1,
+        "at": "2026-10-26T17:30:00+09:00",
+        "from": "sibling"
+      },
+      {
+        "type": "counter",
+        "subtask_id": "pickup",
+        "alternative": "milk",
+        "fit": "low",
+        "reason": "민아 픽업은 더 잘 맞는 제안이 있어요. 대신 우유 사기 — 집에서 잠깐 다녀올 수 있어요",
+        "id": 4,
+        "round": 2,
+        "at": "2026-10-26T17:30:00+09:00",
+        "from": "mom"
+      },
+      {
+        "type": "commit",
+        "subtask_id": "pickup",
+        "id": 5,
+        "round": 2,
+        "at": "2026-10-26T17:30:00+09:00",
+        "from": "dad"
+      },
+      {
+        "type": "counter",
+        "subtask_id": "pickup",
+        "alternative": "milk",
+        "fit": "high",
+        "reason": "민아 픽업은 더 잘 맞는 제안이 있어요. 대신 우유 사기 — 집 근처라 들러 오기 쉬워요",
+        "id": 6,
+        "round": 2,
+        "at": "2026-10-26T17:30:00+09:00",
+        "from": "sibling"
+      },
+      {
+        "type": "refuse",
+        "subtask_id": "milk",
+        "reason_code": "better_fit_available",
+        "id": 7,
+        "round": 3,
+        "at": "2026-10-26T17:30:00+09:00",
+        "from": "mom"
+      },
+      {
+        "type": "commit",
+        "subtask_id": "milk",
+        "id": 8,
+        "round": 3,
+        "at": "2026-10-26T17:30:00+09:00",
+        "from": "sibling"
+      }
+    ],
+    "rounds": 3,
+    "max_rounds": 4,
+    "outcome": "complete",
+    "assignment": {
+      "task_id": "t_pickup_milk_001",
+      "assignments": [
+        {
+          "subtask": "pickup",
+          "person": "dad"
+        },
+        {
+          "subtask": "milk",
+          "person": "sibling"
+        }
+      ],
+      "unassigned": [],
+      "notify": {
+        "mom": "엄마: 이번엔 맡은 일이 없어요",
+        "dad": "아빠 담당: 민아 픽업 (18:00까지)",
+        "sibling": "형 담당: 우유 사기 (18:00까지)"
+      }
+    },
+    "status": "awaiting_approval",
+    "approved_at": null
+  }
+}

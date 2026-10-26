@@ -44,6 +44,8 @@ export function App() {
       }}
       onTogglePlay={() => setPlaying((p) => !p)}
       onSubmitHeroTask={() => void run(api.submitHeroTask)}
+      onNegotiate={(taskId) => void run(() => api.negotiate(taskId))}
+      onApprove={(id) => void run(() => api.approve(id))}
     />
   );
 }

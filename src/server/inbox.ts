@@ -1,6 +1,6 @@
 // 태스크 인박스 (메모리 저장).
 
-import { findForbiddenKey, type Subtask, type Task, type TaskConstraints } from '../shared/contracts.js';
+import { SUBTASK_KINDS, findForbiddenKey, type Subtask, type Task, type TaskConstraints } from '../shared/contracts.js';
 
 export interface TaskInput {
   task_id?: string;
@@ -16,8 +16,8 @@ export const HERO_TASK: TaskInput = {
   task_id: 't_pickup_milk_001',
   deadline: '18:00',
   subtasks: [
-    { id: 'pickup', label: '민아 픽업' },
-    { id: 'milk', label: '우유 사기' },
+    { id: 'pickup', label: '민아 픽업', kind: 'pickup' },
+    { id: 'milk', label: '우유 사기', kind: 'errand' },
   ],
   constraints: { max_subtasks_per_person: 1 },
 };
@@ -56,7 +56,10 @@ export class TaskInbox {
         return { ok: false, error: 'subtask에는 id와 label이 필요해요.' };
       }
       if (subtasks.some((x) => x.id === s.id)) return { ok: false, error: `subtask id가 겹쳐요: ${s.id}` };
-      subtasks.push({ id: s.id, label: s.label.trim() });
+      if (s.kind !== undefined && !(SUBTASK_KINDS as readonly string[]).includes(s.kind)) {
+        return { ok: false, error: 'subtask kind는 pickup 또는 errand여야 해요.' };
+      }
+      subtasks.push(s.kind ? { id: s.id, label: s.label.trim(), kind: s.kind } : { id: s.id, label: s.label.trim() });
     }
 
     const max = body.constraints?.max_subtasks_per_person ?? null;
