@@ -51,14 +51,10 @@ export function App() {
     return () => clearTimeout(timer);
   }, [reveal, total]);
 
-  // 데모 컷이 바뀌면 화면 위로, 누수 컷은 리포트로 스크롤
+  // 데모 컷이 바뀌면 화면 맨 위로 (한 화면에 다 들어온다)
   useEffect(() => {
     if (demoStep === null) return;
-    if (DEMO_STEPS[demoStep]!.focus === 'report') {
-      document.querySelector('.report-panel')?.scrollIntoView({ behavior: 'smooth', block: 'end' });
-    } else {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [demoStep]);
 
   /** 데모 컷마다 하는 일 (0: 리셋, 1: 태스크 투입, 2: 협상, 3: 승인, 4: 누수 리포트) */
