@@ -241,7 +241,7 @@ describe('누수 실험', () => {
   it('게이트 on 라벨은 인박스 검사를 통과하는 라벨이다 (운영과 같은 조건)', () => {
     for (let i = 1; i <= 50; i += 1) {
       const s = makeScenario(i);
-      const original = s.labelHasSchoolArea ? `민아 픽업 (${s.schoolArea} 쪽)` : '민아 픽업';
+      const original = s.labelHasSchoolArea ? `Pick up Mina (near ${s.schoolArea})` : 'Pick up Mina';
       expect(labelHints(sanitizeLabel(original))).toEqual([]);
       if (s.labelHasSchoolArea) expect(labelHints(original).length).toBeGreaterThan(0);
     }
@@ -266,5 +266,37 @@ describe('누수 실험', () => {
     const fresh = await runLeakExperiment({ trials: committed.trials, muse: new MockMuse() });
     expect(committed).toEqual(fresh);
     expect(readFileSync('leak-report.md', 'utf8')).toBe(renderLeakReport(fresh));
+  });
+});
+
+describe('적대자와 무관한 상한', () => {
+  it('게이트 on과 "위치를 알 때"는 로그 종류 · 상한이 같고, off는 로그가 전부 다르다', async () => {
+    const r = await runLeakExperiment({ trials: 50, muse: new MockMuse() });
+    expect(r.gates.filter_only.distinct_logs).toBe(r.gates.on.distinct_logs);
+    expect(r.gates.filter_only.bound_home_rate).toBe(r.gates.on.bound_home_rate);
+    expect(r.gates.on.distinct_logs).toBeLessThan(10);
+    expect(r.gates.off.distinct_logs).toBe(50);
+    expect(r.gates.off.bound_home_rate).toBe(1);
+    // 상한은 실제 적중률 이상
+    for (const g of Object.values(r.gates)) {
+      expect(g.bound_home_rate).toBeGreaterThanOrEqual(g.home_rate);
+      expect(g.bound_school_rate).toBeGreaterThanOrEqual(g.school_rate);
+    }
+  });
+
+  it('밖으로 나가는 메시지에는 내부 플래그(fallback · filtered)가 없다', async () => {
+    const { makeApp, req } = await import('./helpers');
+    const leaky: MuseClient = {
+      kind: 'meta',
+      decide: async (input) => {
+        const a = decideMock(input);
+        return { action: a.type === 'offer' ? { ...a, reason: '망원동 근처예요' } : a };
+      },
+    };
+    const app = makeApp({ muse: leaky });
+    await req(app, 'POST', '/api/tasks/hero');
+    const n = await req(app, 'POST', '/api/tasks/t_pickup_milk_001/negotiate');
+    expect(n.text).not.toMatch(/"(fallback|filtered)"/);
+    expect((await req(app, 'GET', '/api/state')).text).not.toMatch(/"(fallback|filtered)"/);
   });
 });

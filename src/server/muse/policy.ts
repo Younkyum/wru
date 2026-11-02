@@ -44,29 +44,29 @@ export function infeasibleCode(presence: Presence): ReasonCode {
 
 /** 메시지에는 정확한 분 대신 구간만 쓴다 */
 export function etaBucket(minutes: number | null): string {
-  if (minutes === null) return '집';
-  if (minutes <= 10) return '10분 이내';
-  if (minutes <= 20) return '20분 이내';
-  if (minutes <= 30) return '30분 이내';
-  return '30분 넘게';
+  if (minutes === null) return 'home';
+  if (minutes <= 10) return 'within 10 min';
+  if (minutes <= 20) return 'within 20 min';
+  if (minutes <= 30) return 'within 30 min';
+  return 'over 30 min';
 }
 
 const OFFER_TEXT: Record<SubtaskKind, Record<Exclude<PresenceState, 'unknown'>, (eta: string) => string>> = {
   pickup: {
-    in_transit: (eta) => `이동 중이라 가는 길에 들를 수 있어요 (도착 ${eta})`,
-    near_home: () => '집 근처라 다녀올 수 있어요',
-    home: () => '집에서 출발하면 맞출 수 있어요',
+    in_transit: (eta) => `I'm already out and can stop by on the way (home ${eta})`,
+    near_home: () => "I'm near home and can make the trip",
+    home: () => 'I can make it if I leave home now',
   },
   errand: {
-    near_home: () => '집 근처라 들러 오기 쉬워요',
-    in_transit: (eta) => `들어가는 길에 살 수 있어요 (도착 ${eta})`,
-    home: () => '집에서 잠깐 다녀올 수 있어요',
+    near_home: () => "I'm near home, easy to drop by",
+    in_transit: (eta) => `I can pick it up on my way home (home ${eta})`,
+    home: () => 'I can run out from home',
   },
 };
 
 /** 상태 기반 offer 이유 템플릿 */
 export function offerReason(presence: Presence, subtask: Subtask, detail?: LocationDetail): string {
-  if (presence.state === 'unknown') return '지금 상태를 알 수 없어요';
+  if (presence.state === 'unknown') return "I don't know my status right now";
   if (detail) return verboseReason(presence, detail);
   return OFFER_TEXT[subtaskKind(subtask)][presence.state](etaBucket(presence.eta_minutes));
 }
@@ -86,23 +86,23 @@ function verboseReason(presence: Presence, d: LocationDetail): string {
     stem,
     spaced: [...d.area].join(' '),
     zw: [...d.area].join('\u200b'),
-    station: `${stem}역`,
+    station: `${stem}역 station`,
   };
   const n = name[d.style];
   switch (presence.state) {
     case 'in_transit':
-      if (d.style === 'plain') return `집까지 ${km}km, ${eta}분 남았어요`;
-      if (d.style === 'stem') return `지금 ${n} 쪽 지나는 중, ${eta}분 남았어요`;
-      if (d.style === 'station') return `${n}에서 내려서 가요. 집까지 ${km}km`;
-      return `지금 ${n} 지나는 중이에요. 집까지 ${km}km, ${eta}분 남았어요`;
+      if (d.style === 'plain') return `${km} km from home, ${eta} min left`;
+      if (d.style === 'stem') return `passing through ${n} area now, ${eta} min left`;
+      if (d.style === 'station') return `getting off at ${n}, ${km} km from home`;
+      return `passing through ${n} now, ${km} km from home, ${eta} min left`;
     case 'near_home':
-      return d.style === 'plain' ? `집에서 ${m}m라 금방 가요` : `${n} 근처라 금방 가요 (집에서 ${m}m)`;
+      return d.style === 'plain' ? `${m} m from home, quick trip` : `near ${n}, quick trip (${m} m from home)`;
     default:
-      return d.style === 'plain' ? '집에 있어서 바로 나갈 수 있어요' : `집(${n})에 있어서 바로 나갈 수 있어요`;
+      return d.style === 'plain' ? 'at home, can leave right away' : `at home (${n}), can leave right away`;
   }
 }
 
 /** counter 이유. 사용자가 쓴 라벨은 넣지 않는다 (라벨이 메시지로 새지 않게) */
 export function counterReason(presence: Presence, _from: Subtask, alternative: Subtask, detail?: LocationDetail): string {
-  return `더 잘 맞는 제안이 있어서 바꿀게요. ${offerReason(presence, alternative, detail)}`;
+  return `Someone fits better, so I'll switch. ${offerReason(presence, alternative, detail)}`;
 }

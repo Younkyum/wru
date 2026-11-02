@@ -309,3 +309,390 @@ footer { color: var(--faint); font-size: 12px; text-align: center; }
 /* 영상에서는 아래 자막이 내레이션을 맡으므로 진행 막대는 제목만 */
 .video-on .demo-caption { display: none; }
 .video-on .demo-title { font-size: 22px; }
+
+/* ── Muse 요청 · 응답 ─────────────────────── */
+.io { display: grid; gap: 8px; overflow-y: auto; }
+.io-label { font-size: 13px; font-weight: 700; display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; }
+.io-label code { font-size: 12px; color: var(--transit); }
+.io-label span { font-size: 11px; font-weight: 500; color: var(--muted); }
+.code {
+  margin: 0; background: #151514; color: #e9e6df; border-radius: 10px; padding: 10px 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; line-height: 1.5;
+  white-space: pre-wrap; word-break: break-all;
+}
+.code-out { color: #b9e4c9; }
+.checks { list-style: none; margin: 2px 0 0; padding: 0; display: grid; gap: 3px; font-size: 12.5px; color: var(--home); font-weight: 600; }
+.focus-muse .zone-hub, .focus-muse .zone-phones { opacity: 0.3; filter: grayscale(1); }
+.focus-muse .zone-side { box-shadow: 0 0 0 2px var(--ink); }
+.focus-muse .stage { grid-template-columns: minmax(0, 1fr) 520px; }
+.focus-muse .phones { grid-template-columns: repeat(3, minmax(140px, 1fr)); }
+
+/* ── 라운드 1 디자인 지적 반영 ─────────────────── */
+/* 흐림은 회색조로, 폰 테두리는 유지 */
+.focus-phones .zone-feed, .focus-task .zone-presence, .focus-channel .zone-presence, .focus-roles .zone-presence,
+.focus-boundary .zone-feed, .focus-boundary .zone-presence, .focus-report .zone-phones,
+.focus-phones .zone-hub, .focus-phones .zone-side, .focus-task .zone-side, .focus-channel .zone-hub, .focus-roles .zone-side,
+.focus-boundary .zone-hub, .focus-report .zone-hub { filter: grayscale(1); }
+/* 채널 위쪽이 잘려 보이지 않게 */
+.channel { mask-image: linear-gradient(to bottom, transparent 0, #000 18px); padding-top: 6px; }
+/* 자막: 단어 단위 줄바꿈 · 고정 폭 */
+.subtitle { width: min(980px, 88vw); max-width: none; word-break: keep-all; text-wrap: balance; z-index: 50; }
+/* 진행 막대를 덜 무겁게 */
+.video-on .demo-bar { background: #2a2a28; padding: 10px 18px; box-shadow: none; }
+.video-on .demo-count { font-size: 24px; }
+/* 영상에서 글자 키우기 */
+.video-on .bubble { font-size: 14px; }
+.video-on .msg-text { font-size: 15px; }
+.video-on .msg-detail { font-size: 13px; }
+.video-on .side-head span, .video-on .leak-note { font-size: 13px; }
+.video-on .phone-sub, .video-on .note-title { font-size: 12px; }
+.video-on .matrix { font-size: 13px; }
+.video-on .code { font-size: 13px; }
+/* 자막 자리를 비워 폰과 겹치지 않게 */
+.video-on .phone, .video-on .side { height: 470px; }
+.focus-report .role-card { font-size: 13px; }
+/* 인트로 · 아웃트로 */
+.scene > * { animation: rise 0.6s ease both; }
+.scene > *:nth-child(2) { animation-delay: 0.15s; }
+.scene > *:nth-child(3) { animation-delay: 0.3s; }
+.scene > *:nth-child(4) { animation-delay: 0.9s; }
+.scene-foot { font-size: 18px; opacity: 0.8; color: #cfcac2; }
+@keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+.focus-muse .side { height: auto; }
+.focus-muse .io { overflow: visible; }
+
+/* ── 라운드 2 반영 ─────────────────────────── */
+.mock-note {
+  margin: 0; font-size: 13px; font-weight: 600; color: #8a5a07; background: #fbf1dc;
+  border: 1px solid #f0dcae; border-radius: 8px; padding: 6px 10px;
+}
+.split { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12.5px; line-height: 1.45; }
+.split > div { border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; color: var(--muted); }
+.split-title { font-weight: 800; color: var(--ink); margin-bottom: 2px; }
+.split > div:first-child .split-title { color: var(--transit); }
+.split > div:last-child .split-title { color: var(--home); }
+.focus-muse .side { max-height: 560px; }
+.focus-muse .code { font-size: 12px; padding: 8px 10px; }
+.scene-note {
+  margin-top: 18px; font-size: 20px; font-weight: 600; color: #f2d48a;
+  border: 1px solid rgba(242, 212, 138, 0.4); border-radius: 999px; padding: 8px 18px;
+}
+.scene > *:nth-child(5) { animation-delay: 1.2s; }
+.scene .scene-line { color: rgba(255, 255, 255, 0.65); }
+.scene-q { font-size: 40px; }
+/* 어두운 장면에서도 자막 상자가 보이게 */
+.subtitle { border: 1px solid rgba(255, 255, 255, 0.16); }
+/* 폰 피드: 아래 정렬 + 위쪽 페이드 */
+.feed { justify-content: flex-end; mask-image: linear-gradient(to bottom, transparent 0, #000 22px); }
+.feed > :first-child { margin-top: auto; }
+/* 누수 차트: 우연선 라벨, 예시 문장 */
+.metric-track { overflow: visible; }
+.metric-fill { overflow: hidden; }
+.chance-label {
+  position: absolute; top: -17px; transform: translateX(-50%); font-size: 11px; font-weight: 700;
+  color: var(--ink); opacity: 0.65; white-space: nowrap;
+}
+.metric + .metric { margin-top: 10px; }
+.leak-card .metric:first-of-type { margin-top: 18px; }
+.example { margin-top: 10px; font-size: 12.5px; color: var(--muted); line-height: 1.45; }
+.leak-desc { font-size: 12.5px; }
+/* 진행 막대: 밝게, 번호만 강조색 */
+.video-on .demo-bar { background: #fff; color: var(--ink); border: 1px solid var(--line); }
+.video-on .demo-count { color: #c08a12; }
+.video-on .demo-count span { color: var(--faint); opacity: 1; }
+/* Muse 컷: WRU 바를 접어 패널 자리를 만든다 */
+.video-on.focus-muse .zone-hub { display: none; }
+.video-on.focus-muse .side { max-height: none; }
+/* 누수 컷: WRU 바를 접고 카드를 촘촘하게 (자막과 안 겹치게) */
+.video-on.focus-report .zone-hub { display: none; }
+.video-on.focus-report .side { height: auto; min-height: 0; }
+.video-on.focus-report .leak { gap: 8px; }
+.video-on.focus-report .leak-card { padding: 10px 14px; }
+.video-on.focus-report .metric + .metric { margin-top: 4px; }
+.video-on.focus-report .example { margin-top: 6px; }
+.bound { margin-top: 8px; font-size: 12.5px; color: var(--ink); }
+.bound b { font-weight: 800; }
+.phone-sub { white-space: nowrap; }
+.chance-label { top: auto; bottom: 13px; }
+
+/* ════════════════════════════════════════════════════════════
+   영상 모드 레이아웃 (라운드 1~3에서 반복된 지적에 대한 구조 변경)
+   - 컷마다 필요한 영역만 보여 주고 나머지는 흐리지 않고 숨긴다
+   - 보이는 영역을 크게, 혼자 남은 패널은 확대한다
+   - 화면 아래 140px은 자막 전용 (UI가 들어가지 않는다)
+   ════════════════════════════════════════════════════════════ */
+.video-on .top { display: none; }
+.video-on .wru { padding-top: 14px; padding-bottom: 150px; min-height: 100vh; }
+.video-on.demo-on [class*='zone-'] { opacity: 1 !important; filter: none !important; box-shadow: none !important; }
+.video-on.demo-on .stage { grid-template-columns: minmax(0, 1fr) !important; }
+.video-on.demo-on .phones { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; gap: 22px; }
+.video-on.demo-on .phone { height: 560px; }
+.video-on.demo-on .side { height: auto; max-height: none; }
+
+/* 폰만: 좌표 없는 지도 */
+.video-on.focus-phones .zone-hub, .video-on.focus-phones .zone-side { display: none; }
+/* 혼자 남은 패널: 토큰 경계 · Muse · 누수 */
+.video-on.focus-boundary .zone-hub, .video-on.focus-boundary .zone-phones,
+.video-on.focus-muse .zone-hub, .video-on.focus-muse .zone-phones,
+.video-on.focus-report .zone-hub, .video-on.focus-report .zone-phones { display: none !important; }
+.video-on.focus-boundary .side, .video-on.focus-muse .side, .video-on.focus-report .side {
+  width: 820px; margin: 0 auto; zoom: 1.22; box-shadow: none; border: 1px solid var(--line);
+}
+.video-on.focus-report .leak { grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); display: grid; }
+.video-on.focus-report .leak:has(> :nth-child(3)) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+/* 태스크 · 역할: WRU 바 + 폰 */
+.video-on.focus-task .zone-side, .video-on.focus-roles .zone-side { display: none; }
+.video-on.focus-task .phone, .video-on.focus-roles .phone { height: 480px; }
+/* 협상: 폰 + 채널 */
+.video-on.focus-channel .zone-hub { display: none; }
+.video-on.focus-channel .stage { grid-template-columns: minmax(0, 1fr) 400px !important; }
+.video-on.focus-channel .phones { gap: 14px; }
+.video-on.focus-channel .side { height: 560px; }
+/* 자막: 화면 아래 띠 */
+.video-on .subtitle { bottom: 30px; font-size: 25px; background: rgba(16, 16, 15, 0.92); }
+/* 폰 안 글자 */
+.video-on .state { font-size: 28px; }
+.video-on .eta { font-size: 14px; }
+.video-on .note-body { font-size: 15px; }
+.video-on .role-card { font-size: 16px; }
+.video-on .feed-empty { font-size: 14px; color: var(--muted); }
+.code-wait { color: #8e8a82; }
+/* 폰이 좁아져도 안쪽이 넘치지 않게 */
+.phone, .phone-screen { min-width: 0; }
+.phone-screen { grid-template-columns: minmax(0, 1fr); }
+.phone-head { min-width: 0; }
+.phone-head > div { min-width: 0; }
+.phone-sub { overflow: hidden; text-overflow: ellipsis; }
+.phone-status { gap: 6px; }
+.bubble { overflow-wrap: anywhere; }
+/* 우연선 라벨은 학교 막대 아래 */
+.chance-label { bottom: auto; top: 13px; font-size: 10.5px; }
+.metric:has(.chance-label) { margin-bottom: 14px; }
+.bound { display: grid; gap: 1px; }
+.video-on.focus-report .side { width: 900px; zoom: 1.28; }
+.video-on.focus-channel .stage { grid-template-columns: minmax(0, 1fr) 360px !important; }
+
+/* ── 라운드 4 반영 ─────────────────────────── */
+/* 강조색 정리: 앰버는 어두운 카드에만. 집 근처는 청록 */
+:root { --near: #11807a; }
+.video-on .demo-count { color: var(--ink); }
+.video-on .demo-title { font-size: 24px; }
+/* 혼자 남은 패널은 화면 세로 가운데, 더 크게 */
+.video-on.focus-boundary .stage, .video-on.focus-muse .stage, .video-on.focus-report .stage {
+  min-height: 560px; align-items: center;
+}
+.video-on.focus-boundary .side { zoom: 1.36; width: 760px; }
+.video-on.focus-muse .side { zoom: 1.16; width: 900px; }
+.video-on.focus-muse .io { grid-template-columns: 1fr 1fr; column-gap: 14px; align-items: start; }
+.video-on.focus-muse .io > .split { grid-column: 1 / -1; }
+.video-on.focus-report .side { zoom: 1.32; }
+/* 자막 상자 높이 고정 (1줄 · 2줄에서 흔들리지 않게) */
+.video-on .subtitle { min-height: 92px; display: grid; place-items: center; }
+/* 인트로 카드: 질문은 자막이 맡는다 */
+.scene-title { font-size: 140px; }
+/* 폰 말풍선 */
+.video-on .bubble { font-size: 15px; padding: 9px 12px; }
+.video-on .msg-detail { font-size: 13.5px; }
+.scene-points { gap: 18px; }
+
+.io-col { display: grid; gap: 6px; align-content: start; }
+
+/* ── 라운드 5 반영: 문장별 강조, 누수 카드 위계 ───────── */
+.hl-on { outline: 3px solid #2f5fd0; outline-offset: 5px; border-radius: 14px; position: relative; z-index: 1; transition: outline-color 0.25s ease, opacity 0.25s ease; }
+.phone.hl-on { outline-offset: 6px; border-radius: 40px; }
+.hl-dim { opacity: 0.42; transition: opacity 0.25s ease; }
+.cell.hl-on { outline-offset: 2px; border-radius: 8px; }
+.logs { font-size: 13px; color: var(--muted); margin-top: 6px; border-radius: 8px; }
+.logs b { font-size: 20px; color: var(--ink); }
+.bound-big { margin-top: 8px; padding: 10px 12px; background: rgba(255, 255, 255, 0.65); border: 1px solid var(--line); border-radius: 12px; }
+.bound-label { font-size: 12.5px; font-weight: 700; color: var(--ink); }
+.bound-nums { display: flex; gap: 18px; margin-top: 2px; font-size: 14px; color: var(--muted); align-items: baseline; }
+.bound-nums b { font-size: 30px; font-weight: 800; color: var(--ink); font-variant-numeric: tabular-nums; margin-left: 4px; }
+.leak-off .bound-nums b { color: var(--refuse); }
+.leak-on .bound-nums b, .leak-filter_only .bound-nums b { color: var(--home); }
+.actual { margin-top: 10px; }
+.actual-label { font-size: 12px; color: var(--muted); }
+.actual .metric-value { font-size: 15px; font-weight: 700; }
+.actual .metric-track { height: 7px; }
+.leak-filter_only { border-width: 2px; border-color: var(--home); background: #f7fbf8; }
+.leak-desc, .example, .leak-note { color: #5f5c56; }
+.video-on .leak-desc, .video-on .example { font-size: 13.5px; }
+.video-on .demo-count span { color: #6b6b6b; }
+.mock-note { font-size: 12.5px; font-weight: 600; background: #fff7e6; }
+.video-on .code { font-size: 13.5px; }
+.code-wait { min-height: 120px; display: grid; place-items: center; }
+.scene { justify-content: center; padding-bottom: 140px; }
+.scene-kicker { font-size: 16px; letter-spacing: 0.14em; }
+.subtitle { background: rgba(28, 28, 26, 0.94); }
+
+/* ── 라운드 6 반영 ─────────────────────────── */
+/* 강조 테두리는 상태색과 겹치지 않게 먹색 */
+.hl-on { outline-color: var(--ink); }
+.phone.hl-on { outline-offset: 7px; }
+.video-on .wru { gap: 18px; }
+.io-col.hl-dim, .rewrite.hl-dim, .split.hl-dim { opacity: 0.55; }
+/* Muse 패널: 요청을 넓게, JSON은 줄바꿈하지 않음 */
+.video-on.focus-muse .io { grid-template-columns: 1.55fr 1fr; }
+.video-on.focus-muse .io > .rewrite { grid-column: 1 / -1; }
+.code { white-space: pre; overflow-x: hidden; word-break: normal; }
+.video-on.focus-muse .code { font-size: 12.5px; }
+.rewrite { display: grid; gap: 4px; border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; font-size: 13px; }
+.rewrite-label { font-weight: 800; }
+.rewrite-from { color: var(--refuse); text-decoration: line-through; text-decoration-thickness: 1.5px; }
+.rewrite-arrow { font-size: 11.5px; color: var(--muted); }
+.rewrite-to { color: var(--home); font-weight: 700; }
+.mock-note { font-size: 13.5px; }
+/* 채널 머리: 에이전트 → 모델 */
+.chain { font-size: 12px; font-weight: 700; color: var(--transit); margin: 2px 0; }
+/* 폰 머리 · 칩 · 라벨 글자 키우기 */
+.video-on .phone-sub { font-size: 12.5px; }
+.video-on .phone-head .key { font-size: 11.5px; }
+.video-on .note-title { font-size: 12.5px; }
+/* 메시지가 쌓이는 컷은 상태 카드를 줄여 피드 자리를 만든다 */
+.video-on.focus-task .self-ring, .video-on.focus-channel .self-ring, .video-on.focus-roles .self-ring { width: 76px; height: 76px; }
+.video-on.focus-task .me, .video-on.focus-channel .me, .video-on.focus-roles .me { padding: 8px 10px 10px; gap: 2px; }
+.video-on.focus-task .state, .video-on.focus-channel .state, .video-on.focus-roles .state { font-size: 22px; }
+/* 자막: 문장 길이에 맞춘 상자 */
+.subtitle { width: fit-content; max-width: min(1000px, 88vw); min-height: 0; padding: 12px 26px; font-size: 26px; background: rgba(20, 20, 19, 0.88); }
+.video-on .subtitle { min-height: 0; }
+.scene-on .subtitle { background: transparent; border-color: transparent; box-shadow: none; color: #f2efe8; }
+/* 인트로: 보통의 위치 공유 ↔ WRU */
+.scene-kicker { font-size: 18px; }
+.contrast { display: flex; align-items: center; gap: 26px; margin-top: 18px; }
+.contrast-card { width: 340px; background: #22221f; border: 1px solid #3a3a36; border-radius: 18px; padding: 16px; text-align: left; }
+.contrast-wru { border-color: #6c6455; }
+.contrast-head { font-size: 17px; font-weight: 800; margin-bottom: 10px; }
+.contrast-foot { font-size: 15px; margin-top: 10px; color: #cfcac2; }
+.contrast-arrow { font-size: 40px; color: #f2d48a; }
+.fake-map {
+  position: relative; height: 120px; border-radius: 12px; background-color: #2d2d29;
+  background-image: linear-gradient(#3a3a35 1px, transparent 1px), linear-gradient(90deg, #3a3a35 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+.pin { position: absolute; width: 16px; height: 16px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); background: #e05a47; box-shadow: 0 0 0 3px rgba(224, 90, 71, 0.25); }
+.pin.p1 { left: 22%; top: 30%; }
+.pin.p2 { left: 58%; top: 55%; background: #4f86e8; }
+.pin.p3 { left: 76%; top: 22%; background: #9a6ce0; }
+.chips { display: grid; gap: 8px; }
+.chip-state { display: inline-block; font-size: 17px; font-weight: 700; padding: 7px 12px; border-radius: 10px; background: #2d2d29; }
+.chip-state.state-home { color: #6fd0a0; }
+.chip-state.state-in_transit { color: #8fb2ff; }
+.chip-state.state-near_home { color: #5fd3cb; }
+/* 자가 호스팅 카드 (밝은) */
+.scene-light { background: var(--bg); color: var(--ink); }
+.scene-light .scene-kicker { opacity: 0.7; }
+.host-steps { margin: 6px 0 4px; padding: 0; list-style: none; counter-reset: step; display: grid; gap: 14px; text-align: left; }
+.host-steps li { counter-increment: step; font-size: 28px; display: flex; align-items: center; gap: 16px; background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 14px 20px; }
+.host-steps li::before { content: counter(step); display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: var(--ink); color: #fff; font-size: 20px; font-weight: 800; flex: none; }
+.scene-light .scene-line { color: var(--muted); }
+/* 아웃트로 위계 */
+.scene-points { font-size: 26px; }
+.scene-points b { font-size: 22px; }
+.scene-note { margin-top: 30px; }
+/* 누수 카드 보조 글자 */
+.actual-label { font-size: 13px; }
+.leak-desc { font-size: 13.5px; }
+.actual.hl-on { outline-offset: 4px; }
+
+/* ── 영어판 ─────────────────────────────── */
+:root { font-family: 'Inter', 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, sans-serif; }
+.metric { grid-template-columns: 52px 1fr 54px; }
+.actual .metric { grid-template-columns: 52px 1fr 54px; }
+.matrix tbody th div:first-child { white-space: nowrap; }
+/* 어두운 코드 블록은 흐리면 회색 덩어리가 되므로 덜 흐리게 */
+.io-col.hl-dim { opacity: 0.78; }
+.code-out { white-space: pre-wrap; }
+.video-on.focus-muse .side { zoom: 1.04; width: 1000px; }
+.video-on.focus-report .side { zoom: 1.18; width: 980px; }
+.video-on.focus-report .leak-note { display: none; }
+.video-on.focus-report .leak-desc { min-height: 0; }
+
+/* ── 라운드 7 반영 ─────────────────────────── */
+/* 자막 띠 확보: 협상 컷 폰 높이 */
+.video-on.demo-on .phone { height: 520px; }
+.video-on.focus-channel .side { height: 520px; }
+.video-on.focus-task .phone, .video-on.focus-roles .phone { height: 470px; }
+/* 흐림: 폰은 화면만 흐리고 베젤은 그대로 */
+.phone.hl-dim { opacity: 1; }
+.phone.hl-dim .phone-screen { opacity: 0.45; }
+.io-col.hl-dim { opacity: 1; filter: blur(0.4px); }
+.io-col.hl-dim .io-label { opacity: 0.5; }
+.hl-on { outline-offset: 7px; }
+.logs.hl-on, .actual.hl-on { outline-offset: 6px; border-radius: 10px; }
+/* 자막 상자: 폭 고정 */
+.subtitle { width: 860px; min-height: 84px; display: grid; place-items: center; }
+/* 어두운 카드(인트로 · 아웃트로)만 투명 자막, 밝은 카드는 기본 상자 */
+.scene-on .subtitle { background: rgba(20, 20, 19, 0.88); border-color: rgba(255, 255, 255, 0.16); color: #fff; }
+.scene-intro .subtitle, .scene-outro .subtitle { background: transparent; border-color: transparent; box-shadow: none; color: #f2efe8; }
+/* 자가 호스팅 카드 정렬 */
+.host-steps li { display: grid; grid-template-columns: 40px 210px 1fr; align-items: center; }
+.host-steps li span { color: #3d3b37; }
+.scene-light .scene-line { color: #4a4a46; }
+/* 아웃트로 간격 */
+.scene-outro .scene-note { margin-top: 36px; font-size: 18px; }
+.scene-outro .scene-points { margin-bottom: 8px; }
+/* 인트로 대비: 왼쪽 카드는 붉은 테두리 */
+.contrast-card:not(.contrast-wru) { border-color: #e5484d; }
+/* mock 배너 대비 */
+.mock-note { color: #6b4a00; background: #fff4d6; }
+.bound-label span { font-weight: 500; color: var(--muted); }
+
+/* ── 라운드 8 반영 ─────────────────────────── */
+/* 흐림 강도 하나로 통일 */
+.hl-dim, .cell.hl-dim, .leak-card.hl-dim, .split.hl-dim, .rewrite.hl-dim { opacity: 0.45; }
+.phone.hl-dim .phone-screen { opacity: 0.45; }
+/* 강조 링: 한 겹 */
+.hl-on { outline-width: 2.5px; box-shadow: none; }
+/* 작은 글자 최소 14px (영상) */
+.video-on .side-head span, .video-on .chain, .video-on .matrix .mask, .video-on .io-label span,
+.video-on .leak-desc, .video-on .actual-label, .video-on .split > div, .video-on .rewrite { font-size: 14px; }
+.video-on .msg-detail { font-size: 14px; }
+.hub-muse { color: #555; }
+/* 자가 호스팅 카드: 세로 가운데, 진한 글자 */
+.scene-host { justify-content: center; padding-bottom: 160px; }
+.host-steps li { font-size: 25px; }
+.host-steps li span { color: #111; }
+.scene-host .scene-kicker { font-size: 20px; color: var(--ink); opacity: 1; font-weight: 700; }
+/* 인트로 지도 대비 */
+.fake-map { background-color: #34342f; background-image: linear-gradient(#4a4a44 1px, transparent 1px), linear-gradient(90deg, #4a4a44 1px, transparent 1px); }
+/* 아웃트로 정렬 */
+.scene-points li { display: grid; grid-template-columns: 210px 1fr; }
+.scene-note { font-size: 18px; }
+
+/* ── 라운드 9 반영 ─────────────────────────── */
+.chain { white-space: nowrap; }
+.cell.hl-dim { opacity: 0.55; }
+.matrix .mask { color: #6b6863; }
+.scene .scene-line { color: #cfcfcf; }
+.contrast { transform: scale(1.12); margin-top: 34px; }
+.video-on .subtitle { width: 880px; min-height: 92px; }
+.video-on.focus-muse .side { zoom: 1.0; width: 1060px; }
+.video-on.focus-muse .code { font-size: 14px; }
+.scene-note { font-size: 19px; }
+.scene-points { column-gap: 48px; }
+/* 누수 카드 세 장: 여유 있게 */
+.video-on.focus-report .leak { gap: 14px; }
+.video-on.focus-report .leak-card { padding: 14px 16px; }
+
+/* ── 라운드 10 반영: 흐림을 가볍게, 흐린 글자도 읽히게 ── */
+.hl-dim, .cell.hl-dim, .leak-card.hl-dim { opacity: 0.6; }
+.split.hl-dim, .rewrite.hl-dim, .io-col.hl-dim { opacity: 0.6; filter: none; }
+.io-col.hl-dim .io-label { opacity: 1; }
+.phone.hl-dim .phone-screen { opacity: 0.6; filter: saturate(0.5); }
+.rewrite-from { color: #c03d2c; }
+.video-on .side-head span, .video-on .msg-detail, .video-on .side-empty { color: #555; }
+.scene-host .scene-line { color: #3d3b37; }
+.contrast-wru { border-color: #3f9a6b; }
+.scene-host .scene-kicker { font-size: 28px; letter-spacing: 0.08em; }
+.bound-label { white-space: nowrap; }
+.bound-nums b { font-size: 34px; }
+
+/* ── 라운드 11 반영 ─────────────────────────── */
+.video-on .phone-sub { font-size: 13px; font-weight: 600; color: #6b6863; }
+.video-on .eta { font-size: 15px; }
+.cell-403 { color: #9b2318; }
+.cell-401 { color: #666; }
+/* 자막은 모든 장면에서 같은 상자 */
+.scene-intro .subtitle, .scene-outro .subtitle { background: rgba(20, 20, 19, 0.88); border-color: rgba(255, 255, 255, 0.16); color: #fff; }
+.subtitle { background: rgba(20, 20, 19, 0.86); }
+.scene-note { font-size: 20px; }

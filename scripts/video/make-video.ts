@@ -11,13 +11,15 @@ import ffmpegInstaller from '@ffmpeg-installer/ffmpeg';
 import ffprobeInstaller from '@ffprobe-installer/ffprobe';
 import { chromium } from 'playwright';
 import { SEGMENTS, captionText } from './narration.js';
+import { renderScriptDoc } from './script-doc.js';
 
 const OUT = resolve('video-out');
 const TMP = join(OUT, 'tmp');
 const PORT = Number(process.env.WRU_VIDEO_PORT ?? 8790);
-const VOICE = process.env.WRU_VIDEO_VOICE ?? 'Yuna';
-const RATE = process.env.WRU_VIDEO_RATE ?? '188';
+const VOICE = process.env.WRU_VIDEO_VOICE ?? 'Samantha';
+const RATE = process.env.WRU_VIDEO_RATE ?? '182';
 const MAX_SECONDS = 180;
+// 1440×900으로 녹화하고, 영상 모드(?video=1)는 CSS zoom 1.125로 그려 글자를 키운다 (1280×800 레이아웃)
 const W = 1440;
 const H = 900;
 
@@ -40,7 +42,7 @@ function srtTime(sec: number): string {
 /** 문장마다 따로 녹음해서 길이를 안다 (자막을 문장 단위로 맞추기 위해) */
 function narrate() {
   return SEGMENTS.map((seg) =>
-    seg.lines.map((line, i) => {
+    seg.lines.map(({ text: line }, i) => {
       const aiff = join(TMP, `${seg.id}-${i}.aiff`);
       const wav = join(TMP, `${seg.id}-${i}.wav`);
       execFileSync('say', ['-v', VOICE, '-r', RATE, '-o', aiff, line]);
@@ -84,12 +86,13 @@ async function main() {
     const context = await browser.newContext({
       viewport: { width: W, height: H },
       deviceScaleFactor: 1,
-      locale: 'ko-KR',
+      locale: 'en-US',
       recordVideo: { dir: TMP, size: { width: W, height: H } },
     });
     const page = await context.newPage();
     const t0 = Date.now();
-    await page.goto(`http://localhost:${PORT}/demo?video=1`);
+    // 협상 메시지는 문장마다 정한 수만큼 스크립트가 직접 펼친다
+    await page.goto(`http://localhost:${PORT}/demo?video=1&reveal=manual`);
     await page.waitForFunction(() => !!(window as unknown as { __wru?: unknown }).__wru);
     await page.evaluate(() => document.fonts.ready);
     await sleep(800);
@@ -108,13 +111,18 @@ async function main() {
         await page.waitForFunction((s) => (window as any).__wru.step === s, seg.step);
       }
       await sleep(250);
-      for (const v of voice[si]!) {
+      for (const [li, v] of voice[si]!.entries()) {
+        const line = seg.lines[li]!;
+        if (line.reveal !== undefined) await wru('revealTo', line.reveal);
+        await wru('highlight', line.hl ?? null);
         const at = (Date.now() - t0) / 1000 - start;
         clips.push({ wav: v.wav, at });
         subs.push({ from: at, to: at + v.seconds, text: captionText(v.line) });
         await wru('caption', captionText(v.line));
         await sleep((v.seconds + GAP) * 1000);
+        if (line.after) await wru(line.after);
       }
+      await wru('highlight', null);
       // 협상 메시지가 다 나올 때까지 기다린다
       while (await busy()) await sleep(200);
       await sleep((seg.hold ?? 0.3) * 1000);
@@ -144,9 +152,12 @@ async function main() {
       subs.map((s, i) => `${i + 1}\n${srtTime(s.from)} --> ${srtTime(s.to)}\n${s.text}\n`).join('\n'),
     );
     const total = duration(out);
-    const marks = SEGMENTS.map((seg, i) => `${seg.id} ${subs[voice.slice(0, i).reduce((n, v) => n + v.length, 0)]!.from.toFixed(1)}s`);
+    const starts = Object.fromEntries(
+      SEGMENTS.map((seg, i) => [seg.id, subs[voice.slice(0, i).reduce((n, v) => n + v.length, 0)]!.from]),
+    );
+    writeFileSync('docs/VIDEO_SCRIPT.md', renderScriptDoc(starts, total));
     console.log(`완료: ${out} (${total.toFixed(1)}초)`);
-    console.log(`구간 시작: ${marks.join(' · ')}`);
+    console.log(`구간 시작: ${SEGMENTS.map((s) => `${s.id} ${starts[s.id]!.toFixed(1)}s`).join(' · ')}`);
     if (total > MAX_SECONDS) {
       console.error(`3분(${MAX_SECONDS}초)을 넘었어요: ${total.toFixed(1)}초`);
       process.exitCode = 1;

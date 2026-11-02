@@ -57,7 +57,7 @@ describe('에이전트 토큰', () => {
   it('env 토큰: 접두어 · 길이 검사, 두 구성원이 같은 토큰이면 거부', () => {
     expect(() => AgentTokens.issue({ WRU_AGENT_TOKEN_MOM: 'mom-token-aaaaaaaaaaaaaaaaaaaaaaaaaaaa' })).toThrow();
     expect(() => AgentTokens.issue({ WRU_AGENT_TOKEN_MOM: 'wru_ag_short' })).toThrow();
-    expect(() => AgentTokens.issue({ ...TOKENS, WRU_AGENT_TOKEN_DAD: TOKENS.WRU_AGENT_TOKEN_MOM })).toThrow(/같아요/);
+    expect(() => AgentTokens.issue({ ...TOKENS, WRU_AGENT_TOKEN_DAD: TOKENS.WRU_AGENT_TOKEN_MOM })).toThrow(/same as another/);
   });
 });
 

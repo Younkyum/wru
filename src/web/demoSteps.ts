@@ -4,10 +4,10 @@ import type { DemoState } from '../shared/contracts';
 import type { Condition, LeakReport } from '../shared/leak-report';
 
 /** 컷마다 강조할 화면 영역 */
-export type PanelName = 'phones' | 'boundary' | 'task' | 'channel' | 'roles' | 'report';
+export type PanelName = 'phones' | 'boundary' | 'task' | 'channel' | 'muse' | 'roles' | 'report';
 
 /** 컷에 들어갈 때 서버에 하는 일 */
-export type StepAction = 'reset' | 'boundary' | 'task' | 'negotiate' | 'approve' | 'leak' | 'none';
+export type StepAction = 'reset' | 'boundary' | 'task' | 'negotiate' | 'muse' | 'leak' | 'none';
 
 export interface DemoStep {
   title: string;
@@ -22,61 +22,58 @@ const pct = (v: number) => `${Math.round(v * 100)}%`;
 
 export const DEMO_STEPS: DemoStep[] = [
   {
-    title: '좌표 없는 지도',
+    title: 'Status only',
     focus: 'phones',
     action: 'reset',
-    caption: () => '폰마다 자기 상태만 보여요. 엄마는 집, 아빠는 이동 중(약 20분), 형은 집 근처. 지도도 핀도 좌표도 없어요.',
+    caption: () => 'Each phone shows only its own status. Mom is home, Dad is on the way (about 20 min), Brother is near home. No map, no pins, no coordinates.',
   },
   {
-    title: '내 토큰으로는 내 것만',
-    focus: 'boundary',
-    action: 'boundary',
-    caption: () =>
-      '에이전트마다 자기 토큰이 하나씩 있어요. 아빠 토큰으로 엄마 상태를 달라고 하면 403, 토큰이 없거나 위조면 401. 방금 서버에 실제로 보낸 요청 결과예요.',
-  },
-  {
-    title: '태스크 투입',
+    title: 'A task comes in',
     focus: 'task',
     action: 'task',
-    caption: () => '저녁 6시까지 "민아 픽업 + 우유". 한 사람은 한 가지 일만 맡아요.',
+    caption: () => 'By 6 pm: "Pick up Mina + buy milk". One task per person.',
   },
   {
-    title: 'Muse 3명의 협상',
+    title: 'Three Muses negotiate',
     focus: 'channel',
     action: 'negotiate',
-    caption: () => '각자의 Muse가 자기 상태만 보고 offer → counter → commit을 주고받아요. 오가는 건 메시지뿐, 서로의 위치는 모릅니다.',
+    caption: () => "Each Muse looks only at its own status and trades offer → counter → commit. Only messages travel; nobody learns anyone's location.",
   },
   {
-    title: '역할 통지',
+    title: 'What goes to the model',
+    focus: 'muse',
+    action: 'muse',
+    caption: () =>
+      "Dad's Muse sends only its own state, an ETA range, minutes to the deadline and the messages so far. The model answers with one JSON object, which WRU checks before it joins the negotiation.",
+  },
+  {
+    title: 'Only roles come out',
     focus: 'roles',
-    action: 'approve',
+    action: 'none',
     caption: ({ state }) => {
       const n = state.negotiations.at(-1);
       const task = state.tasks.find((t) => t.task_id === n?.task_id);
       const roles = n?.assignment.assignments
-        .map((a) => `${{ mom: '엄마', dad: '아빠', sibling: '형' }[a.person]} = ${task?.subtasks.find((s) => s.id === a.subtask)?.label}`)
+        .map((a) => `${{ mom: 'Mom', dad: 'Dad', sibling: 'Brother' }[a.person]} = ${task?.subtasks.find((s) => s.id === a.subtask)?.label}`)
         .join(', ');
-      return `결과는 역할만: ${roles ?? '—'}. 한 번 승인하면 각자 자기 역할만 받아요.`;
+      return `Only roles come out: ${roles ?? '—'}. After one human approval, each person gets only their own role.`;
     },
   },
   {
-    title: '로그로 집을 찾을 수 있을까?',
-    focus: 'report',
-    action: 'leak',
-    conditions: ['on'],
-    caption: ({ report }) =>
-      report
-        ? `같은 협상 로그를 적대자에게 주고 집 · 학교가 서울 25개 구 중 어디인지 ${report.trials}번 맞히게 했어요. 집 ${pct(report.gates.on.home_rate)}, 학교 ${pct(report.gates.on.school_rate)}. 우연(${pct(report.chance)})과 비슷해요.`
-        : '누수 테스트를 불러오는 중…',
+    title: 'Nobody can peek',
+    focus: 'boundary',
+    action: 'boundary',
+    caption: () =>
+      "Could one agent peek at another? Every agent holds its own token: Dad's token asking for Mom's status gets 403; no token or a forged one gets 401. These are real requests just sent to the server.",
   },
   {
-    title: '게이트를 끄면',
+    title: 'Can the log reveal home?',
     focus: 'report',
-    action: 'none',
-    conditions: ['off', 'filter_only', 'on'],
+    action: 'leak',
+    conditions: ['off', 'on', 'filter_only'],
     caption: ({ report }) =>
       report
-        ? `에이전트가 동네 이름 · 거리 · 정확한 ETA를 그대로 말하게 두면 집 ${pct(report.gates.off.home_rate)}, 학교 ${pct(report.gates.off.school_rate)}까지 맞혀요. WRU는 그 문장을 내보내지 않습니다.`
-        : '',
+        ? `With the privacy gate off, all ${report.gates.off.distinct_logs} logs differ and a simple attacker finds the home ${pct(report.gates.off.home_rate)} of the time. With it on, ${report.trials} families produce ${report.gates.on.distinct_logs} distinct logs: even with every answer known, ${pct(report.gates.on.bound_home_rate)} is the ceiling, which is what the status alone reveals. An agent that secretly knows its location produces the very same logs.`
+        : 'Loading the leak test…',
   },
 ];

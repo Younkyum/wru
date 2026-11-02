@@ -7,13 +7,13 @@ import type { Presence, Subtask, Task } from '../../shared/contracts.js';
 import { findLeaks } from '../../shared/leak.js';
 import type { MessageBody } from '../../shared/negotiation.js';
 import { counterReason, offerReason } from '../muse/policy.js';
-import { PLACE_STEMS, PLACE_WORDS } from './gazetteer.js';
+import { PLACE_STEMS, PLACE_WORDS, ROMAN_STEMS } from './gazetteer.js';
 
 export type Gate = 'on' | 'off';
 
 /** ETA 구간 표현("10분 이내" 등)을 뺀 뒤에도 분 단위 숫자가 남으면 정확한 ETA로 본다 */
-const BUCKET = /(?<!\d)(10|20|30)분\s*(이내|넘게)/g;
-const EXACT_MINUTES = /\d+\s*(분|min)|\d{1,2}:\d{2}/i;
+const BUCKET = /(?<!\d)(10|20|30)분\s*(이내|넘게)|\b(within|over) (10|20|30) min\b/gi;
+const EXACT_MINUTES = /\d+\s*(분|min|minutes?)\b|\d+\s*분|\d{1,2}:\d{2}/i;
 /** "○○동 · ○○역 · ○○로 · ○○길"처럼 끝나는 단어 (뒤에 조사가 와도 된다) */
 const PLACE_SUFFIX = /[가-힣]{2,}(동|역|로|길)(?=$|[\s,.)!?]|[은는이가에을를의서도])/;
 
@@ -47,11 +47,13 @@ export function locationHints(text: string): string[] {
 }
 
 /** 라벨에 흔한 장소 꼴 (노선 · 역 출구 · 시장 · 공원 · 마트 · 아파트 단지 등) */
-const LANDMARK = /호선|입구|시장|공원|마트|아파트|단지|타워|병원|숲(?![가-힣])/;
+const LANDMARK = /호선|입구|시장|공원|마트|아파트|단지|타워|병원|숲(?![가-힣])|\b(line \d|exit \d|market|park|mart|apartments?|apt|tower|hospital|station|stn|plaza|mall|elementary|middle school|high school|academy)\b/i;
+/** 로마자 지명 꼴: Mangwon-dong, Mapo-gu, Teheran-ro, Yeoksam 등 */
+const ROMAN_PLACE = /\b[A-Z][a-z]+-(dong|gu|ro|gil|daero|si|eup|myeon)\b/i;
 
 /**
  * 태스크 라벨 검사. 라벨은 사용자가 쓴 자유 문장이라 통지 · 이벤트 로그에 그대로 보이므로 넓게 막는다.
- * 위치 단서 + 동 이름 어간(예: 망원) + "○○동/역/로/길" 꼴 + 장소 꼴 + 로마자.
+ * 위치 단서 + 동 이름 어간(예: 망원) + "○○동/역/로/길" 꼴 + 장소 꼴 + 로마자 지명(Mangwon, Mapo-gu 등).
  * "봉사활동"처럼 '동'으로 끝나는 일상어도 걸리는 오탐은 감수한다.
  */
 export function labelHints(label: string): string[] {
@@ -63,7 +65,8 @@ export function labelHints(label: string): string[] {
   if (suffix) hints.push(`지명 꼴: ${suffix[0]}`);
   const landmark = LANDMARK.exec(clean(label)) ?? LANDMARK.exec(t);
   if (landmark) hints.push(`장소 꼴: ${landmark[0]}`);
-  if (/[A-Za-z]/.test(clean(label))) hints.push('로마자');
+  const roman = ROMAN_PLACE.exec(clean(label)) ?? ROMAN_STEMS.find((r) => new RegExp(`\\b${r}\\b`, 'i').test(label));
+  if (roman) hints.push(`로마자 지명: ${typeof roman === 'string' ? roman : roman[0]}`);
   return hints;
 }
 

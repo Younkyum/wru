@@ -1,80 +1,96 @@
-# 데모 영상 대본 (약 2분 3초)
+# Demo video script (about 2:54)
 
-`npm run video`가 이 대본으로 영상 초안을 만듭니다. 순서는 이렇습니다.
+`npm run video` builds the draft video from this script and rewrites this document. It works in three steps:
 
-1. 문장마다 macOS `say`(Yuna)로 내레이션을 만듭니다.
-2. 헤드리스 Chromium으로 `/demo?video=1`을 1440×900으로 녹화하면서 데모 모드를 자동으로 넘깁니다.
-3. ffmpeg로 합쳐 `video-out/wru-demo.mp4`와 자막 `video-out/wru-demo.srt`를 만듭니다.
+1. Each sentence is voiced with macOS `say` (Samantha).
+2. Headless Chromium records `/demo?video=1` while the script drives demo mode. Negotiation messages appear in step with the narration, the approval button is pressed mid-sentence, and the thing each sentence talks about is highlighted on screen.
+3. ffmpeg combines everything into `video-out/wru-demo.mp4` and subtitles `video-out/wru-demo.srt`.
 
-결과물은 git에 넣지 않습니다. 내레이션 원본은 `scripts/video/narration.ts`이고, 이 문서와 문장이 같은지 테스트가 확인합니다. 최종 목소리를 다시 녹음할 때는 아래 시작 시각에 맞춰 읽으면 됩니다(초안 기준, 문장 사이 0.35초 쉼).
+The outputs are not committed. The narration source is `scripts/video/narration.ts`. To record a final voice-over, read each section at the start time below (draft timing, 0.35 s pause between sentences).
 
-| 시작 | 컷 | 화면 | 심사 항목 |
+| Start | Cut | Screen | Rubric |
 | --- | --- | --- | --- |
-| 0:00 | 오프닝 카드 | 검은 카드: WRU · "누가 민아 데리러 가?" | Impact |
-| 0:15 | 1. 좌표 없는 지도 | 폰 3대의 상태 카드 강조 (엄마 집 · 아빠 이동 중 20분 · 형 집 근처) | Impact · Demo |
-| 0:30 | 2. 내 토큰으로는 내 것만 | 오른쪽 열에 토큰 경계표 5×3 (대각선만 200), 폰마다 토큰 지문 | Technical Depth |
-| 0:45 | 3. 태스크 투입 | WRU 바에 태스크, 폰마다 "가족 일" 알림 | Demo |
-| 0:51 | 4. Muse 3명의 협상 | Muse 채널과 각자 폰에 메시지 8개가 0.7초 간격으로 | Use of Meta AI Tooling · Technical Depth |
-| 1:10 | 5. 역할 통지 | WRU 바에 역할, 폰마다 자기 역할 카드 | Impact · Demo |
-| 1:17 | 6. 로그로 집을 찾을 수 있을까? | 오른쪽 열이 넓어지며 게이트 on 카드 (집 6% · 학교 0%, 우연 4%) | Technical Depth |
-| 1:33 | 7. 게이트를 끄면 | 카드 3장: off 98%/72% · 위치를 알 때 6%/0% · on 6%/0% | Technical Depth |
-| 1:46 | 클로징 카드 | 검은 카드: 네 줄 요약 + mock 고지 | Use of Meta AI Tooling |
+| 0:00 | Opening card | Dark card: WRU · typical location sharing (pins on a map) vs WRU (status chips) | Impact |
+| 0:15 | 1. Status only | Three phones (Mom home · Dad on the way, 20 min · Brother near home) | Impact · Demo |
+| 0:29 | 2. A task comes in | WRU bar shows the task (requested by Mom); each phone gets a "Family task" note | Demo |
+| 0:39 | 3. Three Muses negotiate | Phones + Muse channel; messages appear round by round in step with the narration | Use of Meta AI Tooling · Demo |
+| 1:06 | 4. What goes to the model | Meta Model API request body (JSON) → response JSON, "The model decides / WRU enforces", a real filter rewrite | Use of Meta AI Tooling · Technical Depth |
+| 1:29 | 5. Only roles come out | WRU bar shows roles → Mom approves → each phone shows only its own role | Impact · Demo |
+| 1:38 | 6. Nobody can peek | Token boundary matrix 5×3 (only the diagonal is 200), the 403 cell highlighted | Technical Depth |
+| 1:54 | 7. Can the log reveal home? | Three cards in order: gate off (50 logs, home 98% · school 72%) → gate on (5 logs, ceiling 22% · 24%, rule-based attacker 6% · 0%, chance 4%) → agent secretly knows (same 5 logs) | Technical Depth |
+| 2:37 | Self-hosting | Light card: WhereCtx token per person → family server .env and family.config.json → npm start / Docker | Impact · Technical Depth |
+| 2:49 | Closing card | Dark card: five-line summary + mock disclosure | Use of Meta AI Tooling · Impact |
 
-## 내레이션
+## Narration
 
-### 0:00 오프닝 카드
+### 0:00 Opening card
 
-- "누가 민아 데리러 가?" 이걸 정하려고, 많은 가족이 위치 공유 앱을 켭니다.
-- 그러면 가족 모두의 좌표가 하루 종일 어딘가에 쌓이죠.
-- WRU는 좌표 없이, 가족 각자의 Muse 에이전트가 할 일을 나눕니다.
+- "Who's picking up Mina?" To answer that, many families share their location all day.
+- Or nobody answers the group chat until it's too late.
+- WRU, short for "where are you", lets each person's AI agent split the errands without sharing coordinates.
 
-### 0:15 1. 좌표 없는 지도
+### 0:15 1. Status only
 
-- 폰 세 대는 엄마, 아빠, 형의 화면입니다.
-- 각자 자기 서버의 WhereCtx에서 거친 상태만 받습니다.
-- 엄마는 집, 아빠는 퇴근길 20분, 형은 집 근처. 지도도, 좌표도 없습니다.
+- Each person runs WhereCtx, a small location server of their own.
+- WRU only gets a coarse status from it: home, near home, or on the way.
+- Mom is home, Dad is twenty minutes out, and Brother is near home.
 
-### 0:30 2. 내 토큰으로는 내 것만
+### 0:29 2. A task comes in
 
-- 에이전트마다 자기 토큰이 하나씩 있습니다.
-- 아빠 토큰으로 엄마 상태를 달라고 하면 403, 토큰이 없거나 위조면 401.
-- 이 표는 방금 서버에 실제로 보낸 요청 열다섯 개의 결과입니다.
+- Mom posts a task: pick up Mina and buy milk by 6 pm. Mina's school is a fifteen-minute trip from home.
+- The rule: one task per person.
 
-### 0:45 3. 태스크 투입
+### 0:39 3. Three Muses negotiate
 
-- 저녁 6시까지 민아 픽업과 우유 사기. 한 사람은 한 가지 일만 맡습니다.
+- We call each agent a Muse. It's built for Meta's Muse Spark model.
+- In this recording, a mock with the same output format stands in for the model.
+- In round one, everyone who can make it in time offers to do the pickup.
+- Each Muse judges only from its own status. Dad is already out and can stop by on the way, so he's the best fit.
+- Mom and Brother both offer to get the milk instead.
+- Brother is near home, so Mom steps aside.
 
-### 0:51 4. Muse 3명의 협상
+### 1:06 4. What goes to the model
 
-- 세 Muse가 자기 상태만 보고 손을 듭니다.
-- 아빠는 가는 길이라 픽업에 적합도 높음. 형은 집 근처라 우유로 바꾸고, 엄마는 양보합니다.
-- 오가는 건 offer, counter, commit 메시지뿐이고, 이유 문장도 WRU가 상태 템플릿으로 다시 씁니다.
+- This is the data Dad's Muse sends to the model:
+- its own state, an ETA range, minutes to the deadline, and the messages so far, in turn order.
+- The model replies with one JSON object: which task, and how good a fit.
+- WRU checks that the reply is valid and comes from the right agent.
+- If the model slips a location into its reason, the log shows only a stock phrase.
 
-### 1:10 5. 역할 통지
+### 1:29 5. Only roles come out
 
-- 결과는 역할뿐입니다.
-- 한 번 승인하면 아빠 폰에는 픽업, 형 폰에는 우유만 뜹니다.
+- The result is just who does what. Mom approves once,
+- and each phone gets only its own job: pickup for Dad, milk for Brother.
 
-### 1:17 6. 로그로 집을 찾을 수 있을까?
+### 1:38 6. Nobody can peek
 
-- 그럼 이 로그만으로 집을 찾을 수 있을까요?
-- 시나리오 50개의 협상 로그를 적대자에게 주고, 서울 25개 구 중 집과 학교를 맞히게 했습니다.
-- 집 6퍼센트, 학교 0퍼센트. 찍는 것과 같습니다.
+- Could one agent peek at another? Each one holds its own token.
+- Dad's token asking for Mom's status gets a 403.
+- We sent fifteen real requests: each of the three tokens, no token, and a forged one, asking about all three people.
 
-### 1:33 7. 게이트를 끄면
+### 1:54 7. Can the log reveal home?
 
-- 게이트를 끄고 에이전트가 동네 이름과 거리를 말하게 두면, 집 98퍼센트, 학교 72퍼센트.
-- 에이전트가 위치를 알고 말하려 해도, WRU는 그 문장을 내보내지 않습니다.
+- Could these logs reveal where the family lives? We simulated fifty families across Seoul's twenty-five districts.
+- The privacy gate hides everything but status. Without it, agents chat freely and every family's log is unique.
+- A simple attacker then finds the home district 98 percent of the time.
+- With the gate on, those fifty families produce just five different logs.
+- Even an attacker who knew every answer in advance could be right only 22 percent of the time, against 4 percent for random guessing.
+- All of that comes from the coarse status. In our test, the negotiation added nothing beyond it.
+- An agent that secretly knows its exact location produces exactly the same logs as one that does not.
 
-### 1:46 클로징 카드
+### 2:37 Self-hosting
 
-- WhereCtx는 상태만, 토큰은 내 것만, Muse는 역할만.
-- 누구나 자기 서버에 띄워 쓸 수 있습니다.
-- 이 영상의 Muse는 같은 스키마의 mock이고, Meta Model API 키를 넣으면 Muse Spark로 바뀝니다.
+- One family runs one server.
+- Each member adds a read-only access token from their own WhereCtx, and one command starts the server.
+- Locations never leave each person's own server.
 
-## 녹화 전 확인
+### 2:49 Closing card
 
-- [ ] `npm run video`로 초안을 다시 만들면 `video-out/`에 mp4와 srt가 생깁니다. 3분을 넘으면 스크립트가 실패로 끝납니다.
-- [ ] 직접 녹음할 때는 `WRU_VIDEO_VOICE`, `WRU_VIDEO_RATE`로 초안 목소리 · 속도를 바꾸거나, 초안 mp4의 오디오를 빼고 새 녹음을 얹습니다(시작 시각은 위 표).
-- [ ] Meta Model API 키를 넣고 `npm run leak`을 다시 돌렸다면 6 · 7컷 숫자(자막 · 내레이션)를 `scripts/video/narration.ts`에서 맞춥니다.
-- [ ] 클로징의 mock 고지 문장은 실제 Muse로 다시 찍으면 바꿉니다.
+- Add a Meta API key, and the same code calls Muse Spark.
+
+## Re-recording
+
+- `npm run video` regenerates the draft in `video-out/` and refreshes the start times here. It fails if the video runs over 3 minutes.
+- For your own voice, either change the draft voice and speed with `WRU_VIDEO_VOICE` / `WRU_VIDEO_RATE`, or strip the draft audio and lay a new recording over it.
+- If you re-run `npm run leak` with a Meta Model API key, update the leak numbers in `scripts/video/narration.ts`.
+- If you re-record with the real Muse, change the mock disclosure sentences (cut 4 and the closing card).

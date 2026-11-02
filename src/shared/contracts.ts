@@ -61,6 +61,8 @@ export interface Task {
   constraints: TaskConstraints;
   /** 인박스에 들어온 시각 (시뮬 시계) */
   received_at: string;
+  /** 태스크를 낸 사람. 협상 결과를 이 사람이 한 번 승인한다 */
+  requested_by?: PersonId;
 }
 
 export type LogKind = 'task_received' | 'clock' | 'refusal' | 'reset' | 'negotiation' | 'approval';
@@ -131,15 +133,15 @@ export function findForbiddenKey(value: unknown): string | null {
   return null;
 }
 
-export const STATE_LABEL_KO: Record<PresenceState, string> = {
-  home: '집',
-  near_home: '집 근처',
-  in_transit: '이동 중',
-  unknown: '알 수 없음',
+export const STATE_LABEL: Record<PresenceState, string> = {
+  home: 'Home',
+  near_home: 'Near home',
+  in_transit: 'On the way',
+  unknown: 'Unknown',
 };
 
-export const PERSON_LABEL_KO: Record<PersonId, string> = {
-  mom: '엄마',
-  dad: '아빠',
-  sibling: '형',
+export const PERSON_LABEL: Record<PersonId, string> = {
+  mom: 'Mom',
+  dad: 'Dad',
+  sibling: 'Brother',
 };

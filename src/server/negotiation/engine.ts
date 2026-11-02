@@ -1,7 +1,7 @@
 // WRU 협상 엔진. 라운드마다 에이전트가 정해진 순서로 한 번씩 행동한다.
 // 엔진은 메시지만 중계하고, 에이전트에게 다른 사람의 presence를 넘기지 않는다.
 
-import { PERSON_LABEL_KO, localHHMM, type PersonId, type Task } from '../../shared/contracts.js';
+import { PERSON_LABEL, localHHMM, type PersonId, type Task } from '../../shared/contracts.js';
 import type { Assignment, MessageBody, NegotiationMessage } from '../../shared/negotiation.js';
 import type { PresenceGateway } from '../auth/gateway.js';
 import type { MuseClient } from '../muse/client.js';
@@ -146,8 +146,8 @@ export function buildAssignment(task: Task, messages: NegotiationMessage[], peop
     people.map((p) => {
       const mine = task.subtasks.filter((s) => committed.get(s.id) === p).map((s) => s.label);
       const text = mine.length
-        ? `${PERSON_LABEL_KO[p]} 담당: ${mine.join(', ')} (${deadline}까지)`
-        : `${PERSON_LABEL_KO[p]}: 이번엔 맡은 일이 없어요`;
+        ? `${PERSON_LABEL[p]}, you're on: ${mine.join(', ')} (by ${deadline})`
+        : `${PERSON_LABEL[p]}, nothing for you this time`;
       return [p, text];
     }),
   ) as Assignment['notify'];

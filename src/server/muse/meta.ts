@@ -1,25 +1,25 @@
 // 실제 Meta Model API(OpenAI 호환) Muse 클라이언트.
 // 구조화 출력(JSON)을 받아 스키마 · 위치 누수 검사를 하고, 못 넘으면 mock 템플릿으로 대체한다.
 
-import { PERSON_LABEL_KO } from '../../shared/contracts.js';
+import { PERSON_LABEL } from '../../shared/contracts.js';
 import { REASON_CODES } from '../../shared/negotiation.js';
 import { validateAction } from '../negotiation/validate.js';
 import { DEFAULT_BASE_URL, DEFAULT_MODEL, type AgentDecision, type AgentTurnInput, type MuseClient } from './client.js';
 import { decideMock } from './mock.js';
 import { etaBucket, minutesUntil } from './policy.js';
 
-const SYSTEM_PROMPT = `너는 가족 구성원 한 명을 대신하는 협상 에이전트(Muse)다.
-가족 태스크의 subtask를 누가 맡을지 다른 에이전트와 offer / counter / commit / refuse 메시지로 정한다.
+export const SYSTEM_PROMPT = `You are a negotiation agent (a "Muse") acting for one family member.
+Together with the other agents you decide who takes each subtask of a family task, using offer / counter / commit / refuse messages.
 
-규칙:
-- 너는 자기 상태(home / near_home / in_transit)와 도착까지 남은 시간 구간만 안다. 다른 사람의 위치는 모른다.
-- 좌표, 주소, 도로명, 동네·지역 이름, 학교 이름, 거리(km·m)를 절대 쓰지 마라. reason은 상태 기반 한 문장(80자 이내)으로 쓴다.
-- 처음 말할 때는 할 수 있는 첫 subtask에 offer한다. 할 수 있는 게 없으면 refuse한다.
-- 다른 사람이 같은 subtask에 더 높은 fit으로 나섰으면 counter로 다른 subtask를 제안하거나 refuse한다.
-- 자기 주장이 한 라운드 동안 밀리지 않았으면 commit한다. 할 말이 없으면 pass.
-- 한 사람이 맡을 수 있는 subtask 수(capacity)를 넘기지 마라.
+Rules:
+- You only know your own state (home / near_home / in_transit) and a coarse ETA range. You do not know anyone else's location.
+- Never write coordinates, addresses, street or neighborhood names, school names or distances (km, m). Keep reason to one status-based sentence (under 80 characters).
+- On your first turn, offer the first subtask you can do. If you can do none, refuse.
+- If someone else offered the same subtask with a higher fit, counter with another subtask or refuse.
+- If your claim was not beaten for a whole round, commit. If you have nothing to say, pass.
+- Never exceed the capacity (subtasks per person).
 
-JSON 객체 하나만 출력한다. 형식:
+Output exactly one JSON object, one of:
 {"type":"offer","subtask_id":"...","fit":"high|medium|low","reason":"..."}
 {"type":"counter","subtask_id":"...","alternative":"...","fit":"high|medium|low","reason":"..."}
 {"type":"commit","subtask_id":"..."}
@@ -28,14 +28,14 @@ JSON 객체 하나만 출력한다. 형식:
 
 /** 누수 실험의 게이트 off 조건: 위치 금지 규칙 없이 자기 상세 위치를 준다 */
 const GATE_OFF_PROMPT = SYSTEM_PROMPT.replace(
-  /- 좌표, 주소[^\n]*\n/,
-  '- my_detail에 있는 동네 이름 · 거리 · 정확한 ETA를 reason에 자유롭게 써도 된다.\n',
+  /- Never write coordinates[^\n]*\n/,
+  '- You may freely use the neighborhood name, distance and exact ETA from my_detail in reason.\n',
 );
 
-function userPrompt(input: AgentTurnInput): string {
+export function userPrompt(input: AgentTurnInput): string {
   const { presence, task } = input;
   return JSON.stringify({
-    me: PERSON_LABEL_KO[input.self],
+    me: PERSON_LABEL[input.self],
     my_state: presence.state,
     my_eta: input.detail ? presence.eta_minutes : etaBucket(presence.eta_minutes),
     ...(input.detail ? { my_detail: input.detail } : {}),

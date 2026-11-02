@@ -1,11 +1,12 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import type { DemoState, PersonId, Presence, PresenceState, Task } from '../shared/contracts';
-import { PERSON_IDS, PERSON_LABEL_KO, STATE_LABEL_KO, localHHMM } from '../shared/contracts';
+import { PERSON_IDS, PERSON_LABEL, STATE_LABEL, localHHMM } from '../shared/contracts';
 import type { Condition, LeakReport } from '../shared/leak-report';
 import type { Fit, MessageType, NegotiationMessage, NegotiationRecord } from '../shared/negotiation';
 import { REASON_CODE_TEXT } from '../shared/negotiation';
 import type { PanelName } from './demoSteps';
 import type { BoundaryMatrix, BoundaryRow } from '../shared/boundary';
+import type { MuseTurnView } from '../shared/muse-turn';
 
 export interface DemoPageProps {
   state: DemoState;
@@ -21,6 +22,9 @@ export interface DemoPageProps {
   onShowReport: () => void;
   boundary?: BoundaryMatrix | null;
   onShowBoundary?: () => void;
+  museTurn?: MuseTurnView | null;
+  /** Muse 응답(JSON)을 펼쳤는지. 기본 true */
+  museShown?: boolean;
   onStartDemo?: () => void;
   demo?: DemoView | null;
   /** 영상 녹화 모드 (/demo?video=1): 자막 · 인트로 · 아웃트로 */
@@ -29,7 +33,27 @@ export interface DemoPageProps {
 
 export interface VideoOverlay {
   caption: string | null;
-  scene: 'intro' | 'outro' | null;
+  scene: 'intro' | 'host' | 'outro' | null;
+  /** 내레이션이 지금 가리키는 대상 (강조) */
+  hl: string | null;
+}
+
+// ── 영상 강조: 내레이션이 가리키는 대상은 또렷하게, 같은 묶음의 나머지는 흐리게 ──
+const HL_GROUP: Record<string, string> = {
+  phones: 'phones', mom: 'phones', dad: 'phones', sibling: 'phones', roles: 'phones',
+  diag: 'matrix', 'dad-mom': 'matrix',
+  request: 'muse', response: 'muse', split: 'muse', rewrite: 'muse',
+  logs: 'leak-on', bound: 'leak-on', actual: 'leak-on',
+  'card-on': 'leak', 'card-off': 'leak', 'card-filter_only': 'leak',
+  hub: 'hub',
+};
+const HighlightContext = createContext<string | null>(null);
+
+/** keys 중 하나가 지금 강조 대상이면 hl-on, 같은 묶음의 다른 대상이 강조 중이면 hl-dim */
+function useHl(group: string, ...keys: string[]): string {
+  const hl = useContext(HighlightContext);
+  if (!hl || HL_GROUP[hl] !== group) return '';
+  return keys.includes(hl) ? ' hl-on' : ' hl-dim';
 }
 
 /** 데모 모드 진행 상태 */
@@ -48,7 +72,7 @@ export interface DemoView {
   onExit: () => void;
 }
 
-const INITIAL: Record<PersonId, string> = { mom: '엄', dad: '아', sibling: '형' };
+const INITIAL: Record<PersonId, string> = { mom: 'M', dad: 'D', sibling: 'B' };
 
 function Avatar({ person, size = 'md' }: { person: PersonId; size?: 'sm' | 'md' }) {
   return (
@@ -59,23 +83,23 @@ function Avatar({ person, size = 'md' }: { person: PersonId; size?: 'sm' | 'md' 
 }
 
 function etaText(p: Presence): string {
-  return p.eta_minutes === null ? '지금 집이에요' : `집까지 약 ${p.eta_minutes}분`;
+  return p.eta_minutes === null ? 'At home now' : `About ${p.eta_minutes} min from home`;
 }
 
 function subtaskLabel(task: Task | undefined, id: string): string {
   return task?.subtasks.find((s) => s.id === id)?.label ?? id;
 }
 
-const FIT_LABEL: Record<Fit, string> = { high: '적합 높음', medium: '적합 보통', low: '적합 낮음' };
+const FIT_LABEL: Record<Fit, string> = { high: 'fit: high', medium: 'fit: medium', low: 'fit: low' };
 
 function messageText(m: NegotiationMessage, task: Task | undefined): string {
   switch (m.type) {
     case 'offer':
-      return `${subtaskLabel(task, m.subtask_id)} 할게요`;
+      return `I'll take: ${subtaskLabel(task, m.subtask_id)}`;
     case 'counter':
-      return `${subtaskLabel(task, m.subtask_id)} 대신 ${subtaskLabel(task, m.alternative)}`;
+      return `${subtaskLabel(task, m.alternative)} instead of ${subtaskLabel(task, m.subtask_id)}`;
     case 'commit':
-      return `${subtaskLabel(task, m.subtask_id)} 확정`;
+      return `Committed: ${subtaskLabel(task, m.subtask_id)}`;
     case 'refuse':
       return `${subtaskLabel(task, m.subtask_id)}: ${REASON_CODE_TEXT[m.reason_code]}`;
   }
@@ -122,11 +146,12 @@ interface PhoneProps {
 
 function Phone({ person, tokenMark, presence, clock, task, messages, role }: PhoneProps) {
   const feed = useRef<HTMLDivElement>(null);
+  const hl = useHl('phones', 'phones', person, ...(role && !role.includes('nothing') ? ['roles'] : []));
   useEffect(() => {
     if (feed.current) feed.current.scrollTop = feed.current.scrollHeight;
   }, [messages.length, role]);
   return (
-    <article className={`phone phone-${person}`} aria-label={`${PERSON_LABEL_KO[person]}의 폰`}>
+    <article className={`phone phone-${person}${hl}`} aria-label={`${PERSON_LABEL[person]}'s phone`}>
       <div className="phone-screen">
         <div className="phone-status">
           <span>{clock}</span>
@@ -136,11 +161,11 @@ function Phone({ person, tokenMark, presence, clock, task, messages, role }: Pho
         <header className="phone-head">
           <Avatar person={person} />
           <div>
-            <div className="phone-owner">{PERSON_LABEL_KO[person]}</div>
-            <div className="phone-sub">내 상태 · 내 Muse</div>
+            <div className="phone-owner">{PERSON_LABEL[person]}</div>
+            <div className="phone-sub">my WhereCtx · my Muse</div>
           </div>
           {tokenMark && (
-            <span className="key zone-key" title="이 에이전트의 토큰 (지문)">
+            <span className="key zone-key" title="This agent's token (fingerprint)">
               <KeyIcon />
               {tokenMark.replace('wru_ag_…', '')}
             </span>
@@ -149,15 +174,15 @@ function Phone({ person, tokenMark, presence, clock, task, messages, role }: Pho
         <section className="me zone-presence">
           <SelfRing presence={presence} />
           <div>
-            <div className={`state state-${presence.state}`}>{STATE_LABEL_KO[presence.state]}</div>
+            <div className={`state state-${presence.state}`}>{STATE_LABEL[presence.state]}</div>
             <div className="eta">{etaText(presence)}</div>
           </div>
         </section>
         <div className="feed zone-feed" ref={feed}>
-          {!task && <p className="feed-empty">다른 가족의 위치는 이 폰에 없어요.</p>}
+          {!task && <p className="feed-empty">This phone never shows anyone else's location.</p>}
           {task && (
             <div className="note">
-              <div className="note-title">가족 일 · {localHHMM(task.deadline)}까지</div>
+              <div className="note-title">Family task · by {localHHMM(task.deadline)}</div>
               <div className="note-body">{task.subtasks.map((s) => s.label).join(' + ')}</div>
             </div>
           )}
@@ -167,7 +192,7 @@ function Phone({ person, tokenMark, presence, clock, task, messages, role }: Pho
               <span>{messageText(m, task)}</span>
             </div>
           ))}
-          {role && <div className={`role-card zone-role${role.includes('없어요') ? ' role-none' : ''}`}>{role}</div>}
+          {role && <div className={`role-card zone-role${role.includes('nothing') ? ' role-none' : ''}`}>{role}</div>}
         </div>
       </div>
     </article>
@@ -193,11 +218,11 @@ function Hub({ state, task, latest, revealing, shown, onSubmitHeroTask, onNegoti
     body = (
       <>
         <div className="hub-text">
-          <div className="hub-title">가족 일이 없어요</div>
-          <div className="hub-sub">태스크를 넣으면 Muse 3명이 역할을 나눠요</div>
+          <div className="hub-title">No family task yet</div>
+          <div className="hub-sub">Add a task and the three Muses split it up</div>
         </div>
         <button className="btn btn-primary" onClick={onSubmitHeroTask}>
-          ＋ 6시에 민아 픽업 + 우유
+          ＋ Pick up Mina + buy milk by 6 pm
         </button>
       </>
     );
@@ -207,23 +232,24 @@ function Hub({ state, task, latest, revealing, shown, onSubmitHeroTask, onNegoti
         <div className="hub-text">
           <div className="hub-title">
             {task.subtasks.map((s) => s.label).join(' + ')}
-            <span className="hub-deadline">{localHHMM(task.deadline)}까지</span>
+            <span className="hub-deadline">by {localHHMM(task.deadline)}</span>
           </div>
           <div className="hub-sub">
-            {task.constraints.max_subtasks_per_person === 1 ? '한 사람은 한 가지 일만' : '인원 제한 없음'} · {task.task_id}
+            {task.requested_by ? `Requested by ${PERSON_LABEL[task.requested_by]} · ` : ''}
+            {task.constraints.max_subtasks_per_person === 1 ? 'one task per person' : 'no per-person limit'}
           </div>
         </div>
         <button className="btn btn-primary" onClick={() => onNegotiate(task.task_id)}>
-          Muse 3명에게 맡기기
+          Hand it to the three Muses
         </button>
       </>
     );
   } else if (revealing) {
     body = (
       <div className="hub-text">
-        <div className="hub-title">Muse 3명이 협상하는 중</div>
+        <div className="hub-title">Three Muses negotiating</div>
         <div className="hub-sub">
-          메시지 {shown}/{latest.messages.length}
+          message {shown}/{latest.messages.length}
         </div>
       </div>
     );
@@ -234,27 +260,30 @@ function Hub({ state, task, latest, revealing, shown, onSubmitHeroTask, onNegoti
           {latest.assignment.assignments.map((a) => (
             <span key={a.subtask} className="hub-role">
               <Avatar person={a.person} size="sm" />
-              {PERSON_LABEL_KO[a.person]} = {subtaskLabel(task, a.subtask)}
+              {PERSON_LABEL[a.person]} = {subtaskLabel(task, a.subtask)}
             </span>
           ))}
           {latest.assignment.unassigned.map((id) => (
             <span key={id} className="hub-role hub-role-none">
-              미배정 · {subtaskLabel(task, id)}
+              unassigned · {subtaskLabel(task, id)}
             </span>
           ))}
         </div>
         {latest.status === 'approved' ? (
-          <span className="hub-ok">승인됨 · 각자 자기 역할만 받았어요</span>
+          <span className="hub-ok">
+            {task.requested_by ? `Approved by ${PERSON_LABEL[task.requested_by]} · ` : 'Approved · '}each person got only their own role
+          </span>
         ) : (
           <button className="btn btn-primary" onClick={() => onApprove(latest.negotiation_id)}>
-            이대로 승인하고 통지 보내기
+            {task.requested_by ? `${PERSON_LABEL[task.requested_by]} approves & notifies` : 'Approve & notify'}
           </button>
         )}
       </>
     );
   }
+  const hl = useHl('hub', 'hub');
   return (
-    <section className="hub zone-hub" aria-label="WRU 인박스와 역할">
+    <section className={`hub zone-hub${hl}`} aria-label="WRU inbox and roles">
       <span className="hub-label">WRU</span>
       {body}
       <span className="hub-muse">Muse: {state.muse === 'meta' ? 'Meta Model API' : 'mock'}</span>
@@ -279,19 +308,20 @@ function Channel({ messages, task, total, log }: ChannelProps) {
   return (
     <>
       <div className="side-head">
-        <h2>Muse 채널</h2>
-        <span>{total ? `메시지 ${messages.length}/${total}` : 'WRU가 중계하는 메시지 전부'}</span>
+        <h2>Muse channel</h2>
+        <div className="chain">Muse agent → Meta Model API → Muse Spark</div>
+        <span>{total ? `message ${messages.length}/${total}` : 'Every message WRU relays'}</span>
       </div>
       {messages.length === 0 ? (
-        <p className="side-empty">아직 오간 메시지가 없어요. 여기에는 메시지만 지나가고, 위치는 지나가지 않아요.</p>
+        <p className="side-empty">No messages yet. Only messages pass through here. Locations never do.</p>
       ) : (
-        <ol className="channel" ref={list} aria-label="협상 타임라인">
+        <ol className="channel" ref={list} aria-label="Negotiation timeline">
           {messages.map((m, i) => (
             <li key={m.id} className="msg">
-              {(i === 0 || messages[i - 1]!.round !== m.round) && <div className="round">라운드 {m.round}</div>}
+              {(i === 0 || messages[i - 1]!.round !== m.round) && <div className="round">Round {m.round}</div>}
               <div className="msg-row">
                 <Avatar person={m.from} size="sm" />
-                <span className="msg-from">{PERSON_LABEL_KO[m.from]}</span>
+                <span className="msg-from">{PERSON_LABEL[m.from]}</span>
                 <TypeBadge type={m.type} />
               </div>
               <div className="msg-text">{messageText(m, task)}</div>
@@ -302,7 +332,7 @@ function Channel({ messages, task, total, log }: ChannelProps) {
       )}
       {log.length > 0 && (
         <details className="log">
-          <summary>이벤트 로그 {log.length}</summary>
+          <summary>Event log {log.length}</summary>
           <ol>
             {[...log].reverse().map((e) => (
               <li key={e.id}>
@@ -326,40 +356,45 @@ function KeyIcon() {
 }
 
 const HOLDER_LABEL: Record<BoundaryRow['holder'], string> = {
-  mom: '엄마 토큰',
-  dad: '아빠 토큰',
-  sibling: '형 토큰',
-  none: '토큰 없음',
-  forged: '위조 토큰',
+  mom: "Mom's token",
+  dad: "Dad's token",
+  sibling: "Brother's token",
+  none: 'No token',
+  forged: 'Forged token',
 };
 
 function statusText(status: number): string {
-  if (status === 200) return '200 허용';
-  if (status === 403) return '403 거절';
-  if (status === 401) return '401 거절';
+  if (status === 200) return '200 allowed';
+  if (status === 403) return '403 denied';
+  if (status === 401) return '401 denied';
   return String(status);
+}
+
+function MatrixCell({ holder, target, status }: { holder: string; target: string; status: number }) {
+  const hl = useHl('matrix', ...(holder === target ? ['diag'] : []), `${holder}-${target}`);
+  return <td className={`cell cell-${status}${hl}`}>{statusText(status)}</td>;
 }
 
 function BoundaryPanel({ boundary, onShow }: { boundary: BoundaryMatrix | null | undefined; onShow?: () => void }) {
   return (
     <>
       <div className="side-head">
-        <h2>토큰 경계</h2>
-        <span>에이전트 토큰으로 GET /api/agent/presence/:id를 실제로 보낸 결과</span>
+        <h2>Token boundary</h2>
+        <span>Real GET /api/agent/presence/:id requests with each agent token</span>
       </div>
       {!boundary ? (
         <button className="btn" onClick={onShow}>
-          경계 확인하기
+          Check the boundary
         </button>
       ) : (
-        <table className="matrix" aria-label="토큰 경계표">
+        <table className="matrix" aria-label="Token boundary matrix">
           <thead>
             <tr>
-              <th scope="col">요청한 쪽 ↓ · 대상 →</th>
+              <th scope="col">Caller ↓ · Target →</th>
               {PERSON_IDS.map((p) => (
                 <th key={p} scope="col">
                   <Avatar person={p} size="sm" />
-                  {PERSON_LABEL_KO[p]}
+                  {PERSON_LABEL[p]}
                 </th>
               ))}
             </tr>
@@ -372,28 +407,135 @@ function BoundaryPanel({ boundary, onShow }: { boundary: BoundaryMatrix | null |
                   {row.token && row.holder !== 'forged' && <div className="mask">{row.token}</div>}
                 </th>
                 {row.cells.map((c) => (
-                  <td key={c.target} className={`cell cell-${c.status}`}>
-                    {statusText(c.status)}
-                  </td>
+                  <MatrixCell key={c.target} holder={row.holder} target={c.target} status={c.status} />
                 ))}
               </tr>
             ))}
           </tbody>
         </table>
       )}
-      <p className="leak-note">대각선만 열려요. 서버는 토큰 원문이 아니라 해시만 비교하고, 화면에는 지문만 보여요.</p>
+      <p className="leak-note">Only the diagonal is open. The server compares hashes, never raw tokens, and the screen shows fingerprints only.</p>
     </>
   );
 }
 
-function VideoScene({ scene }: { scene: 'intro' | 'outro' }) {
+/** JSON을 보기 좋게: 긴 transcript는 줄인다 */
+function compact(value: Record<string, unknown>): string {
+  const v = { ...value };
+  if (Array.isArray(v.transcript)) {
+    v.transcript = (v.transcript as Record<string, unknown>[]).map(({ reason: _r, round: _round, ...m }) => JSON.stringify(m));
+  }
+  if (Array.isArray(v.subtasks)) v.subtasks = (v.subtasks as { id: string }[]).map((s) => s.id).join(', ');
+  delete v.max_rounds;
+  delete v.round;
+  delete v.capacity;
+  return JSON.stringify(v, null, 1)
+    .replace(/\n\s*/g, '\n  ')
+    .replace(/\n  }$/, '\n}')
+    .replace(/"(\{.*?\})"/g, (_m, inner: string) => inner.replace(/\\"/g, '"'));
+}
+
+function MusePanel({ turn, shown }: { turn: MuseTurnView | null | undefined; shown: boolean }) {
+  const hlSplit = useHl('muse', 'split');
+  const hlReq = useHl('muse', 'request');
+  const hlRes = useHl('muse', 'response');
+  const hlRewrite = useHl('muse', 'rewrite');
+  return (
+    <>
+      <div className="side-head">
+        <h2>What goes to the model</h2>
+        <span>One turn of Dad's agent · the real Meta Model API request body{turn?.muse === 'mock' ? ' · a same-schema mock answers in this recording' : ''}</span>
+      </div>
+      {!turn ? (
+        <p className="side-empty">Run a negotiation first.</p>
+      ) : (
+        <div className="io">
+          <div className={`split${hlSplit}`}>
+            <div>
+              <div className="split-title">The model decides</div>
+              <div>which subtask to go for · fit · offer / counter / commit / refuse</div>
+            </div>
+            <div>
+              <div className="split-title">WRU enforces</div>
+              <div>tokens · schema check · reasons rewritten to templates · conflicting commits</div>
+            </div>
+          </div>
+          <div className={`io-col${hlReq}`}>
+            <div className="io-label">
+              Request <code>POST /v1/chat/completions</code>
+              <span>
+                model: $MUSE_MODEL · response_format: {turn.response_format.type}
+              </span>
+            </div>
+            <pre className="code">{compact(turn.user)}</pre>
+          </div>
+          <div className={`io-col${hlRes}`}>
+            <div className="io-label">Response (one JSON object)</div>
+            {shown ? (
+              <pre className="code code-out">{JSON.stringify(turn.action, null, 2)}</pre>
+            ) : (
+              <pre className="code code-wait">Model is answering…</pre>
+            )}
+          </div>
+          <div className={`rewrite${hlRewrite}`}>
+            <div className="rewrite-label">Even if the model slips in a location (real filter code)</div>
+            <div className="rewrite-from">{turn.rewrite.from}</div>
+            <div className="rewrite-arrow">↓ what the log gets</div>
+            <div className="rewrite-to">{turn.rewrite.to}</div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+function VideoScene({ scene }: { scene: VideoOverlay['scene'] & string }) {
   if (scene === 'intro') {
     return (
       <div className="scene" role="presentation">
         <div className="scene-kicker">Meta Global AI Developer Hackathon</div>
         <div className="scene-title">WRU</div>
-        <div className="scene-line">좌표 없이, 가족의 Muse들이 할 일을 나눠요</div>
-        <div className="scene-q">"누가 민아 데리러 가?"를 정하려고<br />가족 모두의 위치를 공유해야 할까요?</div>
+        <div className="scene-line">AI agents split family errands. No coordinates shared.</div>
+        <div className="contrast">
+          <div className="contrast-card">
+            <div className="contrast-head">Typical location sharing</div>
+            <div className="fake-map" aria-hidden>
+              {['p1', 'p2', 'p3'].map((p) => (
+                <span key={p} className={`pin ${p}`} />
+              ))}
+            </div>
+            <div className="contrast-foot">Everyone's coordinates, always on a server</div>
+          </div>
+          <div className="contrast-arrow">→</div>
+          <div className="contrast-card contrast-wru">
+            <div className="contrast-head">WRU</div>
+            <div className="chips">
+              <span className="chip-state state-home">Mom · Home</span>
+              <span className="chip-state state-in_transit">Dad · On the way, 20 min</span>
+              <span className="chip-state state-near_home">Brother · Near home</span>
+            </div>
+            <div className="contrast-foot">Only status goes in, only roles come out</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  if (scene === 'host') {
+    return (
+      <div className="scene scene-light" role="presentation">
+        <div className="scene-kicker">Host your own</div>
+        <ol className="host-steps">
+          <li>
+            <b>Each person</b> <span>creates a read-only key on their own WhereCtx</span>
+          </li>
+          <li>
+            <b>Family server</b> <span>keys in .env, WhereCtx URLs in family.config.json</span>
+          </li>
+          <li>
+            <b>npm start</b> <span>or Docker · the server gives each agent its own token</span>
+          </li>
+        </ol>
+        <div className="scene-line">Locations stay on each person's server. WRU reads status only.</div>
       </div>
     );
   }
@@ -401,21 +543,27 @@ function VideoScene({ scene }: { scene: 'intro' | 'outro' }) {
     <div className="scene" role="presentation">
       <div className="scene-title">WRU</div>
       <ul className="scene-points">
-        <li><b>WhereCtx</b> 각자 자기 서버에서 상태만</li>
-        <li><b>에이전트 토큰</b> 내 토큰으로는 내 것만</li>
-        <li><b>Muse</b> offer · counter · commit으로 역할만</li>
-        <li><b>게이트</b> 집 98% → 6%, 우연 수준</li>
+        <li><b>WhereCtx</b> status only, from each person's own server</li>
+        <li><b>Agent tokens</b> my token reads only me</li>
+        <li><b>Muse</b> offer · counter · commit → roles only</li>
+        <li><b>Gate</b> knowing the location doesn't change the log</li>
+        <li><b>Self-hosted</b> npm start · Docker, one server per family</li>
       </ul>
-      <div className="scene-line">누구나 자기 서버에 띄워 씁니다 · npm start / Docker</div>
-      <div className="scene-foot">이 영상의 Muse는 같은 스키마의 결정론적 mock입니다. MODEL_API_KEY를 넣으면 Meta Model API(Muse Spark)로 바뀝니다.</div>
+      <div className="scene-note">Muse in this recording is a same-schema mock · set MODEL_API_KEY for Muse Spark</div>
     </div>
   );
 }
 
 const CONDITION_LABEL: Record<Condition, { title: string; desc: string }> = {
-  off: { title: '게이트 off', desc: '동네 이름 · 거리 · 정확한 ETA를 그대로 말할 때' },
-  filter_only: { title: '게이트 on · 에이전트가 위치를 알 때', desc: '말하려 해도 자유 문장은 내보내지 않음' },
-  on: { title: '게이트 on (WRU 기본)', desc: '상세 위치 거절 · 상태 템플릿 · ETA 구간' },
+  off: { title: 'Privacy gate off', desc: 'Naive agent chat: neighborhood, distance and exact ETA as-is' },
+  filter_only: { title: 'Gate on · agent secretly knows', desc: 'Exact location given to the agent; the log stays the same' },
+  on: { title: 'Privacy gate on (default)', desc: 'Detail refused · status templates · ETA ranges' },
+};
+
+/** 조건마다 로그에 남는 문장 꼴 (동네 이름 · 숫자는 가림) */
+const EXAMPLE: Partial<Record<Condition, string>> = {
+  off: '"Passing through [neighborhood] now, [N] km from home, [N] min left"',
+  on: '"I\'m already out and can stop by on the way (home within 20 min)"',
 };
 
 function pct(v: number): string {
@@ -441,35 +589,60 @@ interface LeakPanelProps {
   onShowReport: () => void;
 }
 
+function LeakCard({ k, report }: { k: Condition; report: LeakReport }) {
+  const g = report.gates[k];
+  const hlCard = useHl('leak', `card-${k}`);
+  const hlLogs = useHl('leak-on', 'logs');
+  const hlBound = useHl('leak-on', 'bound');
+  const hlActual = useHl('leak-on', 'actual');
+  return (
+    <section className={`leak-card leak-${k}${hlCard}`}>
+      <div className="leak-title">{CONDITION_LABEL[k].title}</div>
+      <div className="leak-desc">{CONDITION_LABEL[k].desc}</div>
+      <div className={`logs${hlLogs}`}>
+        {g.trials} scenarios → <b>{g.distinct_logs}</b> distinct logs
+      </div>
+      <div className={`bound-big${hlBound}`}>
+        <div className="bound-label">Best-case attacker <span>(knows every answer)</span></div>
+        <div className="bound-nums">
+          <span>
+            home <b>{pct(g.bound_home_rate)}</b>
+          </span>
+          <span>
+            school <b>{pct(g.bound_school_rate)}</b>
+          </span>
+        </div>
+      </div>
+      <div className={`actual${hlActual}`}>
+        <div className="actual-label">What a rule-based attacker actually found</div>
+        <Metric label="home" rate={g.home_rate} chance={report.chance} />
+        <Metric label="school" rate={g.school_rate} chance={report.chance} />
+      </div>
+      {EXAMPLE[k] && <div className="example">Log line: {EXAMPLE[k]}</div>}
+    </section>
+  );
+}
+
 function LeakPanel({ report, conditions, onShowReport }: LeakPanelProps) {
   return (
     <>
       <div className="side-head">
-        <h2>누수 테스트</h2>
-        <span>협상 로그만 보고 집 · 학교가 서울 25개 구 중 어디인지 맞히기</span>
+        <h2>Leak test</h2>
+        <span>From the negotiation logs alone, which of Seoul's 25 districts are the home and school in? Chance: {report ? pct(report.chance) : '4%'}</span>
       </div>
       {!report ? (
         <button className="btn" onClick={onShowReport}>
-          누수 테스트 결과 보기
+          Show leak test results
         </button>
       ) : (
         <>
           <div className="leak">
-            {conditions.map((k) => {
-              const g = report.gates[k];
-              return (
-                <section key={k} className={`leak-card leak-${k}`}>
-                  <div className="leak-title">{CONDITION_LABEL[k].title}</div>
-                  <div className="leak-desc">{CONDITION_LABEL[k].desc}</div>
-                  <Metric label="집" rate={g.home_rate} chance={report.chance} />
-                  <Metric label="학교" rate={g.school_rate} chance={report.chance} />
-                </section>
-              );
-            })}
+            {conditions.map((k) => (
+              <LeakCard key={k} k={k} report={report} />
+            ))}
           </div>
           <p className="leak-note">
-            조건마다 {report.trials}회 · 적대자 {report.adversary === 'meta' ? 'Muse' : 'mock 추론기'} · 세로선은 우연 수준{' '}
-            {pct(report.chance)}
+            Best-case attacker: group identical logs and pick the right answer, so no attacker (LLMs included) can do better. Bar tick: chance, {pct(report.chance)}
           </p>
         </>
       )}
@@ -482,7 +655,7 @@ function LeakPanel({ report, conditions, onShowReport }: LeakPanelProps) {
 function DemoBar({ demo }: { demo: DemoView }) {
   const last = demo.step === demo.total - 1;
   return (
-    <div className="demo-bar" role="region" aria-label="데모 진행">
+    <div className="demo-bar" role="region" aria-label="Demo progress">
       <div className="demo-count">
         {demo.step + 1}
         <span>/{demo.total}</span>
@@ -494,11 +667,11 @@ function DemoBar({ demo }: { demo: DemoView }) {
       <div className="demo-actions">
         {!last && (
           <button className="btn btn-ghost" onClick={demo.onExit}>
-            나가기
+            Exit
           </button>
         )}
         <button className="btn btn-light" disabled={demo.busy} onClick={last ? demo.onExit : demo.onNext}>
-          {last ? '데모 끝내기' : '다음 ▶'}
+          {last ? 'End demo' : 'Next ▶'}
         </button>
       </div>
     </div>
@@ -507,7 +680,7 @@ function DemoBar({ demo }: { demo: DemoView }) {
 
 export function DemoPage(props: DemoPageProps) {
   const { state, playing, error, demo, video } = props;
-  const [tab, setTab] = useState<'channel' | 'boundary' | 'report'>('channel');
+  const [tab, setTab] = useState<'channel' | 'boundary' | 'muse' | 'report'>('channel');
 
   const latest = state.negotiations.at(-1);
   const negotiatedTask = latest && state.tasks.find((t) => t.task_id === latest.task_id);
@@ -517,32 +690,39 @@ export function DemoPage(props: DemoPageProps) {
   const shown = reveal === null ? all : all.slice(0, reveal);
   const revealing = reveal !== null && reveal < all.length;
   const approved = latest?.status === 'approved' && !revealing;
-  const side = demo ? (demo.focus === 'report' ? 'report' : demo.focus === 'boundary' ? 'boundary' : 'channel') : tab;
+  const side = demo
+    ? demo.focus === 'report' || demo.focus === 'boundary' || demo.focus === 'muse'
+      ? demo.focus
+      : 'channel'
+    : tab;
   const tokenMark = (p: PersonId) => props.boundary?.rows.find((r) => r.holder === p)?.token ?? null;
 
   return (
-    <div className={`wru${demo ? ` demo-on focus-${demo.focus}` : ''}${video ? ' video-on' : ''}`}>
+    <HighlightContext.Provider value={video?.hl ?? null}>
+    <div
+      className={`wru${demo ? ` demo-on focus-${demo.focus}` : ''}${video ? ' video-on' : ''}${video?.hl ? ' has-hl' : ''}${video?.scene ? ` scene-on scene-${video.scene}` : ''}`}
+    >
       <header className="top">
         <div className="brand">
           <strong>WRU</strong>
-          <span>좌표 없이, 가족의 Muse들이 할 일을 나눠요</span>
+          <span>AI agents split family errands. No coordinates shared.</span>
         </div>
         <div className="controls">
-          <span className="clock" aria-label="시뮬 시계">
+          <span className="clock" aria-label="Sim clock">
             {state.clock.label}
           </span>
           {!demo && (
             <>
               <div className="seg">
-                <button onClick={() => props.onAdvance(1)}>+1분</button>
-                <button onClick={() => props.onAdvance(5)}>+5분</button>
-                <button onClick={() => props.onAdvance(10)}>+10분</button>
-                <button onClick={props.onTogglePlay}>{playing ? '⏸ 일시정지' : '▶ 재생'}</button>
-                <button onClick={props.onReset}>리셋</button>
+                <button onClick={() => props.onAdvance(1)}>+1 min</button>
+                <button onClick={() => props.onAdvance(5)}>+5 min</button>
+                <button onClick={() => props.onAdvance(10)}>+10 min</button>
+                <button onClick={props.onTogglePlay}>{playing ? '⏸ Pause' : '▶ Play'}</button>
+                <button onClick={props.onReset}>Reset</button>
               </div>
               {props.onStartDemo && (
                 <button className="btn btn-primary" onClick={props.onStartDemo}>
-                  ▶ 데모 모드
+                  ▶ Demo mode
                 </button>
               )}
             </>
@@ -583,7 +763,7 @@ export function DemoPage(props: DemoPageProps) {
           {!demo && (
             <div className="tabs" role="tablist">
               <button role="tab" aria-selected={side === 'channel'} onClick={() => setTab('channel')}>
-                Muse 채널
+                Muse channel
               </button>
               <button
                 role="tab"
@@ -593,7 +773,7 @@ export function DemoPage(props: DemoPageProps) {
                   props.onShowBoundary?.();
                 }}
               >
-                토큰 경계
+                Token boundary
               </button>
               <button
                 role="tab"
@@ -603,7 +783,7 @@ export function DemoPage(props: DemoPageProps) {
                   if (!props.report) props.onShowReport();
                 }}
               >
-                누수 테스트
+                Leak test
               </button>
             </div>
           )}
@@ -611,6 +791,8 @@ export function DemoPage(props: DemoPageProps) {
             <Channel messages={shown} task={negotiatedTask} total={all.length} log={demo ? [] : state.log} />
           ) : side === 'boundary' ? (
             <BoundaryPanel boundary={props.boundary} onShow={props.onShowBoundary} />
+          ) : side === 'muse' ? (
+            <MusePanel turn={props.museTurn} shown={props.museShown ?? true} />
           ) : (
             <LeakPanel
               report={props.report}
@@ -621,9 +803,10 @@ export function DemoPage(props: DemoPageProps) {
         </aside>
       </div>
 
-      <footer>좌표 · 주소 · 학교 이름은 받지도, 보여 주지도 않아요. WhereCtx에서는 상태와 ETA만 받습니다.</footer>
+      <footer>No coordinates, addresses or school names are collected or shown. From WhereCtx we only take status and ETA.</footer>
       {video?.caption && <div className="subtitle">{video.caption}</div>}
       {video?.scene && <VideoScene scene={video.scene} />}
     </div>
+    </HighlightContext.Provider>
   );
 }

@@ -1,6 +1,6 @@
 import { Hono, type Context } from 'hono';
 import {
-  PERSON_LABEL_KO,
+  PERSON_LABEL,
   localHHMM,
   isForbiddenLocationKey,
   isPersonId,
@@ -21,9 +21,14 @@ import { randomBytes, timingSafeEqual } from 'node:crypto';
 import type { MuseClient } from './muse/client.js';
 import { createMuseClient } from './muse/factory.js';
 import { runNegotiation } from './negotiation/engine.js';
-import type { NegotiationRecord } from '../shared/negotiation.js';
+import { publicMessages, type NegotiationRecord } from '../shared/negotiation.js';
 import type { LeakReport } from '../shared/leak-report.js';
 import { runLeakExperiment } from './privacy/experiment.js';
+import { userPrompt } from './muse/meta.js';
+import { filterMessage } from './privacy/filter.js';
+import type { MessageBody } from '../shared/negotiation.js';
+import { DEFAULT_MODEL } from './muse/client.js';
+import type { MuseTurnView } from '../shared/muse-turn.js';
 import { readFile } from 'node:fs/promises';
 import { PERSON_IDS } from '../shared/contracts.js';
 
@@ -122,7 +127,7 @@ export function createApp(options: AppOptions = {}) {
   const logSubmit = (result: SubmitResult) => {
     if (!result.ok) return;
     const labels = result.task.subtasks.map((s) => s.label).join(' + ');
-    log.add('task_received', `인박스에 태스크 도착: ${labels} (마감 ${localHHMM(result.task.deadline)})`);
+    log.add('task_received', `Task received: ${labels} (due ${localHHMM(result.task.deadline)})`);
   };
 
   const app = new Hono().basePath('/api');
@@ -140,7 +145,7 @@ export function createApp(options: AppOptions = {}) {
       return c.json(kind === 'presence' ? await gateway.presence(token ?? '', id) : await gateway.eta(token ?? '', id));
     } catch (e) {
       if (!(e instanceof AuthError)) throw e;
-      if (e.status === 403 && c.req.header('x-wru-probe') !== probeNonce) log.add('refusal', `다른 구성원의 토큰으로 ${PERSON_LABEL_KO[id]}의 위치를 요청해서 거절했어요`);
+      if (e.status === 403 && c.req.header('x-wru-probe') !== probeNonce) log.add('refusal', `Refused: another member's token asked for ${PERSON_LABEL[id]}'s presence`);
       return c.json({ error: e.code }, e.status);
     }
   };
@@ -189,7 +194,7 @@ export function createApp(options: AppOptions = {}) {
   });
 
   async function refuse(id: PersonId) {
-    log.add('refusal', `${PERSON_LABEL_KO[id]}의 위치 상세 요청을 거절했어요 (상태·ETA만 제공)`);
+    log.add('refusal', `Refused a location-detail request for ${PERSON_LABEL[id]} (status and ETA only)`);
     return new Response(JSON.stringify(await wherectx.request_location_detail(id, 'location_detail')), {
       status: 403,
       headers: { 'content-type': 'application/json; charset=utf-8' },
@@ -210,21 +215,21 @@ export function createApp(options: AppOptions = {}) {
             return { target, status: res.status };
           }),
         );
-        return { holder, token: holder === 'none' ? null : holder === 'forged' ? '위조 토큰' : tokenMasks[holder], cells };
+        return { holder, token: holder === 'none' ? null : holder === 'forged' ? 'forged token' : tokenMasks[holder], cells };
       }),
     );
     return c.json({ rows });
   });
 
   app.post('/sim/advance', async (c) => {
-    if (live) return c.json({ error: '실제 WhereCtx가 붙어 있으면 시계를 돌릴 수 없어요.' }, 409);
+    if (live) return c.json({ error: 'The clock cannot be advanced while a real WhereCtx is connected.' }, 409);
     const body = (await c.req.json().catch(() => ({}))) as { minutes?: unknown };
     const minutes = body.minutes === undefined ? 5 : Number(body.minutes);
     if (!Number.isFinite(minutes) || minutes <= 0 || minutes > 120) {
-      return c.json({ error: 'minutes는 0 초과 120 이하여야 해요.' }, 400);
+      return c.json({ error: 'minutes must be > 0 and <= 120.' }, 400);
     }
     sim.advance(minutes);
-    log.add('clock', `시뮬 시계 +${minutes}분 → ${sim.nowLabel()}`);
+    log.add('clock', `Sim clock +${minutes} min → ${sim.nowLabel()}`);
     return c.json(await snapshot());
   });
 
@@ -233,7 +238,7 @@ export function createApp(options: AppOptions = {}) {
     inbox.clear();
     negotiations = [];
     log.clear();
-    log.add('reset', `데모 리셋 → ${clock.label()}`);
+    log.add('reset', `Demo reset → ${clock.label()}`);
     return c.json(await snapshot());
   });
 
@@ -269,6 +274,47 @@ export function createApp(options: AppOptions = {}) {
     return c.json(await leakReport);
   });
 
+  // 시연용: 최근 협상에서 아빠 에이전트의 첫 차례를 Meta Model API 요청 본문으로 다시 만든다 (실제 meta.ts 코드 경로)
+  app.get('/demo/muse-turn', async (c) => {
+    const record = negotiations.at(-1);
+    const task = record && inbox.get(record.task_id);
+    const person = (c.req.query('person') ?? 'dad') as PersonId;
+    if (!record || !task || !isPersonId(person)) return c.json({ error: 'no negotiation' }, 404);
+    const index = record.messages.findIndex((m) => m.from === person);
+    if (index < 0) return c.json({ error: 'no message' }, 404);
+    const message = record.messages[index]!;
+    const presence = await wherectx.get_presence(person);
+    const user = JSON.parse(
+      userPrompt({
+        self: person,
+        presence,
+        now: message.at,
+        task,
+        round: message.round,
+        max_rounds: record.max_rounds,
+        transcript: record.messages.slice(0, index),
+      }),
+    ) as Record<string, unknown>;
+    const { id: _id, at: _at, round: _round, fallback: _f, filtered: _fl, ...action } = message;
+    const view: MuseTurnView = {
+      person_id: person,
+      round: message.round,
+      model: env.MUSE_MODEL ?? DEFAULT_MODEL,
+      response_format: { type: 'json_object' },
+      user,
+      action,
+      muse: muse.kind,
+      checks: ['JSON schema (type · subtask_id · fit)', 'coordinate / address / place-name check', 'reason rewritten to a status template', 'commits are judged by the engine'],
+      rewrite: (() => {
+        // 위치를 섞은 문장 예시 (동네 이름은 가림). 실제 필터 코드로 바꾼 결과를 보여 준다
+        const from = 'Passing through [neighborhood] now, [N] km from home, exactly 17 min left';
+        const filtered = filterMessage({ ...(action as MessageBody), ...(action.type === 'offer' ? { reason: from } : {}) } as MessageBody, presence, task);
+        return { from, to: 'reason' in filtered.body ? filtered.body.reason : '' };
+      })(),
+    };
+    return c.json(view);
+  });
+
   app.get('/negotiations', (c) => c.json(negotiations));
 
   app.get('/negotiations/:id', (c) => {
@@ -285,16 +331,17 @@ export function createApp(options: AppOptions = {}) {
       task_id: task.task_id,
       muse: muse.kind,
       ...result,
+      messages: publicMessages(result.messages),
       status: 'awaiting_approval',
       approved_at: null,
     };
     negotiations = [...negotiations, record];
     const label = (id: string) => task.subtasks.find((s) => s.id === id)?.label ?? id;
-    const roles = record.assignment.assignments.map((a) => `${PERSON_LABEL_KO[a.person]}=${label(a.subtask)}`).join(', ');
+    const roles = record.assignment.assignments.map((a) => `${PERSON_LABEL[a.person]}=${label(a.subtask)}`).join(', ');
     log.add(
       'negotiation',
-      `협상 ${record.rounds}라운드 · 메시지 ${record.messages.length}개 → ${roles || '배정 없음'}` +
-        (record.assignment.unassigned.length ? ` (미배정 ${record.assignment.unassigned.map(label).join(', ')})` : ''),
+      `Negotiation: ${record.rounds} rounds · ${record.messages.length} messages → ${roles || 'nothing assigned'}` +
+        (record.assignment.unassigned.length ? ` (unassigned: ${record.assignment.unassigned.map(label).join(', ')})` : ''),
     );
     return c.json(record, 201);
   });
@@ -306,7 +353,7 @@ export function createApp(options: AppOptions = {}) {
     if (record.status === 'approved') return c.json(record);
     const approved: NegotiationRecord = { ...record, status: 'approved', approved_at: clock.now() };
     negotiations = negotiations.map((n) => (n === record ? approved : n));
-    log.add('approval', `역할 승인 → 사람별 통지 ${Object.keys(approved.assignment.notify).length}건 전송`);
+    log.add('approval', `Roles approved → ${Object.keys(approved.assignment.notify).length} personal notifications sent`);
     return c.json(approved);
   });
 

@@ -39,11 +39,11 @@ export class AgentTokens {
       const name = `WRU_AGENT_TOKEN_${id.toUpperCase()}`;
       const fromEnv = env[name];
       if (fromEnv && (!fromEnv.startsWith(TOKEN_PREFIX) || fromEnv.length < 32)) {
-        throw new Error(`${name}는 ${TOKEN_PREFIX}로 시작하는 32자 이상이어야 해요`);
+        throw new Error(`${name} must start with ${TOKEN_PREFIX} and be at least 32 characters`);
       }
       const token = fromEnv || newAgentToken();
       const d = digest(token);
-      if ([...tokens.hashes.values()].some((h) => h.equals(d))) throw new Error(`${name}가 다른 구성원의 토큰과 같아요`);
+      if ([...tokens.hashes.values()].some((h) => h.equals(d))) throw new Error(`${name} is the same as another member's token`);
       tokens.hashes.set(id, d);
       issued[id] = token;
     }

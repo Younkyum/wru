@@ -5,8 +5,11 @@ import { api } from './client';
 import { DemoPage, type DemoView, type VideoOverlay } from './DemoPage';
 import { DEMO_STEPS, type StepAction } from './demoSteps';
 import type { BoundaryMatrix } from '../shared/boundary';
+import type { MuseTurnView } from '../shared/muse-turn';
 
 const HERO_TASK_ID = 't_pickup_milk_001';
+/** 협상 메시지 간격. 영상 녹화(?reveal=manual)는 스크립트가 문장마다 직접 펼친다 */
+const MANUAL_REVEAL = new URLSearchParams(window.location.search).get('reveal') === 'manual';
 const REVEAL_MS = 700;
 
 export function App() {
@@ -18,8 +21,15 @@ export function App() {
   const [reveal, setReveal] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const [boundary, setBoundary] = useState<BoundaryMatrix | null>(null);
+  const [museTurn, setMuseTurn] = useState<MuseTurnView | null>(null);
+  // 영상에서는 요청을 먼저 보여 주고, 내레이션에 맞춰 응답을 펼친다
+  const [museShown, setMuseShown] = useState(!new URLSearchParams(window.location.search).has('video'));
   const videoMode = new URLSearchParams(window.location.search).has('video');
-  const [video, setVideo] = useState<VideoOverlay>({ caption: null, scene: null });
+  const [video, setVideo] = useState<VideoOverlay>({ caption: null, scene: null, hl: null });
+  // 영상 모드: 1440×900 녹화에서 1280×800 레이아웃으로 보이게 키운다
+  useEffect(() => {
+    if (videoMode) document.documentElement.style.setProperty('zoom', '1.15');
+  }, [videoMode]);
 
   const run = useCallback(async (action: () => Promise<unknown>) => {
     try {
@@ -49,7 +59,7 @@ export function App() {
   // 협상 컷: 메시지를 하나씩 보여 준다
   const total = state?.negotiations.at(-1)?.messages.length ?? 0;
   useEffect(() => {
-    if (reveal === null || reveal >= total) return;
+    if (MANUAL_REVEAL || reveal === null || reveal >= total) return;
     const timer = setTimeout(() => setReveal(reveal + 1), REVEAL_MS);
     return () => clearTimeout(timer);
   }, [reveal, total]);
@@ -64,16 +74,14 @@ export function App() {
     reset: async () => {
       setPlaying(false);
       setReport(null);
+      setMuseTurn(null);
       await api.reset();
       setBoundary(await api.boundary());
     },
     boundary: async () => setBoundary(await api.boundary()),
     task: api.submitHeroTask,
     negotiate: () => api.negotiate(HERO_TASK_ID),
-    approve: async () => {
-      const id = state?.negotiations.at(-1)?.negotiation_id;
-      if (id) await api.approve(id);
-    },
+    muse: async () => setMuseTurn(await api.museTurn()),
     leak: async () => setReport(await api.leakReport()),
     none: async () => {},
   };
@@ -97,13 +105,20 @@ export function App() {
       start: () => goTo(0),
       next: () => (demoStep === null ? goTo(0) : goTo(demoStep + 1)),
       step: demoStep,
-      busy: busy || (reveal !== null && reveal < total),
+      busy: busy || (!MANUAL_REVEAL && reveal !== null && reveal < total),
+      museShow: () => setMuseShown(true),
+      revealTo: (n: number) => setReveal(n),
+      highlight: (key: string | null) => setVideo((v) => ({ ...v, hl: key })),
+      approve: async () => {
+        const id = state?.negotiations.at(-1)?.negotiation_id;
+        if (id) await run(() => api.approve(id));
+      },
       caption: (text: string | null) => setVideo((v) => ({ ...v, caption: text })),
       scene: (scene: VideoOverlay['scene']) => setVideo((v) => ({ ...v, scene })),
     };
   });
 
-  if (!state) return <div className="loading">{error ? `서버에 연결할 수 없어요: ${error}` : '불러오는 중…'}</div>;
+  if (!state) return <div className="loading">{error ? `Cannot reach the server: ${error}` : 'Loading…'}</div>;
 
   const step = demoStep === null ? null : DEMO_STEPS[demoStep]!;
   const demo: DemoView | null =
@@ -116,7 +131,7 @@ export function App() {
           focus: step.focus,
           reveal,
           conditions: step.conditions ?? ['off', 'filter_only', 'on'],
-          busy: busy || (reveal !== null && reveal < total),
+          busy: busy || (!MANUAL_REVEAL && reveal !== null && reveal < total),
           onNext: () => void goTo(demoStep + 1),
           onExit: () => {
             setDemoStep(null);
@@ -136,6 +151,8 @@ export function App() {
       onAdvance={(m) => void run(() => api.advance(m))}
       report={report}
       boundary={boundary}
+      museTurn={museTurn}
+      museShown={museShown}
       onShowBoundary={() => void run(async () => setBoundary(await api.boundary()))}
       onShowReport={() => void run(async () => setReport(await api.leakReport()))}
       onReset={() => {

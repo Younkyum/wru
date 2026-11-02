@@ -1,77 +1,64 @@
-# 화면 카피 · 영상 문구 (제출자 확인용)
+# On-screen copy and video lines (for the submitter to review)
 
-데모 화면과 영상에 나가는 문구를 한곳에 모았습니다. 고칠 문구가 있으면 이 문서와 해당 파일을 같이 바꿔 주세요. 숫자는 `npm run leak` 결과(`samples/leak-report.json`)에서 자동으로 들어갑니다.
+All copy that appears on the demo screen and in the video, in one place. If you change a line here, change the source file too. Leak numbers are filled in automatically from `npm run leak` (`samples/leak-report.json`).
 
-## 고정 문구
+## Fixed UI copy
 
-화면은 가족 폰 3대(엄마 · 아빠 · 형) + 위쪽 WRU 바 + 오른쪽 열(Muse 채널 / 누수 테스트)로 되어 있습니다. 폰에는 그 사람 자기 상태와 자기 Muse가 한 말만 보입니다.
+The screen is three family phones (Mom · Dad · Brother), a WRU bar on top, and a right column (Muse channel / Token boundary / Leak test). Each phone shows only that person's own status and what their own Muse said.
 
-| 위치 | 문구 | 파일 |
+| Where | Copy | File |
 | --- | --- | --- |
-| 헤더 | WRU · 좌표 없이, 가족의 Muse들이 할 일을 나눠요 | `src/web/DemoPage.tsx` |
-| 헤더 버튼 | ▶ 데모 모드 | 〃 |
-| 폰 머리 | 엄마 / 아빠 / 형 · 내 상태 · 내 Muse | 〃 |
-| 폰 상태 카드 | 집 · 지금 집이에요 / 이동 중 · 집까지 약 20분 / 집 근처 · 집까지 약 8분 | 〃, `src/shared/contracts.ts` |
-| 폰 빈 화면 | 다른 가족의 위치는 이 폰에 없어요. | 〃 |
-| 폰 알림 | 가족 일 · 18:00까지 / 민아 픽업 + 우유 사기 | 〃 |
-| 폰 역할 카드 | 아빠 담당: 민아 픽업 (18:00까지) / 엄마: 이번엔 맡은 일이 없어요 | `src/server/negotiation/engine.ts` |
-| WRU 바 (빈 상태) | 가족 일이 없어요 · 태스크를 넣으면 Muse 3명이 역할을 나눠요 · [＋ 6시에 민아 픽업 + 우유] | `src/web/DemoPage.tsx` |
-| WRU 바 (태스크) | 민아 픽업 + 우유 사기 · 18:00까지 · 한 사람은 한 가지 일만 · [Muse 3명에게 맡기기] | 〃 |
-| WRU 바 (협상 중) | Muse 3명이 협상하는 중 · 메시지 n/8 | 〃 |
-| WRU 바 (결과) | 아빠 = 민아 픽업 · 형 = 우유 사기 · [이대로 승인하고 통지 보내기] → 승인됨 · 각자 자기 역할만 받았어요 | 〃 |
-| Muse 채널 빈 상태 | 아직 오간 메시지가 없어요. 여기에는 메시지만 지나가고, 위치는 지나가지 않아요. | 〃 |
-| 누수 테스트 제목 | 누수 테스트 · 협상 로그만 보고 집 · 학교가 서울 25개 구 중 어디인지 맞히기 | 〃 |
-| 푸터 | 좌표 · 주소 · 학교 이름은 받지도, 보여 주지도 않아요. WhereCtx에서는 상태와 ETA만 받습니다. | 〃 |
+| Header | WRU · AI agents split family errands. No coordinates shared. | `src/web/DemoPage.tsx` |
+| Header button | ▶ Demo mode | 〃 |
+| Phone header | Mom / Dad / Brother · my WhereCtx · my Muse · token fingerprint | 〃 |
+| Phone status card | Home · At home now / On the way · About 20 min from home / Near home · About 8 min from home | 〃, `src/shared/contracts.ts` |
+| Phone empty state | No one else's location is on this phone. | 〃 |
+| Phone task note | Family task · by 18:00 / Pick up Mina + Buy milk | 〃 |
+| Phone role card | Dad, you're on: Pick up Mina (by 18:00) / Mom, nothing for you this time | `src/server/negotiation/engine.ts` |
+| WRU bar (empty) | No family task yet · Add a task and the three Muses split it up · [＋ Pick up Mina + buy milk by 6 pm] | `src/web/DemoPage.tsx` |
+| WRU bar (task) | Pick up Mina + Buy milk · by 18:00 · Requested by Mom · one task per person · [Hand it to the three Muses] | 〃 |
+| WRU bar (result) | Dad = Pick up Mina · Brother = Buy milk · [Mom approves & notifies] → Approved by Mom · each person got only their own role | 〃 |
+| Muse channel | Muse agent → Meta Model API → Muse Spark | 〃 |
+| Token boundary | Real GET /api/agent/presence/:id requests with each agent token · 200 allowed / 403 denied / 401 denied | 〃 |
+| What goes to the model | The model decides / WRU enforces · Request POST /v1/chat/completions · Response (one JSON object) · Even if the model slips in a location (real filter code) | 〃 |
+| Leak test | Best-case attacker (knows every answer) · What a rule-based attacker actually found · Log line | 〃 |
+| Footer | No coordinates, addresses or school names are collected or shown. From WhereCtx we only take status and ETA. | 〃 |
 
-## 에이전트 메시지 템플릿 (게이트 on)
+## Agent message templates (gate on)
 
-| 상황 | 문구 | 파일 |
+| Situation | Copy | File |
 | --- | --- | --- |
-| 픽업 · 이동 중 | 이동 중이라 가는 길에 들를 수 있어요 (도착 20분 이내) | `src/server/muse/policy.ts` |
-| 픽업 · 집 근처 | 집 근처라 다녀올 수 있어요 | 〃 |
-| 픽업 · 집 | 집에서 출발하면 맞출 수 있어요 | 〃 |
-| 심부름 · 집 근처 | 집 근처라 들러 오기 쉬워요 | 〃 |
-| 심부름 · 이동 중 | 들어가는 길에 살 수 있어요 (도착 20분 이내) | 〃 |
-| 심부름 · 집 | 집에서 잠깐 다녀올 수 있어요 | 〃 |
-| counter | 더 잘 맞는 제안이 있어서 바꿀게요. (+ 위 문구) | 〃 |
-| refuse | 지금은 이동 중이라 ETA만 공유할게요 / 집 근처지만 지금은 맡기 어려워요 / 이미 다른 사람이 맡았어요 / 이미 다른 일을 맡고 있어요 / 마감 전에 맞추기 어려워요 / 더 잘 맞는 사람이 있어요 | `src/shared/negotiation.ts` |
-| 위치 요청 거절 | 위치 상세는 공유하지 않아요. 상태와 ETA만 알려 드릴 수 있어요. / 집 반경 안이라 위치 상세는 공유하지 않아요. 상태만 알려 드릴 수 있어요. | `src/server/wherectx/adapter.ts` |
+| Pickup · on the way | I'm already out and can stop by on the way (home within 20 min) | `src/server/muse/policy.ts` |
+| Pickup · near home | I'm near home and can make the trip | 〃 |
+| Pickup · home | I can make it if I leave home now | 〃 |
+| Errand · near home | I'm near home, easy to drop by | 〃 |
+| Errand · on the way | I can pick it up on my way home (home within 20 min) | 〃 |
+| Errand · home | I can run out from home | 〃 |
+| Counter | Someone fits better, so I'll switch. (+ one of the above) | 〃 |
+| Refuse | I'm out and can't take this one / I'm near home but can't take it now / Someone already took it / I'm already on another task / I can't make the deadline / Someone else is a better fit | `src/shared/negotiation.ts` |
+| Location request refused | Location details are not shared. Only status and ETA are available. / Inside the home zone, location details are not shared. Only status is available. | `src/server/wherectx/adapter.ts` |
 
-## 데모 모드 7컷 (화면 상단 진행 막대)
+## Demo mode (7 cuts)
 
-파일: `src/web/demoSteps.ts`
+File: `src/web/demoSteps.ts`. Captions with numbers are filled in from the leak report.
 
-| 컷 | 제목 | 캡션 |
-| --- | --- | --- |
-| 1 | 좌표 없는 지도 | 폰마다 자기 상태만 보여요. 엄마는 집, 아빠는 이동 중(약 20분), 형은 집 근처. 지도도 핀도 좌표도 없어요. |
-| 2 | 내 토큰으로는 내 것만 | 에이전트마다 자기 토큰이 하나씩 있어요. 아빠 토큰으로 엄마 상태를 달라고 하면 403, 토큰이 없거나 위조면 401. 방금 서버에 실제로 보낸 요청 결과예요. |
-| 3 | 태스크 투입 | 저녁 6시까지 "민아 픽업 + 우유". 한 사람은 한 가지 일만 맡아요. |
-| 4 | Muse 3명의 협상 | 각자의 Muse가 자기 상태만 보고 offer → counter → commit을 주고받아요. 오가는 건 메시지뿐, 서로의 위치는 모릅니다. |
-| 5 | 역할 통지 | 결과는 역할만: 아빠 = 민아 픽업, 형 = 우유 사기. 한 번 승인하면 각자 자기 역할만 받아요. |
-| 6 | 로그로 집을 찾을 수 있을까? | 같은 협상 로그를 적대자에게 주고 집 · 학교가 서울 25개 구 중 어디인지 50번 맞히게 했어요. 집 6%, 학교 0%. 우연(4%)과 비슷해요. |
-| 7 | 게이트를 끄면 | 에이전트가 동네 이름 · 거리 · 정확한 ETA를 그대로 말하게 두면 집 98%, 학교 72%까지 맞혀요. WRU는 그 문장을 내보내지 않습니다. |
+| Cut | Title |
+| --- | --- |
+| 1 | Status only |
+| 2 | A task comes in |
+| 3 | Three Muses negotiate |
+| 4 | What goes to the model |
+| 5 | Only roles come out |
+| 6 | Nobody can peek |
+| 7 | Can the log reveal home? |
 
-스크린샷: [docs/screens/](screens/) (`01-map.jpg` ~ `06-gate.jpg`)
+## Video narration and subtitles
 
-## 영상 문구 (내레이션 · 자막)
+The source is `scripts/video/narration.ts`. Start times, every sentence and what each sentence highlights are in [VIDEO_SCRIPT.md](VIDEO_SCRIPT.md), which `npm run video` rewrites.
 
-영상 내레이션과 자막의 원본은 `scripts/video/narration.ts`이고, 컷별 시작 시각과 전체 문장은 [VIDEO_SCRIPT.md](VIDEO_SCRIPT.md)에 있습니다. 아래 표는 초기 요약입니다.
+## Checklist
 
-컷별 타이밍은 [VIDEO_SCRIPT.md](VIDEO_SCRIPT.md)에 있습니다.
-
-| 컷 | 내레이션 | 자막 |
-| --- | --- | --- |
-| 오프닝 | 가족 위치 공유 앱은 편하지만, 가족 모두의 좌표가 늘 어딘가에 남아요. WRU는 좌표 없이 가족 일을 나눕니다. | 좌표 없이, 가족 일을 나누다 |
-| 1 | 엄마는 집, 아빠는 퇴근길 20분, 형은 집 근처. 화면에 보이는 건 이게 전부예요. | 상태와 ETA만 |
-| 2 | 저녁 6시까지 민아를 데려오고 우유도 사야 해요. | 6시 · 민아 픽업 + 우유 |
-| 3 | 각자의 Muse가 자기 상태만 보고 손을 들고, 더 잘 맞는 사람이 있으면 양보하고, 확정합니다. | offer → counter → commit |
-| 4 | 결과는 역할뿐이에요. 아빠는 픽업, 형은 우유. 각자 자기 역할만 받아요. | 아빠 = 픽업 · 형 = 우유 |
-| 5 | 이 로그만 보고 집과 학교를 맞힐 수 있을까요? 50번 시켜 봤더니 우연 수준이었어요. | 집 6% · 학교 0% (우연 4%) |
-| 6 | 게이트를 끄고 에이전트가 동네 이름과 거리를 말하게 두면, 집을 98% 맞힙니다. | off 집 98% · 학교 72% vs on 6% · 0% |
-| 클로징 | WhereCtx는 상태만 주고, Muse는 협상하고, WRU는 위치가 새지 않게 막습니다. | WRU · WhereCtx × Muse Spark |
-
-## 확인할 것
-
-- [ ] "민아"는 가상의 아이 이름입니다. 실제 이름으로 바꾸지 마세요.
-- [ ] 누수 수치는 mock 적대자 기준입니다. Meta API 키로 `npm run leak`을 다시 돌리면 숫자가 바뀔 수 있고, 캡션은 자동으로 따라갑니다. 영상 자막은 손으로 맞춰야 합니다.
-- [ ] 모델 id `muse-spark-1.3`은 가정값입니다. 실제 id를 확인해 `MUSE_MODEL`로 덮어쓰세요.
+- [ ] "Mina" is a made-up child's name. Do not replace it with a real one.
+- [ ] Current leak numbers. Gate on: 5 distinct logs, best-case attacker home 22% · school 24%, rule-based attacker home 6% · school 0%. Gate off: home 98% · school 72%. Chance 4%.
+- [ ] Leak numbers come from the rule-based attacker and the attacker-independent ceiling. If you re-run `npm run leak` with a Meta Model API key, on-screen captions update automatically; video narration does not.
+- [ ] The model id is set with `MUSE_MODEL` and is not shown on screen.

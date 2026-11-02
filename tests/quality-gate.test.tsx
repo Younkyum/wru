@@ -85,6 +85,7 @@ describe('품질 게이트', () => {
     const report = (await req(app, 'GET', '/api/leak-report')).json;
     expect(DEMO_STEPS).toHaveLength(7);
     const boundary = (await req(app, 'GET', '/api/demo/boundary')).json;
+    const museTurn = (await req(app, 'GET', '/api/demo/muse-turn')).json;
     DEMO_STEPS.forEach((step, i) => {
       const html = renderToStaticMarkup(
         <DemoPage
@@ -100,7 +101,8 @@ describe('품질 게이트', () => {
           report={report}
           onShowReport={noop}
           boundary={boundary}
-          video={{ caption: step.title, scene: i === 0 ? 'intro' : i === DEMO_STEPS.length - 1 ? 'outro' : null }}
+          museTurn={museTurn}
+          video={{ caption: step.title, scene: i === 0 ? 'intro' : i === DEMO_STEPS.length - 1 ? 'outro' : null, hl: i % 2 ? 'bound' : 'dad' }}
           demo={{
             step: i,
             total: DEMO_STEPS.length,
@@ -116,10 +118,11 @@ describe('품질 게이트', () => {
         />,
       );
       expect(html).toContain(step.title);
-      if (step.focus === 'boundary') expect(html).toContain('403 거절');
+      if (step.focus === 'boundary') expect(html).toContain('403 denied');
+      if (step.focus === 'muse') expect(html).toContain('response_format');
       expect(scan(html)).toEqual([]);
     });
-    expect(DEMO_STEPS.find((d) => d.action === 'approve')!.caption({ state, report })).toContain('아빠 = 민아 픽업, 형 = 우유 사기');
+    expect(DEMO_STEPS.find((d) => d.focus === 'roles')!.caption({ state, report })).toContain('Dad = Pick up Mina, Brother = Buy milk');
   });
 
   // README는 검사 규칙(lat/lng 등)을 설명하느라 그 단어를 쓰므로 뺀다
@@ -150,9 +153,9 @@ describe('영상 대본', () => {
     const { SEGMENTS, captionText } = await import('../scripts/video/narration');
     const doc = readFileSync('docs/VIDEO_SCRIPT.md', 'utf8');
     for (const seg of SEGMENTS) {
-      for (const line of seg.lines) {
-        expect([seg.id, doc.includes(line)]).toEqual([seg.id, true]);
-        expect(scan(captionText(line))).toEqual([]);
+      for (const { text } of seg.lines) {
+        expect([seg.id, doc.includes(text)]).toEqual([seg.id, true]);
+        expect(scan(captionText(text))).toEqual([]);
       }
     }
     const steps = SEGMENTS.filter((s) => s.step !== undefined).map((s) => s.step);
