@@ -11,6 +11,15 @@ export interface GateResult {
   /** 위치 단서(지명 · 거리 · 정확한 ETA 등)가 남은 메시지 · 라벨 수 */
   location_hints: number;
   messages: number;
+  /** 조건 안에서 서로 다른 로그가 몇 종류였는지 */
+  distinct_logs: number;
+  /**
+   * 어떤 적대자(LLM 포함)라도 이 시나리오들에서 낼 수 있는 적중률 상한.
+   * 같은 로그끼리 묶어 각 묶음에서 가장 흔한 정답만 맞힌다고 볼 때의 적중률이다.
+   * 로그가 같으면 어떤 적대자도 구별할 수 없으므로, 이 값은 적대자 구현과 무관하다.
+   */
+  bound_home_rate: number;
+  bound_school_rate: number;
 }
 
 /**

@@ -410,3 +410,64 @@ footer { color: var(--faint); font-size: 12px; text-align: center; }
 .video-on.focus-report .leak-card { padding: 10px 14px; }
 .video-on.focus-report .metric + .metric { margin-top: 4px; }
 .video-on.focus-report .example { margin-top: 6px; }
+.bound { margin-top: 8px; font-size: 12.5px; color: var(--ink); }
+.bound b { font-weight: 800; }
+.phone-sub { white-space: nowrap; }
+.chance-label { top: auto; bottom: 13px; }
+
+/* ════════════════════════════════════════════════════════════
+   영상 모드 레이아웃 (라운드 1~3에서 반복된 지적에 대한 구조 변경)
+   - 컷마다 필요한 영역만 보여 주고 나머지는 흐리지 않고 숨긴다
+   - 보이는 영역을 크게, 혼자 남은 패널은 확대한다
+   - 화면 아래 140px은 자막 전용 (UI가 들어가지 않는다)
+   ════════════════════════════════════════════════════════════ */
+.video-on .top { display: none; }
+.video-on .wru { padding-top: 14px; padding-bottom: 150px; min-height: 100vh; }
+.video-on.demo-on [class*='zone-'] { opacity: 1 !important; filter: none !important; box-shadow: none !important; }
+.video-on.demo-on .stage { grid-template-columns: minmax(0, 1fr) !important; }
+.video-on.demo-on .phones { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; gap: 22px; }
+.video-on.demo-on .phone { height: 560px; }
+.video-on.demo-on .side { height: auto; max-height: none; }
+
+/* 폰만: 좌표 없는 지도 */
+.video-on.focus-phones .zone-hub, .video-on.focus-phones .zone-side { display: none; }
+/* 혼자 남은 패널: 토큰 경계 · Muse · 누수 */
+.video-on.focus-boundary .zone-hub, .video-on.focus-boundary .zone-phones,
+.video-on.focus-muse .zone-hub, .video-on.focus-muse .zone-phones,
+.video-on.focus-report .zone-hub, .video-on.focus-report .zone-phones { display: none !important; }
+.video-on.focus-boundary .side, .video-on.focus-muse .side, .video-on.focus-report .side {
+  width: 820px; margin: 0 auto; zoom: 1.22; box-shadow: none; border: 1px solid var(--line);
+}
+.video-on.focus-report .leak { grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); display: grid; }
+.video-on.focus-report .leak:has(> :nth-child(3)) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+/* 태스크 · 역할: WRU 바 + 폰 */
+.video-on.focus-task .zone-side, .video-on.focus-roles .zone-side { display: none; }
+.video-on.focus-task .phone, .video-on.focus-roles .phone { height: 480px; }
+/* 협상: 폰 + 채널 */
+.video-on.focus-channel .zone-hub { display: none; }
+.video-on.focus-channel .stage { grid-template-columns: minmax(0, 1fr) 400px !important; }
+.video-on.focus-channel .phones { gap: 14px; }
+.video-on.focus-channel .side { height: 560px; }
+/* 자막: 화면 아래 띠 */
+.video-on .subtitle { bottom: 30px; font-size: 25px; background: rgba(16, 16, 15, 0.92); }
+/* 폰 안 글자 */
+.video-on .state { font-size: 28px; }
+.video-on .eta { font-size: 14px; }
+.video-on .note-body { font-size: 15px; }
+.video-on .role-card { font-size: 16px; }
+.video-on .feed-empty { font-size: 14px; color: var(--muted); }
+.code-wait { color: #8e8a82; }
+/* 폰이 좁아져도 안쪽이 넘치지 않게 */
+.phone, .phone-screen { min-width: 0; }
+.phone-screen { grid-template-columns: minmax(0, 1fr); }
+.phone-head { min-width: 0; }
+.phone-head > div { min-width: 0; }
+.phone-sub { overflow: hidden; text-overflow: ellipsis; }
+.phone-status { gap: 6px; }
+.bubble { overflow-wrap: anywhere; }
+/* 우연선 라벨은 학교 막대 아래 */
+.chance-label { bottom: auto; top: 13px; font-size: 10.5px; }
+.metric:has(.chance-label) { margin-bottom: 14px; }
+.bound { display: grid; gap: 1px; }
+.video-on.focus-report .side { width: 900px; zoom: 1.28; }
+.video-on.focus-channel .stage { grid-template-columns: minmax(0, 1fr) 360px !important; }

@@ -23,6 +23,8 @@ export interface DemoPageProps {
   boundary?: BoundaryMatrix | null;
   onShowBoundary?: () => void;
   museTurn?: MuseTurnView | null;
+  /** Muse 응답(JSON)을 펼쳤는지. 기본 true */
+  museShown?: boolean;
   onStartDemo?: () => void;
   demo?: DemoView | null;
   /** 영상 녹화 모드 (/demo?video=1): 자막 · 인트로 · 아웃트로 */
@@ -139,7 +141,7 @@ function Phone({ person, tokenMark, presence, clock, task, messages, role }: Pho
           <Avatar person={person} />
           <div>
             <div className="phone-owner">{PERSON_LABEL_KO[person]}</div>
-            <div className="phone-sub">내 상태 · 내 Muse</div>
+            <div className="phone-sub">내 WhereCtx · 내 Muse</div>
           </div>
           {tokenMark && (
             <span className="key zone-key" title="이 에이전트의 토큰 (지문)">
@@ -399,7 +401,7 @@ function compact(value: Record<string, unknown>): string {
   return JSON.stringify(v, null, 1).replace(/\n\s*/g, '\n  ').replace(/\n  }$/, '\n}');
 }
 
-function MusePanel({ turn }: { turn: MuseTurnView | null | undefined }) {
+function MusePanel({ turn, shown }: { turn: MuseTurnView | null | undefined; shown: boolean }) {
   return (
     <>
       <div className="side-head">
@@ -419,7 +421,11 @@ function MusePanel({ turn }: { turn: MuseTurnView | null | undefined }) {
           </div>
           <pre className="code">{compact(turn.user)}</pre>
           <div className="io-label">응답 (JSON 하나)</div>
-          <pre className="code code-out">{JSON.stringify(turn.action, null, 2)}</pre>
+          {shown ? (
+            <pre className="code code-out">{JSON.stringify(turn.action, null, 2)}</pre>
+          ) : (
+            <pre className="code code-wait">모델이 답하는 중…</pre>
+          )}
           <div className="split">
             <div>
               <div className="split-title">모델이 정함</div>
@@ -485,7 +491,7 @@ function Metric({ label, rate, chance }: { label: string; rate: number; chance: 
       <div className="metric-track">
         <div className="metric-fill" style={{ width: `${Math.max(rate * 100, 1)}%` }} />
         <div className="metric-chance" style={{ left: `${chance * 100}%` }} />
-        {label === '집' && (
+        {label === '학교' && (
           <span className="chance-label" style={{ left: `${chance * 100}%` }}>
             우연 {pct(chance)}
           </span>
@@ -524,14 +530,20 @@ function LeakPanel({ report, conditions, onShowReport }: LeakPanelProps) {
                   <div className="leak-desc">{CONDITION_LABEL[k].desc}</div>
                   <Metric label="집" rate={g.home_rate} chance={report.chance} />
                   <Metric label="학교" rate={g.school_rate} chance={report.chance} />
+                  <div className="bound">
+                    <div>로그 {g.distinct_logs}종류</div>
+                    <div>
+                      <b>어떤 적대자든 상한</b> 집 {pct(g.bound_home_rate)} · 학교 {pct(g.bound_school_rate)}
+                    </div>
+                  </div>
                   {EXAMPLE[k] && <div className="example">로그 예: {EXAMPLE[k]}</div>}
                 </section>
               );
             })}
           </div>
           <p className="leak-note">
-            조건마다 {report.trials}회 · 적대자 {report.adversary === 'meta' ? 'Muse' : 'mock 추론기'} · 세로선은 우연 수준{' '}
-            {pct(report.chance)}
+            막대: {report.adversary === 'meta' ? 'Muse' : '규칙 기반 mock'} 적대자의 적중률 (조건마다 {report.trials}회) · 상한: 같은 로그끼리 묶어 정답을
+            미리 알고 고른 최고치, 적대자 구현과 무관
           </p>
         </>
       )}
@@ -678,7 +690,7 @@ export function DemoPage(props: DemoPageProps) {
           ) : side === 'boundary' ? (
             <BoundaryPanel boundary={props.boundary} onShow={props.onShowBoundary} />
           ) : side === 'muse' ? (
-            <MusePanel turn={props.museTurn} />
+            <MusePanel turn={props.museTurn} shown={props.museShown ?? true} />
           ) : (
             <LeakPanel
               report={props.report}

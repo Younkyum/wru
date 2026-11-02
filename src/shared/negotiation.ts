@@ -90,3 +90,11 @@ export interface NegotiationRecord {
   status: NegotiationStatus;
   approved_at: string | null;
 }
+
+/**
+ * 밖으로 나가는 메시지(API 응답 · 로그 · 적대자 입력)에서 내부 플래그(fallback · filtered)를 뗀다.
+ * 플래그가 남으면 "에이전트가 원래 다른 말을 하려 했다"는 신호가 새기 때문이다.
+ */
+export function publicMessages(messages: NegotiationMessage[]): NegotiationMessage[] {
+  return messages.map(({ fallback: _f, filtered: _fl, ...m }) => m as NegotiationMessage);
+}

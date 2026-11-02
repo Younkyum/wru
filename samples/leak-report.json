@@ -14,7 +14,10 @@
       "school_rate": 0,
       "location_hints": 0,
       "messages": 386,
-      "filtered": 0
+      "filtered": 0,
+      "distinct_logs": 5,
+      "bound_home_rate": 0.22,
+      "bound_school_rate": 0.24
     },
     "filter_only": {
       "trials": 50,
@@ -24,7 +27,10 @@
       "school_rate": 0,
       "location_hints": 0,
       "messages": 386,
-      "filtered": 236
+      "filtered": 236,
+      "distinct_logs": 5,
+      "bound_home_rate": 0.22,
+      "bound_school_rate": 0.24
     },
     "off": {
       "trials": 50,
@@ -34,7 +40,10 @@
       "school_rate": 0.72,
       "location_hints": 244,
       "messages": 386,
-      "filtered": 0
+      "filtered": 0,
+      "distinct_logs": 50,
+      "bound_home_rate": 1,
+      "bound_school_rate": 1
     }
   }
 }

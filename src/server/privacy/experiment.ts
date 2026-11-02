@@ -6,6 +6,7 @@ import type { MuseClient } from '../muse/client.js';
 import { MockMuse } from '../muse/mock.js';
 import { runNegotiation, type Agent } from '../negotiation/engine.js';
 import { makeFamilyAgents } from '../auth/gateway.js';
+import { publicMessages } from '../../shared/negotiation.js';
 import { StaticWhereCtx } from '../wherectx/static-adapter.js';
 import { createAdversary, type Adversary, type PublicLog } from './adversary.js';
 import { labelHints, locationHints, sanitizeSubtasks, type Gate } from './filter.js';
@@ -81,7 +82,11 @@ export async function runLeakExperiment(opts: ExperimentOptions = {}): Promise<L
       location_hints: 0,
       messages: 0,
       filtered: 0,
+      distinct_logs: 0,
+      bound_home_rate: 0,
+      bound_school_rate: 0,
     };
+    const groups = new Map<string, { home: Map<string, number>; school: Map<string, number> }>();
     for (let i = 0; i < trials; i += 1) {
       const scenario = makeScenario(seedStart + i);
       const task = scenarioTask(scenario, gate);
@@ -89,9 +94,15 @@ export async function runLeakExperiment(opts: ExperimentOptions = {}): Promise<L
       // 적대자에게는 공개 로그만 넘긴다
       const log: PublicLog = {
         subtasks: task.subtasks.map(({ id, label }) => ({ id, label })),
-        messages: result.messages,
+        messages: publicMessages(result.messages),
       };
       const guess = await adversary.guess(structuredClone(log));
+      // 상한 계산용: 적대자가 보는 그대로의 로그로 묶는다
+      const key = JSON.stringify(log);
+      const g = groups.get(key) ?? { home: new Map(), school: new Map() };
+      g.home.set(scenario.home.name, (g.home.get(scenario.home.name) ?? 0) + 1);
+      g.school.set(scenario.school.name, (g.school.get(scenario.school.name) ?? 0) + 1);
+      groups.set(key, g);
       if (guess.home === scenario.home.name) r.home_hits += 1;
       if (guess.school === scenario.school.name) r.school_hits += 1;
       r.messages += result.messages.length;
@@ -100,6 +111,10 @@ export async function runLeakExperiment(opts: ExperimentOptions = {}): Promise<L
         log.messages.filter((m) => 'reason' in m && locationHints(m.reason).length > 0).length +
         log.subtasks.filter((s) => labelHints(s.label).length > 0).length;
     }
+    const best = (m: Map<string, number>) => Math.max(...m.values());
+    r.distinct_logs = groups.size;
+    r.bound_home_rate = [...groups.values()].reduce((n, g) => n + best(g.home), 0) / trials;
+    r.bound_school_rate = [...groups.values()].reduce((n, g) => n + best(g.school), 0) / trials;
     r.home_rate = r.home_hits / trials;
     r.school_rate = r.school_hits / trials;
     gates[condition] = r;
@@ -121,7 +136,7 @@ export function renderLeakReport(r: LeakReport): string {
   const pct = (v: number) => `${(v * 100).toFixed(1)}%`;
   const row = (condition: Condition, label: string) => {
     const g = r.gates[condition];
-    return `| ${label} | ${g.home_hits}/${g.trials} (${pct(g.home_rate)}) | ${g.school_hits}/${g.trials} (${pct(g.school_rate)}) | ${g.location_hints} | ${g.filtered}/${g.messages} |`;
+    return `| ${label} | ${g.home_hits}/${g.trials} (${pct(g.home_rate)}) | ${g.school_hits}/${g.trials} (${pct(g.school_rate)}) | ${g.distinct_logs} | ${pct(g.bound_home_rate)} · ${pct(g.bound_school_rate)} | ${g.location_hints} | ${g.filtered}/${g.messages} |`;
   };
   return `# WRU 누수 테스트 리포트
 
@@ -132,11 +147,19 @@ export function renderLeakReport(r: LeakReport): string {
 - 협상 에이전트: ${r.muse === 'meta' ? 'Muse (Meta Model API)' : '결정론적 mock Muse'}
 - 우연 수준: 1/${r.candidates} = ${pct(r.chance)}
 
-| 조건 | 집 적중 | 학교 적중 | 위치 단서가 남은 메시지 · 라벨 | 템플릿으로 다시 쓴 메시지 |
-| --- | --- | --- | --- | --- |
+| 조건 | 집 적중 (mock 적대자) | 학교 적중 (mock 적대자) | 로그 종류 | 어떤 적대자든 상한 (집 · 학교) | 위치 단서가 남은 메시지 · 라벨 | 템플릿으로 다시 쓴 메시지 |
+| --- | --- | --- | --- | --- | --- | --- |
 ${row('on', '**on** (상세 거절 · 상태 템플릿 · ETA 구간)')}
 ${row('filter_only', 'on, 에이전트가 위치를 알 때')}
 ${row('off', 'off (동네명 · 거리 · 정확한 ETA 그대로)')}
+
+## 적대자와 무관한 상한
+
+mock 적대자의 적중률만으로는 "그 적대자가 약해서"일 수 있습니다. 그래서 적대자 구현과 상관없는 상한도 잽니다. 같은 로그는 어떤 적대자(LLM 포함)도 구별할 수 없으므로, 로그가 같은 시나리오끼리 묶고 묶음마다 가장 흔한 정답 하나만 맞힌다고 보면 그것이 이 시나리오들에서 낼 수 있는 최고 적중률입니다.
+
+- 게이트 on: 시나리오 ${r.trials}개의 로그가 ${r.gates.on.distinct_logs}종류뿐입니다(상태 · ETA 구간 · 협상 결과만 다름). 상한은 집 ${pct(r.gates.on.bound_home_rate)} · 학교 ${pct(r.gates.on.bound_school_rate)}이고, 이것도 표본 안에서 정답을 미리 알고 고른 낙관적인 값입니다.
+- 에이전트가 위치를 알 때도 로그 종류와 상한이 게이트 on과 같습니다. 공개 로그에서는 내부 플래그(fallback · filtered)도 떼기 때문에, 에이전트가 무슨 말을 하려 했는지 밖에서는 구별되지 않습니다.
+- 게이트 off: 로그가 ${r.gates.off.distinct_logs}종류로 모두 달라서 상한이 ${pct(r.gates.off.bound_home_rate)}입니다.
 
 ## 읽는 법
 

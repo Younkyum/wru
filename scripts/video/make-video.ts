@@ -120,7 +120,7 @@ async function main() {
         subs.push({ from: at, to: at + v.seconds, text: captionText(v.line) });
         await wru('caption', captionText(v.line));
         await sleep((v.seconds + GAP) * 1000);
-        if (seg.approveAfter === voice[si]!.indexOf(v)) await wru('approve');
+        for (const a of seg.after ?? []) if (a.line === voice[si]!.indexOf(v)) await wru(a.call);
       }
       // 협상 메시지가 다 나올 때까지 기다린다
       while (await busy()) await sleep(200);

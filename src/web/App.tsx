@@ -21,6 +21,8 @@ export function App() {
   const [busy, setBusy] = useState(false);
   const [boundary, setBoundary] = useState<BoundaryMatrix | null>(null);
   const [museTurn, setMuseTurn] = useState<MuseTurnView | null>(null);
+  // 영상에서는 요청을 먼저 보여 주고, 내레이션에 맞춰 응답을 펼친다
+  const [museShown, setMuseShown] = useState(!new URLSearchParams(window.location.search).has('video'));
   const videoMode = new URLSearchParams(window.location.search).has('video');
   const [video, setVideo] = useState<VideoOverlay>({ caption: null, scene: null });
   // 영상 모드: 1440×900 녹화에서 1280×800 레이아웃으로 보이게 키운다
@@ -103,6 +105,7 @@ export function App() {
       next: () => (demoStep === null ? goTo(0) : goTo(demoStep + 1)),
       step: demoStep,
       busy: busy || (reveal !== null && reveal < total),
+      museShow: () => setMuseShown(true),
       approve: async () => {
         const id = state?.negotiations.at(-1)?.negotiation_id;
         if (id) await run(() => api.approve(id));
@@ -146,6 +149,7 @@ export function App() {
       report={report}
       boundary={boundary}
       museTurn={museTurn}
+      museShown={museShown}
       onShowBoundary={() => void run(async () => setBoundary(await api.boundary()))}
       onShowReport={() => void run(async () => setReport(await api.leakReport()))}
       onReset={() => {

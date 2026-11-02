@@ -21,7 +21,7 @@ import { randomBytes, timingSafeEqual } from 'node:crypto';
 import type { MuseClient } from './muse/client.js';
 import { createMuseClient } from './muse/factory.js';
 import { runNegotiation } from './negotiation/engine.js';
-import type { NegotiationRecord } from '../shared/negotiation.js';
+import { publicMessages, type NegotiationRecord } from '../shared/negotiation.js';
 import type { LeakReport } from '../shared/leak-report.js';
 import { runLeakExperiment } from './privacy/experiment.js';
 import { userPrompt } from './muse/meta.js';
@@ -323,6 +323,7 @@ export function createApp(options: AppOptions = {}) {
       task_id: task.task_id,
       muse: muse.kind,
       ...result,
+      messages: publicMessages(result.messages),
       status: 'awaiting_approval',
       approved_at: null,
     };

@@ -17,8 +17,8 @@ export interface Segment {
   hold?: number;
   /** 협상 메시지를 이 구간 내레이션 길이에 맞춰 하나씩 보여 준다 */
   reveal?: boolean;
-  /** 이 번호 문장을 읽은 뒤 승인 버튼을 누른다 */
-  approveAfter?: number;
+  /** 문장을 읽은 뒤 화면에서 할 일: 승인 버튼 누르기, Muse 응답 펼치기 */
+  after?: { line: number; call: 'approve' | 'museShow' }[];
 }
 
 export const SEGMENTS: Segment[] = [
@@ -41,9 +41,8 @@ export const SEGMENTS: Segment[] = [
     rubric: 'Impact · Demo',
     step: 0,
     lines: [
-      '폰 세 대는 엄마, 아빠, 형의 화면입니다.',
-      '위치는 각자 자기 서버에 둡니다. WhereCtx라는 개인 위치 서버이고, WRU는 거기서 거친 상태만 받습니다.',
-      '엄마는 집, 아빠는 퇴근길 20분, 형은 집 근처. 지도도, 좌표도 없습니다.',
+      '위치는 각자 자기 서버, WhereCtx에 둡니다. WRU는 거기서 집, 집 근처, 이동 중 같은 거친 상태만 받습니다.',
+      '엄마는 집, 아빠는 퇴근길 20분, 형은 집 근처. 폰마다 자기 것만 보이고, 지도도 좌표도 없습니다.',
     ],
   },
   {
@@ -73,7 +72,7 @@ export const SEGMENTS: Segment[] = [
     step: 3,
     reveal: true,
     lines: [
-      '각 사람의 에이전트는 Meta의 Muse Spark 모델로 움직이는 Muse입니다.',
+      '에이전트 Muse는 Meta Model API로 Muse Spark를 부르게 만들었고, 이 녹화는 키 발급 전이라 같은 스키마의 mock이 답합니다.',
       '세 Muse가 자기 상태만 보고 손을 듭니다. 퇴근길에 들르면 되는 아빠가 픽업에 적합도 높음, 집에서 나가야 하는 엄마는 낮음.',
       '엄마와 형은 우유로 바꾸고, 이미 밖에 나와 있는 형에게 엄마가 양보합니다.',
       '아빠와 형이 차례로 확정합니다.',
@@ -81,15 +80,15 @@ export const SEGMENTS: Segment[] = [
   },
   {
     id: 'muse',
+    after: [{ line: 0, call: 'museShow' }],
     title: '5. Muse에게 가는 것',
     screen: '오른쪽 열: Meta Model API 요청 본문(JSON)과 응답, 검사 목록',
     rubric: 'Use of Meta AI Tooling · Technical Depth',
     step: 4,
     lines: [
-      '아빠의 Muse가 받는 건 이게 전부입니다. 내 상태, ETA 구간, 마감까지 남은 분, 지금까지 오간 메시지.',
-      '어느 일에 나설지, 적합도, offer와 counter는 모델이 JSON으로 정합니다.',
+      '아빠의 Muse가 모델에게 보내는 건 이게 전부입니다. 내 상태, ETA 구간, 마감까지 남은 분, 지금까지 오간 메시지.',
+      '어느 일에 나설지, 적합도, offer와 counter는 모델이 JSON 하나로 정합니다.',
       'WRU는 토큰과 스키마를 검사하고, 이유 문장을 템플릿으로 바꾸고, 겹친 commit만 판정합니다.',
-      '이 녹화는 API 키 발급 전이라, 같은 JSON 스키마를 지키는 mock이 이 자리에서 답했습니다.',
     ],
   },
   {
@@ -98,8 +97,8 @@ export const SEGMENTS: Segment[] = [
     screen: 'WRU 바에 역할 → 승인 버튼 → 폰마다 자기 역할 카드',
     rubric: 'Impact · Demo',
     step: 5,
-    approveAfter: 0,
-    lines: ['결과는 역할뿐입니다.', '사람이 한 번 승인하면, 아빠 폰에는 픽업, 형 폰에는 우유만 뜹니다.'],
+    after: [{ line: 0, call: 'approve' }],
+    lines: ['결과는 역할뿐입니다.', '태스크를 낸 사람이 한 번 승인하면, 아빠 폰에는 픽업, 형 폰에는 우유만 뜹니다.'],
   },
   {
     id: 'leak',
@@ -108,9 +107,9 @@ export const SEGMENTS: Segment[] = [
     rubric: 'Technical Depth',
     step: 6,
     lines: [
-      '그럼 이 로그만으로 집을 찾을 수 있을까요?',
-      '시나리오 50개의 협상 로그를 적대자에게 주고, 서울 25개 구 중 집과 학교를 맞히게 했습니다.',
-      '집 6퍼센트, 학교 0퍼센트. 우연 수준인 4퍼센트에 가깝습니다. 적대자는 로그에서 동네 이름과 거리를 찾는 규칙 기반 추론기입니다.',
+      '그럼 이 로그만으로 집을 찾을 수 있을까요? 집과 학교가 다른 시나리오 50개로, 서울 25개 구 중 어디인지 맞히게 했습니다.',
+      '로그에서 동네 이름과 거리를 찾는 규칙 기반 적대자는 집 6퍼센트, 학교 0퍼센트를 맞혔습니다.',
+      '적대자가 약해서가 아닙니다. 50개 시나리오의 로그가 다섯 종류뿐이라, LLM이든 누구든 정답을 미리 알고 골라도 상한이 22퍼센트입니다.',
     ],
   },
   {
@@ -120,8 +119,8 @@ export const SEGMENTS: Segment[] = [
     rubric: 'Technical Depth',
     step: 7,
     lines: [
-      '게이트를 끄고 에이전트가 동네 이름과 거리를 말하게 두면, 집 98퍼센트, 학교 72퍼센트.',
-      '가운데 칸은 에이전트에게 위치를 몰래 쥐여 준 경우입니다. 무슨 말을 하든 로그에는 템플릿만 나가서, 숫자가 게이트 on과 똑같습니다.',
+      '게이트를 끄고 에이전트가 동네 이름과 거리를 말하게 두면, 로그 50개가 모두 달라지고 집 98퍼센트, 학교 72퍼센트를 맞힙니다.',
+      '가운데는 에이전트에게 위치를 몰래 쥐여 준 경우입니다. 무슨 말을 하려 했든 로그는 게이트 on과 글자 하나 다르지 않습니다.',
     ],
     hold: 0.6,
   },
