@@ -7,3 +7,5 @@ dist/
 coverage/
 .omc/
 family.config.json
+video-out/
+video-out.log

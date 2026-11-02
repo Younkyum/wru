@@ -2,11 +2,11 @@ import { useCallback, useEffect, useState } from 'react';
 import type { DemoState } from '../shared/contracts';
 import type { LeakReport } from '../shared/leak-report';
 import { api } from './client';
-import { DemoPage, type DemoView } from './DemoPage';
-import { DEMO_STEPS } from './demoSteps';
+import { DemoPage, type DemoView, type VideoOverlay } from './DemoPage';
+import { DEMO_STEPS, type StepAction } from './demoSteps';
+import type { BoundaryMatrix } from '../shared/boundary';
 
 const HERO_TASK_ID = 't_pickup_milk_001';
-const NEGOTIATION_STEP = 2;
 const REVEAL_MS = 700;
 
 export function App() {
@@ -17,6 +17,9 @@ export function App() {
   const [demoStep, setDemoStep] = useState<number | null>(null);
   const [reveal, setReveal] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
+  const [boundary, setBoundary] = useState<BoundaryMatrix | null>(null);
+  const videoMode = new URLSearchParams(window.location.search).has('video');
+  const [video, setVideo] = useState<VideoOverlay>({ caption: null, scene: null });
 
   const run = useCallback(async (action: () => Promise<unknown>) => {
     try {
@@ -33,7 +36,7 @@ export function App() {
 
   useEffect(() => {
     if (window.location.pathname === '/') window.history.replaceState(null, '', '/demo');
-    void run(async () => {});
+    void run(async () => setBoundary(await api.boundary()));
   }, [run]);
 
   // 재생 중이면 실제 1초마다 시뮬 1분
@@ -57,32 +60,48 @@ export function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [demoStep]);
 
-  /** 데모 컷마다 하는 일 (0: 리셋, 1: 태스크 투입, 2: 협상, 3: 승인, 4: 누수 리포트) */
+  const actions: Record<StepAction, () => Promise<unknown>> = {
+    reset: async () => {
+      setPlaying(false);
+      setReport(null);
+      await api.reset();
+      setBoundary(await api.boundary());
+    },
+    boundary: async () => setBoundary(await api.boundary()),
+    task: api.submitHeroTask,
+    negotiate: () => api.negotiate(HERO_TASK_ID),
+    approve: async () => {
+      const id = state?.negotiations.at(-1)?.negotiation_id;
+      if (id) await api.approve(id);
+    },
+    leak: async () => setReport(await api.leakReport()),
+    none: async () => {},
+  };
+
   const goTo = async (step: number) => {
     setBusy(true);
-    const actions: (() => Promise<unknown>)[] = [
-      async () => {
-        setPlaying(false);
-        setReport(null);
-        await api.reset();
-      },
-      api.submitHeroTask,
-      () => api.negotiate(HERO_TASK_ID),
-      async () => {
-        const id = state?.negotiations.at(-1)?.negotiation_id;
-        if (id) await api.approve(id);
-      },
-      async () => setReport(await api.leakReport()),
-      async () => {},
-    ];
-    const ok = await run(actions[step]!);
+    const ok = await run(actions[DEMO_STEPS[step]!.action]);
     // API가 실패하면 컷을 넘기지 않는다 (에러는 화면 위에 표시)
     if (ok) {
-      setReveal(step === NEGOTIATION_STEP ? 0 : null);
+      setReveal(DEMO_STEPS[step]!.action === 'negotiate' ? 0 : null);
       setDemoStep(step);
     }
     setBusy(false);
   };
+
+  // 영상 녹화 스크립트(scripts/video)가 컷을 넘길 때 쓴다
+  useEffect(() => {
+    const w = window as unknown as { __wru?: Record<string, unknown> };
+    w.__wru = {
+      ...w.__wru,
+      start: () => goTo(0),
+      next: () => (demoStep === null ? goTo(0) : goTo(demoStep + 1)),
+      step: demoStep,
+      busy: busy || (reveal !== null && reveal < total),
+      caption: (text: string | null) => setVideo((v) => ({ ...v, caption: text })),
+      scene: (scene: VideoOverlay['scene']) => setVideo((v) => ({ ...v, scene })),
+    };
+  });
 
   if (!state) return <div className="loading">{error ? `서버에 연결할 수 없어요: ${error}` : '불러오는 중…'}</div>;
 
@@ -96,7 +115,7 @@ export function App() {
           caption: step.caption({ state, report }),
           focus: step.focus,
           reveal,
-          conditions: demoStep === 4 ? ['on'] : ['off', 'filter_only', 'on'],
+          conditions: step.conditions ?? ['off', 'filter_only', 'on'],
           busy: busy || (reveal !== null && reveal < total),
           onNext: () => void goTo(demoStep + 1),
           onExit: () => {
@@ -112,9 +131,12 @@ export function App() {
       playing={playing}
       error={error}
       demo={demo}
+      video={videoMode ? video : null}
       onStartDemo={() => void goTo(0)}
       onAdvance={(m) => void run(() => api.advance(m))}
       report={report}
+      boundary={boundary}
+      onShowBoundary={() => void run(async () => setBoundary(await api.boundary()))}
       onShowReport={() => void run(async () => setReport(await api.leakReport()))}
       onReset={() => {
         setPlaying(false);

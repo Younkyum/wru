@@ -5,6 +5,7 @@ import type { Condition, LeakReport } from '../shared/leak-report';
 import type { Fit, MessageType, NegotiationMessage, NegotiationRecord } from '../shared/negotiation';
 import { REASON_CODE_TEXT } from '../shared/negotiation';
 import type { PanelName } from './demoSteps';
+import type { BoundaryMatrix, BoundaryRow } from '../shared/boundary';
 
 export interface DemoPageProps {
   state: DemoState;
@@ -18,8 +19,17 @@ export interface DemoPageProps {
   onApprove: (negotiationId: string) => void;
   report: LeakReport | null;
   onShowReport: () => void;
+  boundary?: BoundaryMatrix | null;
+  onShowBoundary?: () => void;
   onStartDemo?: () => void;
   demo?: DemoView | null;
+  /** 영상 녹화 모드 (/demo?video=1): 자막 · 인트로 · 아웃트로 */
+  video?: VideoOverlay | null;
+}
+
+export interface VideoOverlay {
+  caption: string | null;
+  scene: 'intro' | 'outro' | null;
 }
 
 /** 데모 모드 진행 상태 */
@@ -101,6 +111,8 @@ function SelfRing({ presence }: { presence: Presence }) {
 
 interface PhoneProps {
   person: PersonId;
+  /** 이 폰의 에이전트가 든 토큰 지문 */
+  tokenMark: string | null;
   presence: Presence;
   clock: string;
   task: Task | undefined;
@@ -108,7 +120,7 @@ interface PhoneProps {
   role: string | null;
 }
 
-function Phone({ person, presence, clock, task, messages, role }: PhoneProps) {
+function Phone({ person, tokenMark, presence, clock, task, messages, role }: PhoneProps) {
   const feed = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (feed.current) feed.current.scrollTop = feed.current.scrollHeight;
@@ -127,6 +139,12 @@ function Phone({ person, presence, clock, task, messages, role }: PhoneProps) {
             <div className="phone-owner">{PERSON_LABEL_KO[person]}</div>
             <div className="phone-sub">내 상태 · 내 Muse</div>
           </div>
+          {tokenMark && (
+            <span className="key zone-key" title="이 에이전트의 토큰 (지문)">
+              <KeyIcon />
+              {tokenMark.replace('wru_ag_…', '')}
+            </span>
+          )}
         </header>
         <section className="me zone-presence">
           <SelfRing presence={presence} />
@@ -298,6 +316,102 @@ function Channel({ messages, task, total, log }: ChannelProps) {
   );
 }
 
+function KeyIcon() {
+  return (
+    <svg viewBox="0 0 16 16" width="11" height="11" aria-hidden>
+      <circle cx="5" cy="8" r="3.2" fill="none" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M8 8h6.5M12 8v2.6M14.2 8v1.8" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+const HOLDER_LABEL: Record<BoundaryRow['holder'], string> = {
+  mom: '엄마 토큰',
+  dad: '아빠 토큰',
+  sibling: '형 토큰',
+  none: '토큰 없음',
+  forged: '위조 토큰',
+};
+
+function statusText(status: number): string {
+  if (status === 200) return '200 허용';
+  if (status === 403) return '403 거절';
+  if (status === 401) return '401 거절';
+  return String(status);
+}
+
+function BoundaryPanel({ boundary, onShow }: { boundary: BoundaryMatrix | null | undefined; onShow?: () => void }) {
+  return (
+    <>
+      <div className="side-head">
+        <h2>토큰 경계</h2>
+        <span>에이전트 토큰으로 GET /api/agent/presence/:id를 실제로 보낸 결과</span>
+      </div>
+      {!boundary ? (
+        <button className="btn" onClick={onShow}>
+          경계 확인하기
+        </button>
+      ) : (
+        <table className="matrix" aria-label="토큰 경계표">
+          <thead>
+            <tr>
+              <th scope="col">요청한 쪽 ↓ · 대상 →</th>
+              {PERSON_IDS.map((p) => (
+                <th key={p} scope="col">
+                  <Avatar person={p} size="sm" />
+                  {PERSON_LABEL_KO[p]}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {boundary.rows.map((row) => (
+              <tr key={row.holder} className={`row-${row.holder}`}>
+                <th scope="row">
+                  <div>{HOLDER_LABEL[row.holder]}</div>
+                  {row.token && row.holder !== 'forged' && <div className="mask">{row.token}</div>}
+                </th>
+                {row.cells.map((c) => (
+                  <td key={c.target} className={`cell cell-${c.status}`}>
+                    {statusText(c.status)}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+      <p className="leak-note">대각선만 열려요. 서버는 토큰 원문이 아니라 해시만 비교하고, 화면에는 지문만 보여요.</p>
+    </>
+  );
+}
+
+function VideoScene({ scene }: { scene: 'intro' | 'outro' }) {
+  if (scene === 'intro') {
+    return (
+      <div className="scene" role="presentation">
+        <div className="scene-kicker">Meta Global AI Developer Hackathon</div>
+        <div className="scene-title">WRU</div>
+        <div className="scene-line">좌표 없이, 가족의 Muse들이 할 일을 나눠요</div>
+        <div className="scene-q">"누가 민아 데리러 가?"를 정하려고<br />가족 모두의 위치를 공유해야 할까요?</div>
+      </div>
+    );
+  }
+  return (
+    <div className="scene" role="presentation">
+      <div className="scene-title">WRU</div>
+      <ul className="scene-points">
+        <li><b>WhereCtx</b> 각자 자기 서버에서 상태만</li>
+        <li><b>에이전트 토큰</b> 내 토큰으로는 내 것만</li>
+        <li><b>Muse</b> offer · counter · commit으로 역할만</li>
+        <li><b>게이트</b> 집 98% → 6%, 우연 수준</li>
+      </ul>
+      <div className="scene-line">누구나 자기 서버에 띄워 씁니다 · npm start / Docker</div>
+      <div className="scene-foot">이 영상의 Muse는 같은 스키마의 결정론적 mock입니다. MODEL_API_KEY를 넣으면 Meta Model API(Muse Spark)로 바뀝니다.</div>
+    </div>
+  );
+}
+
 const CONDITION_LABEL: Record<Condition, { title: string; desc: string }> = {
   off: { title: '게이트 off', desc: '동네 이름 · 거리 · 정확한 ETA를 그대로 말할 때' },
   filter_only: { title: '게이트 on · 에이전트가 위치를 알 때', desc: '말하려 해도 자유 문장은 내보내지 않음' },
@@ -392,8 +506,8 @@ function DemoBar({ demo }: { demo: DemoView }) {
 }
 
 export function DemoPage(props: DemoPageProps) {
-  const { state, playing, error, demo } = props;
-  const [tab, setTab] = useState<'channel' | 'report'>('channel');
+  const { state, playing, error, demo, video } = props;
+  const [tab, setTab] = useState<'channel' | 'boundary' | 'report'>('channel');
 
   const latest = state.negotiations.at(-1);
   const negotiatedTask = latest && state.tasks.find((t) => t.task_id === latest.task_id);
@@ -403,10 +517,11 @@ export function DemoPage(props: DemoPageProps) {
   const shown = reveal === null ? all : all.slice(0, reveal);
   const revealing = reveal !== null && reveal < all.length;
   const approved = latest?.status === 'approved' && !revealing;
-  const side = demo ? (demo.focus === 'report' ? 'report' : 'channel') : tab;
+  const side = demo ? (demo.focus === 'report' ? 'report' : demo.focus === 'boundary' ? 'boundary' : 'channel') : tab;
+  const tokenMark = (p: PersonId) => props.boundary?.rows.find((r) => r.holder === p)?.token ?? null;
 
   return (
-    <div className={`wru${demo ? ` demo-on focus-${demo.focus}` : ''}`}>
+    <div className={`wru${demo ? ` demo-on focus-${demo.focus}` : ''}${video ? ' video-on' : ''}`}>
       <header className="top">
         <div className="brand">
           <strong>WRU</strong>
@@ -455,6 +570,7 @@ export function DemoPage(props: DemoPageProps) {
             <Phone
               key={p}
               person={p}
+              tokenMark={tokenMark(p)}
               presence={state.presence.find((x) => x.person_id === p)!}
               clock={state.clock.label}
               task={task}
@@ -471,6 +587,16 @@ export function DemoPage(props: DemoPageProps) {
               </button>
               <button
                 role="tab"
+                aria-selected={side === 'boundary'}
+                onClick={() => {
+                  setTab('boundary');
+                  props.onShowBoundary?.();
+                }}
+              >
+                토큰 경계
+              </button>
+              <button
+                role="tab"
                 aria-selected={side === 'report'}
                 onClick={() => {
                   setTab('report');
@@ -483,6 +609,8 @@ export function DemoPage(props: DemoPageProps) {
           )}
           {side === 'channel' ? (
             <Channel messages={shown} task={negotiatedTask} total={all.length} log={demo ? [] : state.log} />
+          ) : side === 'boundary' ? (
+            <BoundaryPanel boundary={props.boundary} onShow={props.onShowBoundary} />
           ) : (
             <LeakPanel
               report={props.report}
@@ -494,6 +622,8 @@ export function DemoPage(props: DemoPageProps) {
       </div>
 
       <footer>좌표 · 주소 · 학교 이름은 받지도, 보여 주지도 않아요. WhereCtx에서는 상태와 ETA만 받습니다.</footer>
+      {video?.caption && <div className="subtitle">{video.caption}</div>}
+      {video?.scene && <VideoScene scene={video.scene} />}
     </div>
   );
 }
