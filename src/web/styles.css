@@ -259,3 +259,53 @@ footer { color: var(--faint); font-size: 12px; text-align: center; }
 .focus-report .leak { overflow: visible; }
 .focus-report .leak-desc { margin-bottom: 4px; }
 .focus-report .metric { margin-top: 2px; }
+
+/* ── 토큰 지문 · 경계표 ───────────────────── */
+.phone-head .key {
+  margin-left: auto; display: inline-flex; align-items: center; gap: 4px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 10.5px; color: var(--muted);
+  background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 3px 7px;
+}
+.matrix { width: 100%; border-collapse: separate; border-spacing: 4px; font-size: 12px; }
+.matrix th { font-weight: 600; color: var(--muted); text-align: left; padding: 2px 4px; }
+.matrix thead th { text-align: center; }
+.matrix thead th .avatar { margin-right: 4px; vertical-align: middle; }
+.matrix tbody th div:first-child { color: var(--ink); font-size: 13px; }
+.matrix .mask { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 10px; color: var(--faint); }
+.matrix .cell { text-align: center; border-radius: 8px; padding: 10px 4px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.cell-200 { background: #e3f2ea; color: #145c3c; }
+.cell-403 { background: #f8e7e2; color: #8a2e1c; }
+.cell-401 { background: #efedea; color: var(--muted); }
+.focus-boundary .zone-hub, .focus-boundary .zone-feed, .focus-boundary .zone-presence { opacity: 0.3; }
+.focus-boundary .zone-side { box-shadow: 0 0 0 2px var(--ink); }
+.focus-boundary .zone-key { box-shadow: 0 0 0 2px var(--ink); color: var(--ink); }
+.focus-boundary .stage { grid-template-columns: minmax(0, 1fr) 470px; }
+.focus-boundary .phones { grid-template-columns: repeat(3, minmax(160px, 1fr)); }
+.focus-boundary .matrix .cell { padding: 14px 4px; font-size: 14px; }
+
+/* ── 영상 녹화 모드 (/demo?video=1) ───────────── */
+.video-on .controls .seg, .video-on .controls .btn, .video-on .demo-actions { display: none; }
+.video-on footer { visibility: hidden; }
+.subtitle {
+  position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); z-index: 30;
+  max-width: min(1100px, 90vw); padding: 12px 22px; border-radius: 14px;
+  background: rgba(16, 16, 15, 0.86); color: #fff; font-size: 24px; font-weight: 600; line-height: 1.45;
+  text-align: center; letter-spacing: -0.01em; box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+  animation: pop 0.25s ease;
+}
+.scene {
+  position: fixed; inset: 0; z-index: 40; background: var(--ink); color: #fff;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px;
+  text-align: center; padding: 48px; animation: fade 0.5s ease;
+}
+.scene-kicker { font-size: 18px; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.55; }
+.scene-title { font-size: 120px; font-weight: 800; letter-spacing: 0.04em; line-height: 1; }
+.scene-line { font-size: 30px; font-weight: 600; opacity: 0.9; }
+.scene-q { margin-top: 26px; font-size: 34px; line-height: 1.5; font-weight: 700; color: #f2d48a; }
+.scene-points { list-style: none; padding: 0; margin: 8px 0; display: grid; gap: 14px; font-size: 30px; text-align: left; }
+.scene-points b { display: inline-block; min-width: 190px; color: #f2d48a; }
+.scene-foot { position: absolute; bottom: 40px; left: 0; right: 0; font-size: 17px; opacity: 0.6; }
+@keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+/* 영상에서는 아래 자막이 내레이션을 맡으므로 진행 막대는 제목만 */
+.video-on .demo-caption { display: none; }
+.video-on .demo-title { font-size: 22px; }
