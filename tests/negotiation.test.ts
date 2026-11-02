@@ -155,11 +155,11 @@ describe('협상 엔진 (mock Muse)', () => {
 
   it('통지는 사람마다 자기 역할만', async () => {
     const r = await negotiateAt(0);
-    expect(r.assignment.notify.dad).toContain('민아 픽업');
-    expect(r.assignment.notify.dad).not.toContain('우유');
-    expect(r.assignment.notify.sibling).toContain('우유');
-    expect(r.assignment.notify.sibling).not.toContain('픽업');
-    expect(r.assignment.notify.mom).not.toMatch(/픽업|우유/);
+    expect(r.assignment.notify.dad).toContain('Pick up Mina');
+    expect(r.assignment.notify.dad).not.toContain('milk');
+    expect(r.assignment.notify.sibling).toContain('milk');
+    expect(r.assignment.notify.sibling).not.toContain('Pick up');
+    expect(r.assignment.notify.mom).not.toMatch(/Pick up|milk/);
   });
 
   it('승인 1회 후 approved', async () => {
@@ -290,6 +290,6 @@ describe('리뷰 반영', () => {
       agents: agentsFrom(HERO_PRESENCE),
       now: NOW,
     });
-    expect(r.assignment.notify.dad).toContain('18:00까지');
+    expect(r.assignment.notify.dad).toContain('by 18:00');
   });
 });

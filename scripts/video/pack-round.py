@@ -23,7 +23,7 @@ shutil.copy("video-out/wru-demo.srt", f"{out}/subtitles.srt")
 shutil.copy("docs/VIDEO_SCRIPT.md", f"{out}/VIDEO_SCRIPT.md")
 shutil.copy("docs/COPY.md", f"{out}/COPY.md")
 open(f"{out}/README.txt", "w", encoding="utf8").write(
-    f"WRU 데모 영상 초안 결과물\n영상 길이: {float(dur):.1f}초 (1440x900 녹화, 프레임은 1280px로 축소)\n"
-    f"프레임: 자막 문장마다 1장, 파일 이름은 순서_영상시각. 자막 원문은 subtitles.srt\n"
-    f"원본 영상: {os.path.abspath('video-out/wru-demo.mp4')}\n")
+    f"WRU demo video draft\nLength: {float(dur):.1f} s (recorded at 1440x900, frames scaled to 1280px)\n"
+    f"Frames: one per subtitle sentence, named order_videoTime. Subtitle text is in subtitles.srt\n"
+    f"Source video: {os.path.abspath('video-out/wru-demo.mp4')}\n")
 print(out, len(cues), "frames", dur)

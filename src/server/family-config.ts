@@ -25,37 +25,37 @@ const PLACE = /^[\p{L}\p{N} _-]{1,64}$/u;
 const MODES = ['car', 'transit', 'walk', 'bike'];
 
 function checkUrl(raw: unknown, who: string): string {
-  if (typeof raw !== 'string') throw new Error(`${who}: wherectx_url이 필요해요`);
+  if (typeof raw !== 'string') throw new Error(`${who}: wherectx_url is required`);
   let url: URL;
   try {
     url = new URL(raw);
   } catch {
-    throw new Error(`${who}: wherectx_url 형식이 올바르지 않아요`);
+    throw new Error(`${who}: wherectx_url is not a valid URL`);
   }
   const local = ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname);
   if (url.protocol !== 'https:' && !(local && url.protocol === 'http:')) {
-    throw new Error(`${who}: wherectx_url은 https여야 해요 (localhost만 http 허용)`);
+    throw new Error(`${who}: wherectx_url must be https (http only for localhost)`);
   }
-  if (url.username || url.password || url.search || url.hash) throw new Error(`${who}: wherectx_url에 인증 정보 · 쿼리를 넣지 마세요`);
+  if (url.username || url.password || url.search || url.hash) throw new Error(`${who}: do not put credentials or a query in wherectx_url`);
   return url.origin + url.pathname.replace(/\/+$/, '');
 }
 
 export function parseFamilyConfig(raw: unknown, env: Record<string, string | undefined>): FamilyConfig {
   const members = (raw as { members?: unknown } | null)?.members;
-  if (!members || typeof members !== 'object') throw new Error('family config: members 객체가 필요해요');
+  if (!members || typeof members !== 'object') throw new Error('family config: a members object is required');
   const out = { ...DEFAULT_FAMILY };
   for (const [id, value] of Object.entries(members as Record<string, unknown>)) {
-    if (!(PERSON_IDS as readonly string[]).includes(id)) throw new Error(`family config: 모르는 구성원 ${id} (mom, dad, sibling 중 하나)`);
+    if (!(PERSON_IDS as readonly string[]).includes(id)) throw new Error(`family config: unknown member ${id} (use mom, dad or sibling)`);
     const m = value as Record<string, unknown>;
     if (m?.adapter === 'sim') {
       out[id as PersonId] = { adapter: 'sim' };
       continue;
     }
-    if (m?.adapter !== 'wherectx') throw new Error(`${id}: adapter는 sim 또는 wherectx예요`);
-    if (typeof m.token_env !== 'string' || !ENV_NAME.test(m.token_env)) throw new Error(`${id}: token_env는 env 변수 이름이어야 해요 (예: WRU_WHERECTX_TOKEN_MOM)`);
-    if (!env[m.token_env]) throw new Error(`${id}: env ${m.token_env}가 비어 있어요`);
-    if (m.home_place !== undefined && (typeof m.home_place !== 'string' || !PLACE.test(m.home_place))) throw new Error(`${id}: home_place 형식이 올바르지 않아요`);
-    if (m.eta_mode !== undefined && !MODES.includes(m.eta_mode as string)) throw new Error(`${id}: eta_mode는 car, transit, walk, bike 중 하나예요`);
+    if (m?.adapter !== 'wherectx') throw new Error(`${id}: adapter must be sim or wherectx`);
+    if (typeof m.token_env !== 'string' || !ENV_NAME.test(m.token_env)) throw new Error(`${id}: token_env must be an env var name (e.g. WRU_WHERECTX_TOKEN_MOM)`);
+    if (!env[m.token_env]) throw new Error(`${id}: env ${m.token_env} is empty`);
+    if (m.home_place !== undefined && (typeof m.home_place !== 'string' || !PLACE.test(m.home_place))) throw new Error(`${id}: invalid home_place`);
+    if (m.eta_mode !== undefined && !MODES.includes(m.eta_mode as string)) throw new Error(`${id}: eta_mode must be car, transit, walk or bike`);
     out[id as PersonId] = {
       adapter: 'wherectx',
       wherectx_url: checkUrl(m.wherectx_url, id),
@@ -71,7 +71,7 @@ export function parseFamilyConfig(raw: unknown, env: Record<string, string | und
 export function loadFamilyConfig(env: Record<string, string | undefined> = process.env): FamilyConfig {
   const path = env.WRU_FAMILY_CONFIG ?? 'family.config.json';
   if (!existsSync(path)) {
-    if (env.WRU_FAMILY_CONFIG) throw new Error(`family config 파일이 없어요: ${path}`);
+    if (env.WRU_FAMILY_CONFIG) throw new Error(`family config file not found: ${path}`);
     return DEFAULT_FAMILY;
   }
   return parseFamilyConfig(JSON.parse(readFileSync(path, 'utf8')), env);

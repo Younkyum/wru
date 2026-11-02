@@ -10,5 +10,5 @@ writeFileSync('samples/leak-report.json', `${JSON.stringify(report, null, 2)}\n`
 writeFileSync('leak-report.md', renderLeakReport(report));
 const pct = (v: number) => `${(v * 100).toFixed(1)}%`;
 for (const [k, g] of Object.entries(report.gates)) {
-  console.log(`${k.padEnd(12)} 집 ${pct(g.home_rate)} · 학교 ${pct(g.school_rate)} (우연 ${pct(report.chance)})`);
+  console.log(`${k.padEnd(12)} home ${pct(g.home_rate)} · school ${pct(g.school_rate)} · bound ${pct(g.bound_home_rate)}/${pct(g.bound_school_rate)} · ${g.distinct_logs} logs (chance ${pct(report.chance)})`);
 }

@@ -22,68 +22,68 @@ const pct = (v: number) => `${Math.round(v * 100)}%`;
 
 export const DEMO_STEPS: DemoStep[] = [
   {
-    title: '좌표 없는 지도',
+    title: 'A map without coordinates',
     focus: 'phones',
     action: 'reset',
-    caption: () => '폰마다 자기 상태만 보여요. 엄마는 집, 아빠는 이동 중(약 20분), 형은 집 근처. 지도도 핀도 좌표도 없어요.',
+    caption: () => 'Each phone shows only its own status. Mom is home, Dad is on the way (about 20 min), Brother is near home. No map, no pins, no coordinates.',
   },
   {
-    title: '내 토큰으로는 내 것만',
-    focus: 'boundary',
-    action: 'boundary',
-    caption: () =>
-      '에이전트마다 자기 토큰이 하나씩 있어요. 아빠 토큰으로 엄마 상태를 달라고 하면 403, 토큰이 없거나 위조면 401. 방금 서버에 실제로 보낸 요청 결과예요.',
-  },
-  {
-    title: '태스크 투입',
+    title: 'A task comes in',
     focus: 'task',
     action: 'task',
-    caption: () => '저녁 6시까지 "민아 픽업 + 우유". 한 사람은 한 가지 일만 맡아요.',
+    caption: () => 'By 6 pm: "Pick up Mina + buy milk". One task per person.',
   },
   {
-    title: 'Muse 3명의 협상',
+    title: 'Three Muses negotiate',
     focus: 'channel',
     action: 'negotiate',
-    caption: () => '각자의 Muse가 자기 상태만 보고 offer → counter → commit을 주고받아요. 오가는 건 메시지뿐, 서로의 위치는 모릅니다.',
+    caption: () => "Each Muse looks only at its own status and trades offer → counter → commit. Only messages travel; nobody learns anyone's location.",
   },
   {
-    title: 'Muse에게 가는 것',
+    title: 'What goes to the model',
     focus: 'muse',
     action: 'muse',
     caption: () =>
-      '아빠의 Muse가 받는 건 자기 상태 · ETA 구간 · 마감까지 남은 분 · 지금까지의 메시지뿐이에요. 모델은 JSON 하나로 답하고, WRU가 검사한 뒤 협상에 올려요.',
+      "Dad's Muse sends only its own state, an ETA range, minutes to the deadline and the messages so far. The model answers with one JSON object, which WRU checks before it joins the negotiation.",
   },
   {
-    title: '역할 통지',
+    title: 'Roles, not locations',
     focus: 'roles',
     action: 'none',
     caption: ({ state }) => {
       const n = state.negotiations.at(-1);
       const task = state.tasks.find((t) => t.task_id === n?.task_id);
       const roles = n?.assignment.assignments
-        .map((a) => `${{ mom: '엄마', dad: '아빠', sibling: '형' }[a.person]} = ${task?.subtasks.find((s) => s.id === a.subtask)?.label}`)
+        .map((a) => `${{ mom: 'Mom', dad: 'Dad', sibling: 'Brother' }[a.person]} = ${task?.subtasks.find((s) => s.id === a.subtask)?.label}`)
         .join(', ');
-      return `결과는 역할만: ${roles ?? '—'}. 사람이 한 번 승인하면 각자 자기 역할만 받아요.`;
+      return `Only roles come out: ${roles ?? '—'}. After one human approval, each person gets only their own role.`;
     },
   },
   {
-    title: '로그로 집을 찾을 수 있을까?',
+    title: 'Nobody can peek',
+    focus: 'boundary',
+    action: 'boundary',
+    caption: () =>
+      "Could one agent peek at another? Every agent holds its own token: Dad's token asking for Mom's status gets 403; no token or a forged one gets 401. These are real requests just sent to the server.",
+  },
+  {
+    title: 'Can the log reveal home?',
     focus: 'report',
     action: 'leak',
     conditions: ['on'],
     caption: ({ report }) =>
       report
-        ? `시나리오 ${report.trials}개의 협상 로그가 ${report.gates.on.distinct_logs}종류뿐이라, 정답을 미리 알고 골라도 집 ${pct(report.gates.on.bound_home_rate)}, 학교 ${pct(report.gates.on.bound_school_rate)}가 최대예요 (우연 ${pct(report.chance)}). 규칙 기반 적대자는 집 ${pct(report.gates.on.home_rate)}, 학교 ${pct(report.gates.on.school_rate)}.`
-        : '누수 테스트를 불러오는 중…',
+        ? `${report.trials} scenarios produce only ${report.gates.on.distinct_logs} distinct logs, so even picking answers in hindsight tops out at home ${pct(report.gates.on.bound_home_rate)}, school ${pct(report.gates.on.bound_school_rate)} (chance ${pct(report.chance)}). The rule-based adversary hit home ${pct(report.gates.on.home_rate)}, school ${pct(report.gates.on.school_rate)}.`
+        : 'Loading the leak test…',
   },
   {
-    title: '위치를 알아도 같은 로그',
+    title: 'Same log, even if it knows',
     focus: 'report',
     action: 'none',
     conditions: ['off', 'filter_only', 'on'],
     caption: ({ report }) =>
       report
-        ? `에이전트에게 위치를 몰래 쥐여 줘도 로그는 게이트 on과 같아요 (로그 ${report.gates.filter_only.distinct_logs}종류). 게이트를 끄면 로그 ${report.gates.off.distinct_logs}개가 다 달라지고 규칙 기반 적대자도 집 ${pct(report.gates.off.home_rate)}, 학교 ${pct(report.gates.off.school_rate)}를 맞혀요.`
+        ? `Slip the location to an agent and the log is still identical to gate on (${report.gates.filter_only.distinct_logs} distinct logs). Turn the gate off and all ${report.gates.off.distinct_logs} logs differ; the same adversary hits home ${pct(report.gates.off.home_rate)}, school ${pct(report.gates.off.school_rate)}.`
         : '',
   },
 ];

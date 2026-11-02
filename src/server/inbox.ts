@@ -18,8 +18,8 @@ export const HERO_TASK: TaskInput = {
   task_id: 't_pickup_milk_001',
   deadline: '18:00',
   subtasks: [
-    { id: 'pickup', label: '민아 픽업', kind: 'pickup' },
-    { id: 'milk', label: '우유 사기', kind: 'errand' },
+    { id: 'pickup', label: 'Pick up Mina', kind: 'pickup' },
+    { id: 'milk', label: 'Buy milk', kind: 'errand' },
   ],
   constraints: { max_subtasks_per_person: 1 },
   requested_by: 'mom',
@@ -40,43 +40,43 @@ export class TaskInbox {
 
   submit(input: unknown): SubmitResult {
     const forbidden = findForbiddenKey(input);
-    if (forbidden) return { ok: false, error: '태스크에 위치 필드를 넣을 수 없어요.' };
-    if (!input || typeof input !== 'object') return { ok: false, error: '태스크 형식이 아니에요.' };
+    if (forbidden) return { ok: false, error: 'A task cannot carry location fields.' };
+    if (!input || typeof input !== 'object') return { ok: false, error: 'Not a task object.' };
     const body = input as Partial<TaskInput>;
 
     let deadline: string;
     const hhmm = typeof body.deadline === 'string' ? HHMM.exec(body.deadline) : null;
     if (hhmm) deadline = this.isoAt(Number(hhmm[1]) * 60 + Number(hhmm[2]));
     else if (typeof body.deadline === 'string' && ISO.test(body.deadline)) deadline = body.deadline;
-    else return { ok: false, error: 'deadline은 "HH:MM" 또는 ISO8601이어야 해요.' };
+    else return { ok: false, error: 'deadline must be "HH:MM" or ISO 8601.' };
 
     if (!Array.isArray(body.subtasks) || body.subtasks.length === 0) {
-      return { ok: false, error: 'subtasks가 비어 있어요.' };
+      return { ok: false, error: 'subtasks is empty.' };
     }
     const subtasks: Subtask[] = [];
     for (const s of body.subtasks) {
       if (!s || typeof s.id !== 'string' || !ID.test(s.id) || typeof s.label !== 'string' || !s.label.trim()) {
-        return { ok: false, error: 'subtask에는 id와 label이 필요해요.' };
+        return { ok: false, error: 'Each subtask needs an id and a label.' };
       }
-      if (labelHints(s.label).length) return { ok: false, error: 'subtask 이름에 위치 정보를 넣을 수 없어요.' };
-      if (subtasks.some((x) => x.id === s.id)) return { ok: false, error: `subtask id가 겹쳐요: ${s.id}` };
+      if (labelHints(s.label).length) return { ok: false, error: 'A subtask label cannot contain location details.' };
+      if (subtasks.some((x) => x.id === s.id)) return { ok: false, error: `Duplicate subtask id: ${s.id}` };
       if (s.kind !== undefined && !(SUBTASK_KINDS as readonly string[]).includes(s.kind)) {
-        return { ok: false, error: 'subtask kind는 pickup 또는 errand여야 해요.' };
+        return { ok: false, error: 'subtask kind must be pickup or errand.' };
       }
       subtasks.push(s.kind ? { id: s.id, label: s.label.trim(), kind: s.kind } : { id: s.id, label: s.label.trim() });
     }
 
     if (body.requested_by !== undefined && !isPersonId(String(body.requested_by))) {
-      return { ok: false, error: 'requested_by는 mom, dad, sibling 중 하나예요.' };
+      return { ok: false, error: 'requested_by must be mom, dad or sibling.' };
     }
     const max = body.constraints?.max_subtasks_per_person ?? null;
     if (max !== null && (!Number.isInteger(max) || max < 1)) {
-      return { ok: false, error: 'max_subtasks_per_person은 1 이상의 정수여야 해요.' };
+      return { ok: false, error: 'max_subtasks_per_person must be an integer of at least 1.' };
     }
 
     this.seq += 1;
     let task_id = body.task_id ?? `t_${String(this.seq).padStart(3, '0')}`;
-    if (!ID.test(task_id)) return { ok: false, error: 'task_id 형식이 올바르지 않아요.' };
+    if (!ID.test(task_id)) return { ok: false, error: 'Invalid task_id.' };
     if (this.get(task_id)) task_id = `${task_id}_${this.seq}`;
 
     const task: Task = {

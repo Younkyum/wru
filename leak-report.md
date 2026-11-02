@@ -1,44 +1,44 @@
-# WRU 누수 테스트 리포트
+# WRU leak test report
 
-협상 로그만 적대자에게 주고, 가족의 **집**과 **학교**가 서울 25개 구 중 어디인지 맞히게 했습니다.
+We give an adversary nothing but the negotiation log and ask it to guess which of Seoul's 25 districts (gu) the family's **home** and the child's **school** are in.
 
-- 시도: 조건마다 50회 (시나리오 시드 1~50, 시드마다 집 · 학교 · 경로가 다름)
-- 적대자: mock 추론기 (로그 문장 속 동네 이름 · 남은 거리 · ETA 단서로 구를 추정하는 휴리스틱, 시나리오 정답에는 접근하지 않음)
-- 협상 에이전트: 결정론적 mock Muse
-- 우연 수준: 1/25 = 4.0%
+- Trials: 50 per condition (scenario seeds 1–50; home, school and routes differ per seed)
+- Adversary: rule-based mock (scores districts from neighbourhood names, remaining distance and ETA found in the log text; it never sees the scenario answers)
+- Negotiating agents: deterministic mock Muse
+- Chance: 1/25 = 4.0%
 
-| 조건 | 집 적중 (mock 적대자) | 학교 적중 (mock 적대자) | 로그 종류 | 어떤 적대자든 상한 (집 · 학교) | 위치 단서가 남은 메시지 · 라벨 | 템플릿으로 다시 쓴 메시지 |
+| Condition | Distinct logs | Upper bound for any adversary (home · school) | Rule-based adversary: home | Rule-based adversary: school | Messages/labels with location hints | Messages rewritten to templates |
 | --- | --- | --- | --- | --- | --- | --- |
-| **on** (상세 거절 · 상태 템플릿 · ETA 구간) | 3/50 (6.0%) | 0/50 (0.0%) | 5 | 22.0% · 24.0% | 0 | 0/386 |
-| on, 에이전트가 위치를 알 때 | 3/50 (6.0%) | 0/50 (0.0%) | 5 | 22.0% · 24.0% | 0 | 236/386 |
-| off (동네명 · 거리 · 정확한 ETA 그대로) | 49/50 (98.0%) | 36/50 (72.0%) | 50 | 100.0% · 100.0% | 244 | 0/386 |
+| **gate on** (detail refused · status templates · ETA ranges) | 5 | 22.0% · 24.0% | 3/50 (6.0%) | 0/50 (0.0%) | 0 | 0/386 |
+| gate on, agent secretly knows its location | 5 | 22.0% · 24.0% | 3/50 (6.0%) | 0/50 (0.0%) | 0 | 236/386 |
+| gate off (neighbourhood names, distances, exact ETAs as-is) | 50 | 100.0% · 100.0% | 49/50 (98.0%) | 36/50 (72.0%) | 244 | 0/386 |
 
-## 적대자와 무관한 상한
+## An upper bound that does not depend on the adversary
 
-mock 적대자의 적중률만으로는 "그 적대자가 약해서"일 수 있습니다. 그래서 적대자 구현과 상관없는 상한도 잽니다. 같은 로그는 어떤 적대자(LLM 포함)도 구별할 수 없으므로, 로그가 같은 시나리오끼리 묶고 묶음마다 가장 흔한 정답 하나만 맞힌다고 보면 그것이 이 시나리오들에서 낼 수 있는 최고 적중률입니다.
+A low hit rate from one adversary could just mean that adversary is weak. So we also measure a bound that holds for any adversary. Identical logs cannot be told apart by anyone, LLMs included. Group the scenarios by identical log and assume the adversary always picks the most common true answer in each group: that is the best hit rate any adversary could achieve on these scenarios.
 
-- 게이트 on: 시나리오 50개의 로그가 5종류뿐입니다(상태 · ETA 구간 · 협상 결과만 다름). 상한은 집 22.0% · 학교 24.0%이고, 이것도 표본 안에서 정답을 미리 알고 고른 낙관적인 값입니다.
-- 에이전트가 위치를 알 때도 로그 종류와 상한이 게이트 on과 같습니다. 공개 로그에서는 내부 플래그(fallback · filtered)도 떼기 때문에, 에이전트가 무슨 말을 하려 했는지 밖에서는 구별되지 않습니다.
-- 게이트 off: 로그가 50종류로 모두 달라서 상한이 100.0%입니다.
+- Gate on: the 50 scenarios produce only 5 distinct logs (they differ only in states, ETA ranges and the negotiation outcome). The bound is home 22.0% · school 24.0% — and that is optimistic, since it picks answers knowing them in advance. What remains comes from the coarse status itself ("on the way, within 20 min"), which the family chose to share; the gate cannot remove it.
+- Gate on with an agent that secretly knows its location: the number of distinct logs and the bound are identical to gate on. Public logs also drop internal flags (fallback, filtered), so nobody outside can tell what an agent tried to say.
+- Gate off: all 50 logs are different, so the bound is 100.0%.
 
-## 읽는 법
+## How to read it
 
-- **게이트 off**: 에이전트가 지나는 동네, 집까지 거리, 정확한 분 단위 ETA를 그대로 말합니다. 동네 이름은 정식 이름 · 어간 · 띄어 쓰기 · 제로폭 문자 · 역 이름 등 여러 말투로 섞습니다. 적대자는 집 근처 동네 언급과 "지나는 곳 + 남은 거리(또는 ETA × 차량 속도)"로 집 구를 좁힙니다.
-- **게이트 on**: WhereCtx가 상세 위치를 거절하고(home 반경 안은 home_zone_refused), WRU는 에이전트의 자유 문장을 내보내지 않고 offer · counter 이유를 상태 템플릿으로 다시 씁니다. ETA는 "10분 이내" 같은 구간으로만 나갑니다. 위치가 든 태스크 라벨은 인박스가 거절하므로, 이 조건에서는 요청자가 위치 설명을 지운 라벨로 다시 넣은 것으로 둡니다.
-- **게이트 on, 에이전트가 위치를 알 때**: 게이트 on인데 에이전트 입력에 상세 위치를 몰래 넣은 경우입니다. 에이전트는 게이트 off와 똑같은 말투로 말하려 하지만, 그 문장은 로그에 나가지 않습니다. 막는 힘은 지명 단어 목록이 아니라 "자유 문장을 내보내지 않는다"는 구조에서 나옵니다.
-- 단서가 없으면 적대자는 늘 같은 구(가장 가운데 구)를 찍습니다. 그래서 게이트 on 적중률은 그 구가 실제 정답인 시나리오의 비율이고, 1/25 우연 수준과 같은 뜻입니다.
-- 학교는 게이트 off에서 요청자가 라벨에 학교 쪽 동네를 적었을 때 드러나고, 아니면 적대자는 "학교는 집 근처"라고 찍습니다.
+- **Gate off**: agents say the neighbourhood they are passing through, the distance home and the exact minutes left. Neighbourhood names are mixed in several forms (full name, stem, spaced out, zero-width characters, station name). The adversary narrows down the home district from "near X" mentions and from "passing through X + distance (or ETA × car speed)".
+- **Gate on**: WhereCtx refuses location detail (home_zone_refused inside the home zone), and WRU never publishes the agent's free text: every offer/counter reason is rewritten from a status template, and ETAs leave only as ranges ("within 10 min"). Task labels containing locations are rejected by the inbox, so in this condition the requester resubmits a label with the location removed.
+- **Gate on, agent knows its location**: the agent tries to talk exactly like in gate off, but none of that text is published. The protection comes from the structure ("free text never leaves"), not from a word list.
+- With no clues the rule-based adversary always guesses the most central district, so its gate-on hit rate is the share of scenarios where that district happens to be the answer — the same as chance.
+- The school leaks in gate off when the requester writes the school's neighbourhood into the label; otherwise the adversary guesses "school is near home".
 
-## 한계
+## Limitations
 
-- 게이트 off의 말투와 mock 적대자의 휴리스틱은 같은 팀이 만들었습니다. off 수치는 "이런 말이 새면 이 정도까지 좁혀진다"는 예시이고, 실제 LLM이 새는 방식을 모두 대표하지 않습니다. 실제 키가 있으면 `npm run leak`이 협상 에이전트와 적대자 모두 Muse로 다시 잽니다.
-- 가족 화면(맵)은 Presence 계약대로 정확한 ETA(분)를 보여 줍니다. 협상 로그와 에이전트 메시지에는 구간만 나갑니다.
-- 후보는 서울 25개 구이고, 동 단위 이상 정밀한 추정은 재지 않았습니다.
+- The gate-off phrasing and the rule-based adversary were written by the same team. The gate-off numbers are an example of "how far such talk narrows things down", not a model of every way an LLM might leak. That is why the adversary-independent bound is the headline number. With a key, `npm run leak` re-measures with Muse as both negotiator and adversary.
+- The family screen (map) shows exact ETA minutes per the Presence contract; negotiation logs and agent messages carry only ranges.
+- Candidates are the 25 Seoul districts; we did not measure finer-grained (neighbourhood-level) guesses.
 
-## 재현
+## Reproduce
 
 ```bash
 npm run leak
 ```
 
-`MODEL_API_KEY`가 있으면 협상 에이전트와 적대자 모두 Muse를 씁니다. 없으면 mock으로 같은 숫자가 다시 나옵니다(결정론).
+With `MODEL_API_KEY` set, both the negotiating agents and the adversary use Muse. Without it, mock runs reproduce the same numbers (deterministic).

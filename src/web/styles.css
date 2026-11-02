@@ -593,3 +593,46 @@ footer { color: var(--faint); font-size: 12px; text-align: center; }
 .actual-label { font-size: 13px; }
 .leak-desc { font-size: 13.5px; }
 .actual.hl-on { outline-offset: 4px; }
+
+/* ── 영어판 ─────────────────────────────── */
+:root { font-family: 'Inter', 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, sans-serif; }
+.metric { grid-template-columns: 52px 1fr 54px; }
+.actual .metric { grid-template-columns: 52px 1fr 54px; }
+.matrix tbody th div:first-child { white-space: nowrap; }
+/* 어두운 코드 블록은 흐리면 회색 덩어리가 되므로 덜 흐리게 */
+.io-col.hl-dim { opacity: 0.78; }
+.code-out { white-space: pre-wrap; }
+.video-on.focus-muse .side { zoom: 1.04; width: 1000px; }
+.video-on.focus-report .side { zoom: 1.18; width: 980px; }
+.video-on.focus-report .leak-note { display: none; }
+.video-on.focus-report .leak-desc { min-height: 0; }
+
+/* ── 라운드 7 반영 ─────────────────────────── */
+/* 자막 띠 확보: 협상 컷 폰 높이 */
+.video-on.demo-on .phone { height: 520px; }
+.video-on.focus-channel .side { height: 520px; }
+.video-on.focus-task .phone, .video-on.focus-roles .phone { height: 470px; }
+/* 흐림: 폰은 화면만 흐리고 베젤은 그대로 */
+.phone.hl-dim { opacity: 1; }
+.phone.hl-dim .phone-screen { opacity: 0.45; }
+.io-col.hl-dim { opacity: 1; filter: blur(0.4px); }
+.io-col.hl-dim .io-label { opacity: 0.5; }
+.hl-on { outline-offset: 7px; }
+.logs.hl-on, .actual.hl-on { outline-offset: 6px; border-radius: 10px; }
+/* 자막 상자: 폭 고정 */
+.subtitle { width: 860px; min-height: 84px; display: grid; place-items: center; }
+/* 어두운 카드(인트로 · 아웃트로)만 투명 자막, 밝은 카드는 기본 상자 */
+.scene-on .subtitle { background: rgba(20, 20, 19, 0.88); border-color: rgba(255, 255, 255, 0.16); color: #fff; }
+.scene-intro .subtitle, .scene-outro .subtitle { background: transparent; border-color: transparent; box-shadow: none; color: #f2efe8; }
+/* 자가 호스팅 카드 정렬 */
+.host-steps li { display: grid; grid-template-columns: 40px 210px 1fr; align-items: center; }
+.host-steps li span { color: #3d3b37; }
+.scene-light .scene-line { color: #4a4a46; }
+/* 아웃트로 간격 */
+.scene-outro .scene-note { margin-top: 36px; font-size: 18px; }
+.scene-outro .scene-points { margin-bottom: 8px; }
+/* 인트로 대비: 왼쪽 카드는 붉은 테두리 */
+.contrast-card:not(.contrast-wru) { border-color: #e5484d; }
+/* mock 배너 대비 */
+.mock-note { color: #6b4a00; background: #fff4d6; }
+.bound-label span { font-weight: 500; color: var(--muted); }

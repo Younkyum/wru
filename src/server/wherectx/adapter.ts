@@ -11,8 +11,8 @@ export interface WhereCtxAdapter {
   request_location_detail(person_id: PersonId, requested: string): Promise<Refusal>;
 }
 
-export const REFUSAL_MESSAGE = '위치 상세는 공유하지 않아요. 상태와 ETA만 알려 드릴 수 있어요.';
-export const HOME_ZONE_MESSAGE = '집 반경 안이라 위치 상세는 공유하지 않아요. 상태만 알려 드릴 수 있어요.';
+export const REFUSAL_MESSAGE = "Location details are not shared. Only status and ETA are available.";
+export const HOME_ZONE_MESSAGE = "Inside the home zone, location details are not shared. Only status is available.";
 
 export function refuseLocationDetail(person_id: PersonId, state?: PresenceState): Refusal {
   const homeZone = state === 'home' || state === 'near_home';

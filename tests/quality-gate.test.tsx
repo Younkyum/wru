@@ -118,11 +118,11 @@ describe('품질 게이트', () => {
         />,
       );
       expect(html).toContain(step.title);
-      if (step.focus === 'boundary') expect(html).toContain('403 거절');
+      if (step.focus === 'boundary') expect(html).toContain('403 denied');
       if (step.focus === 'muse') expect(html).toContain('response_format');
       expect(scan(html)).toEqual([]);
     });
-    expect(DEMO_STEPS.find((d) => d.focus === 'roles')!.caption({ state, report })).toContain('아빠 = 민아 픽업, 형 = 우유 사기');
+    expect(DEMO_STEPS.find((d) => d.focus === 'roles')!.caption({ state, report })).toContain('Dad = Pick up Mina, Brother = Buy milk');
   });
 
   // README는 검사 규칙(lat/lng 등)을 설명하느라 그 단어를 쓰므로 뺀다

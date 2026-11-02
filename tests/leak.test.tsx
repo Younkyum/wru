@@ -78,9 +78,9 @@ describe('누수 가드', () => {
     const app = makeApp();
     const state = await req(app, 'GET', '/api/state');
     const html = render(state.json);
-    expect(html).toContain('이동 중');
-    expect(html).toContain('집 근처');
-    expect(html).toContain('약 20분');
+    expect(html).toContain('On the way');
+    expect(html).toContain('Near home');
+    expect(html).toContain('About 20 min');
     expect(leaks(html)).toEqual([]);
   });
 });

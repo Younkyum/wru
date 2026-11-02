@@ -118,7 +118,7 @@ export function App() {
     };
   });
 
-  if (!state) return <div className="loading">{error ? `서버에 연결할 수 없어요: ${error}` : '불러오는 중…'}</div>;
+  if (!state) return <div className="loading">{error ? `Cannot reach the server: ${error}` : 'Loading…'}</div>;
 
   const step = demoStep === null ? null : DEMO_STEPS[demoStep]!;
   const demo: DemoView | null =

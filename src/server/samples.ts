@@ -11,5 +11,5 @@ export async function heroSample() {
   const res = await app.request('/api/tasks/t_pickup_milk_001/negotiate', { method: 'POST' });
   const record = await res.json();
   const state = (await (await app.request('/api/state')).json()) as { presence: unknown; tasks: unknown[] };
-  return { scenario: '17:30 · 6시에 민아 픽업 + 우유', presence: state.presence, task: state.tasks[0], negotiation: record };
+  return { scenario: '17:30 · Pick up Mina + buy milk by 18:00', presence: state.presence, task: state.tasks[0], negotiation: record };
 }

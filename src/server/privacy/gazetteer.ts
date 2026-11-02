@@ -67,3 +67,16 @@ export const PLACE_WORDS: string[] = [
 export const PLACE_STEMS: string[] = [
   ...new Set(DISTRICTS.flatMap((d) => d.dongs.map((dong) => dong.slice(0, -1)).filter((s) => s.length >= 2))),
 ];
+
+/** 로마자 지명 (구 · 동 어간). 영어 라벨 검사에 쓴다 */
+export const ROMAN_STEMS: string[] = [
+  'Jongno', 'Jung-gu', 'Yongsan', 'Seongdong', 'Gwangjin', 'Dongdaemun', 'Jungnang', 'Seongbuk', 'Gangbuk', 'Dobong',
+  'Nowon', 'Eunpyeong', 'Seodaemun', 'Mapo', 'Yangcheon', 'Gangseo', 'Guro', 'Geumcheon', 'Yeongdeungpo', 'Dongjak',
+  'Gwanak', 'Seocho', 'Gangnam', 'Songpa', 'Gangdong',
+  'Hyehwa', 'Pyeongchang', 'Sindang', 'Hoehyeon', 'Itaewon', 'Hannam', 'Seongsu', 'Wangsimni', 'Jayang', 'Guui',
+  'Hoegi', 'Jangan', 'Myeonmok', 'Sangbong', 'Jeongneung', 'Donam', 'Mia', 'Suyu', 'Chang-dong', 'Banghak',
+  'Sanggye', 'Junggye', 'Bulgwang', 'Eungam', 'Yeonhui', 'Hongje', 'Mangwon', 'Hapjeong', 'Mokdong', 'Sinjeong',
+  'Hwagok', 'Deungchon', 'Gaebong', 'Gocheok', 'Doksan', 'Siheung', 'Yeouido', 'Dangsan', 'Sangdo', 'Heukseok',
+  'Bongcheon', 'Sillim', 'Banpo', 'Bangbae', 'Yeoksam', 'Daechi', 'Jamsil', 'Garak', 'Cheonho', 'Gil-dong',
+  'Seoul', 'Hongdae', 'Sinchon', 'Itaewon', 'Myeongdong', 'Euljiro', 'Teheran',
+];

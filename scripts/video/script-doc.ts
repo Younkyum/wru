@@ -10,28 +10,28 @@ function mmss(sec: number): string {
 export function renderScriptDoc(starts: Record<string, number>, total: number): string {
   const rows = SEGMENTS.map((s) => `| ${mmss(starts[s.id] ?? 0)} | ${s.title} | ${s.screen} | ${s.rubric} |`);
   const body = SEGMENTS.map((s) => [`### ${mmss(starts[s.id] ?? 0)} ${s.title}`, '', ...s.lines.map((l) => `- ${l.text}`), ''].join('\n'));
-  return `# 데모 영상 대본 (약 ${mmss(total)})
+  return `# Demo video script (about ${mmss(total)})
 
-\`npm run video\`가 이 대본으로 영상 초안을 만들고, 이 문서도 다시 씁니다. 순서는 이렇습니다.
+\`npm run video\` builds the draft video from this script and rewrites this document. It works in three steps:
 
-1. 문장마다 macOS \`say\`(Yuna)로 내레이션을 만듭니다.
-2. 헤드리스 Chromium으로 \`/demo?video=1\`을 녹화하면서 데모 모드를 자동으로 넘깁니다. 협상 메시지는 내레이션에 맞춰 하나씩 나오고, 승인 버튼도 내레이션 중에 누릅니다.
-3. ffmpeg로 합쳐 \`video-out/wru-demo.mp4\`와 자막 \`video-out/wru-demo.srt\`를 만듭니다.
+1. Each sentence is voiced with macOS \`say\` (Samantha).
+2. Headless Chromium records \`/demo?video=1\` while the script drives demo mode. Negotiation messages appear in step with the narration, the approval button is pressed mid-sentence, and the thing each sentence talks about is highlighted on screen.
+3. ffmpeg combines everything into \`video-out/wru-demo.mp4\` and subtitles \`video-out/wru-demo.srt\`.
 
-결과물은 git에 넣지 않습니다. 내레이션 원본은 \`scripts/video/narration.ts\`입니다. 최종 목소리를 다시 녹음할 때는 아래 시작 시각에 맞춰 읽으면 됩니다(초안 기준, 문장 사이 0.35초 쉼).
+The outputs are not committed. The narration source is \`scripts/video/narration.ts\`. To record a final voice-over, read each section at the start time below (draft timing, 0.35 s pause between sentences).
 
-| 시작 | 컷 | 화면 | 심사 항목 |
+| Start | Cut | Screen | Rubric |
 | --- | --- | --- | --- |
 ${rows.join('\n')}
 
-## 내레이션
+## Narration
 
 ${body.join('\n')}
-## 다시 만들 때
+## Re-recording
 
-- \`npm run video\`로 초안을 다시 만들면 \`video-out/\`에 mp4와 srt가 생기고 이 문서의 시각도 갱신됩니다. 3분을 넘으면 실패로 끝납니다.
-- 직접 녹음할 때는 \`WRU_VIDEO_VOICE\`, \`WRU_VIDEO_RATE\`로 초안 목소리 · 속도를 바꾸거나, 초안 mp4의 오디오를 빼고 새 녹음을 얹습니다.
-- Meta Model API 키를 넣고 \`npm run leak\`을 다시 돌렸다면 누수 숫자를 \`scripts/video/narration.ts\`에서 맞춥니다.
-- 실제 Muse로 다시 찍으면 mock 고지 문장(5컷 · 클로징)을 바꿉니다.
+- \`npm run video\` regenerates the draft in \`video-out/\` and refreshes the start times here. It fails if the video runs over 3 minutes.
+- For your own voice, either change the draft voice and speed with \`WRU_VIDEO_VOICE\` / \`WRU_VIDEO_RATE\`, or strip the draft audio and lay a new recording over it.
+- If you re-run \`npm run leak\` with a Meta Model API key, update the leak numbers in \`scripts/video/narration.ts\`.
+- If you re-record with the real Muse, change the mock disclosure sentences (cut 4 and the closing card).
 `;
 }

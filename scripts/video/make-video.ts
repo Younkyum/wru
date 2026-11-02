@@ -16,8 +16,8 @@ import { renderScriptDoc } from './script-doc.js';
 const OUT = resolve('video-out');
 const TMP = join(OUT, 'tmp');
 const PORT = Number(process.env.WRU_VIDEO_PORT ?? 8790);
-const VOICE = process.env.WRU_VIDEO_VOICE ?? 'Yuna';
-const RATE = process.env.WRU_VIDEO_RATE ?? '188';
+const VOICE = process.env.WRU_VIDEO_VOICE ?? 'Samantha';
+const RATE = process.env.WRU_VIDEO_RATE ?? '182';
 const MAX_SECONDS = 180;
 // 1440×900으로 녹화하고, 영상 모드(?video=1)는 CSS zoom 1.125로 그려 글자를 키운다 (1280×800 레이아웃)
 const W = 1440;
@@ -86,7 +86,7 @@ async function main() {
     const context = await browser.newContext({
       viewport: { width: W, height: H },
       deviceScaleFactor: 1,
-      locale: 'ko-KR',
+      locale: 'en-US',
       recordVideo: { dir: TMP, size: { width: W, height: H } },
     });
     const page = await context.newPage();

@@ -241,7 +241,7 @@ describe('누수 실험', () => {
   it('게이트 on 라벨은 인박스 검사를 통과하는 라벨이다 (운영과 같은 조건)', () => {
     for (let i = 1; i <= 50; i += 1) {
       const s = makeScenario(i);
-      const original = s.labelHasSchoolArea ? `민아 픽업 (${s.schoolArea} 쪽)` : '민아 픽업';
+      const original = s.labelHasSchoolArea ? `Pick up Mina (near ${s.schoolArea})` : 'Pick up Mina';
       expect(labelHints(sanitizeLabel(original))).toEqual([]);
       if (s.labelHasSchoolArea) expect(labelHints(original).length).toBeGreaterThan(0);
     }

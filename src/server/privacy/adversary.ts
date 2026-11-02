@@ -65,9 +65,9 @@ export function guessMock(log: PublicLog): Guess {
     if (!raw) continue;
     const t = normalize(raw);
     const places = districtsIn(raw);
-    if (/지나는중|에서내려/.test(t)) {
-      const km = /집까지\s*(\d+(?:\.\d+)?)\s*km/.exec(t)?.[1];
-      const min = /(\d+)분남았/.exec(t)?.[1];
+    if (/지나는중|에서내려|passing ?through|getting ?off/i.test(t)) {
+      const km = (/집까지\s*(\d+(?:\.\d+)?)\s*km/.exec(t) ?? /(\d+(?:\.\d+)?)\s*km ?from ?home/i.exec(t))?.[1];
+      const min = (/(\d+)분남았/.exec(t) ?? /(\d+)\s*min ?left/i.exec(t))?.[1];
       const r = km ? Number(km) : min ? Number(min) * CAR_KM_PER_MIN : null;
       if (r === null) continue;
       for (const d of places) {
@@ -76,7 +76,7 @@ export function guessMock(log: PublicLog): Guess {
           if (err <= 3) add(c.name, 3 - err);
         }
       }
-    } else if (/근처|집\(/.test(t)) {
+    } else if (/근처|집\(|\bnear\b|at ?home ?\(/i.test(t)) {
       for (const d of places) add(d.name, 10);
     }
   }
