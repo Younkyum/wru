@@ -8,6 +8,7 @@ Meta Global AI Developer Hackathon(2026-10-26 ~ 11-04) 출품작입니다.
 
 | 문서 | 내용 |
 | --- | --- |
+| [Host your own](#host-your-own) | 가족 서버 하나 띄우기, 각자 WhereCtx 연결, 에이전트 토큰 |
 | [docs/SUBMISSION.md](docs/SUBMISSION.md) | 1페이지 설명 (문제 · WhereCtx · Muse · 프로토콜 · 누수 수치 · 한계) |
 | [docs/VIDEO_SCRIPT.md](docs/VIDEO_SCRIPT.md) | 2~3분 영상 대본과 컷별 타이밍 |
 | [docs/COPY.md](docs/COPY.md) | 화면 카피 · 영상 문구 (제출자 확인용) |
@@ -59,6 +60,87 @@ npm run dev
 | `MODEL_API_BASE_URL` | 기본값 `https://api.meta.ai/v1` (OpenAI 호환) |
 | `MUSE_MODEL` | 기본값 `muse-spark-1.3` (가정값, 실제 id로 덮어쓰기) |
 | `WRU_API_PORT` | API 서버 포트. 기본값 8787 |
+| `WRU_FAMILY_CONFIG` | 가족 설정 파일 경로. 기본값 `family.config.json`, 없으면 세 명 모두 시뮬레이터 |
+| `WRU_WHERECTX_TOKEN_*` | 구성원 각자의 WhereCtx agent 토큰. 이름은 `family.config.json`의 `token_env`와 같게 |
+| `WRU_AGENT_TOKEN_MOM` · `_DAD` · `_SIBLING` | WRU 에이전트 토큰 고정값(`wru_ag_`로 시작, 32자 이상). 비우면 시작할 때마다 새로 발급 |
+| `WRU_ADMIN_TOKEN` | 가족 대시보드 API 보호. 실제 WhereCtx를 붙이면 필수 |
+
+## Host your own
+
+WRU는 가족 한 집이 서버 하나를 띄워 쓰는 구조입니다. 위치는 가족 각자가 자기 WhereCtx에 두고, WRU는 거기서 거친 상태만 읽습니다.
+
+```
+엄마 폰 ──▶ 엄마의 WhereCtx ─┐  agent 토큰(엄마 것)
+아빠 폰 ──▶ 아빠의 WhereCtx ─┼──▶ WRU (가족 서버 하나) ──▶ Muse 에이전트 ×3
+형   폰 ──▶ 형의   WhereCtx ─┘   home / near_home / in_transit + ETA만
+```
+
+### 1. 서버 띄우기
+
+```bash
+git clone <this repo> && cd wru
+npm ci
+npm run build
+npm start            # http://localhost:8787 (API + UI 한 포트)
+```
+
+Docker로 띄울 수도 있습니다.
+
+```bash
+docker build -t wru .
+docker run -p 8787:8787 --env-file .env -v "$PWD/family.config.json:/app/family.config.json:ro" wru
+```
+
+설정 파일이 없으면 세 명 모두 시뮬레이터로 돌아가서, 바로 `/demo`를 볼 수 있습니다.
+
+### 2. 공개 서버라면 관리자 토큰
+
+`.env`에 `WRU_ADMIN_TOKEN`을 넣으면 가족 대시보드 API가 그 토큰을 요구합니다. 브라우저에서는 `https://<서버>/demo#key=<토큰>`으로 한 번 열면 됩니다(토큰은 그 탭에만 저장되고 주소창에서 지워집니다). 에이전트 API(`/api/agent/*`)는 관리자 토큰이 아니라 에이전트 토큰으로만 열립니다.
+
+### 3. 가족 각자의 WhereCtx 연결
+
+[WhereCtx](https://github.com/Younkyum/WhereCtx)는 한 사람이 자기 위치를 호스팅하는 서버입니다(WRU 이전에 만든 별도 프로젝트). 연결할 구성원마다:
+
+1. 그 사람이 자기 WhereCtx 대시보드에서 **agent 토큰**을 발급합니다 (`POST /v1/tokens`, role `agent`). 집으로 쓸 장소를 `home`이라는 이름으로 등록해 둡니다.
+2. WRU 서버의 `.env`에 토큰을 넣습니다. 변수 이름은 자유입니다.
+   ```bash
+   WRU_WHERECTX_TOKEN_MOM=<엄마 WhereCtx의 agent 토큰>
+   ```
+3. `family.config.json`에 그 구성원을 적습니다 (`family.config.example.json` 참고). 토큰 값이 아니라 **env 변수 이름**만 씁니다.
+   ```json
+   { "members": {
+       "mom": { "adapter": "wherectx", "wherectx_url": "https://location.example.com",
+                "token_env": "WRU_WHERECTX_TOKEN_MOM", "home_place": "home", "eta_mode": "car" },
+       "dad": { "adapter": "sim" },
+       "sibling": { "adapter": "sim" } } }
+   ```
+4. 서버를 다시 띄우면 시작 로그에 `mom=location.example.com`이 보입니다.
+
+WRU가 WhereCtx에서 읽는 것은 `GET /v1/presence`의 `status` · `freshness` · `stale` · `updatedAgoSec`와 `GET /v1/geo/eta?to=home`의 `durationMin`(토큰이면 5분 단위 근사)뿐입니다. 응답에 동네 이름이나 좌표가 있어도 읽지 않고 버립니다. 매핑은 `home` → home, `near_home` → near_home, 그 밖의 status(away, work …) → in_transit, offline · stale → unknown입니다. 실제 WhereCtx가 하나라도 붙으면 시뮬 시계 대신 실제 시계를 씁니다.
+
+### 4. 에이전트 토큰
+
+WRU는 구성원마다 **에이전트 토큰**(`wru_ag_…`)을 발급합니다. 각 Muse 에이전트는 자기 토큰 하나만 들고 있고, presence/ETA는 토큰 검사를 거쳐서만 읽습니다. 남의 것을 요청하면 403, 토큰이 없거나 틀리면 401입니다. 기본값은 서버가 시작할 때마다 새로 만드는 것이고, 외부 에이전트를 붙일 때만 `WRU_AGENT_TOKEN_MOM` 등으로 고정합니다.
+
+```bash
+curl -H "Authorization: Bearer $WRU_AGENT_TOKEN_DAD" https://<서버>/api/agent/presence/dad   # 200
+curl -H "Authorization: Bearer $WRU_AGENT_TOKEN_DAD" https://<서버>/api/agent/presence/mom   # 403
+```
+
+### 한계
+
+- 구성원은 `mom` · `dad` · `sibling` 세 자리로 고정입니다.
+- 상태는 메모리에만 있어서 서버를 다시 띄우면 태스크와 협상 기록이 사라집니다.
+- Meta Model API 키(`MODEL_API_KEY`)는 서버 하나에 하나입니다. 에이전트별로 나뉘는 것은 위치 접근 권한(토큰)이고, 모델 호출 키는 공유합니다.
+
+## 해커톤 기간에 만든 것 / 그 전에 있던 것
+
+Meta Global AI Developer Hackathon(2026-10-26 ~ 11-04) 규칙에 맞춰 새 작업과 기존 작업을 나눠 적습니다.
+
+| 구분 | 무엇 | 근거 |
+| --- | --- | --- |
+| **해커톤 기간에 새로 만든 것** | WRU 전체: 시뮬레이터, 협상 엔진(offer · counter · commit · refuse), Muse 클라이언트(mock · Meta Model API), 프라이버시 게이트, 누수 테스트, 데모 UI, **에이전트 토큰 경계**, **HttpWhereCtx 어댑터**, 가족 설정, 자가 호스팅 구성 | 이 레포의 첫 커밋이 2026-10-26이고, 모든 커밋이 그 뒤입니다 |
+| **그 전에 있던 것** | [WhereCtx](https://github.com/Younkyum/WhereCtx): 한 사람이 자기 위치를 호스팅하고 agent 토큰으로 거친 상태만 내주는 서버 | 2026-06-06 ~ 2026-10-19에 개발했고, 해커톤 기간에는 커밋이 없습니다. WRU는 WhereCtx 코드를 가져오지 않고, 공개 REST API(`/v1/presence`, `/v1/geo/eta`)만 호출합니다 |
 
 ## 구조
 
@@ -144,6 +226,6 @@ curl -X POST localhost:8787/api/tasks -H 'content-type: application/json' \
 ## 한계
 
 - Meta Model API 키가 없어 데모는 결정론적 mock Muse로 돌아갑니다. 실제 클라이언트 경로는 가짜 fetch로 테스트했고, 모델 id `muse-spark-1.3`은 가정값입니다.
-- WhereCtx는 시뮬레이터 구현만 붙어 있습니다. 실제 WhereCtx MCP는 같은 어댑터 인터페이스 뒤에 붙이면 됩니다.
+- 실제 WhereCtx 연동은 로컬에서 띄운 WhereCtx로 확인했고, 데모 영상은 시뮬레이터로 찍었습니다. 지도 키가 없는 WhereCtx에서는 ETA가 비어 있습니다(null).
 - 누수 수치는 mock 적대자 기준입니다. 자세한 한계는 [leak-report.md](leak-report.md)에 있습니다.
 - 상태는 메모리에만 저장합니다. 인증 · 계정 · 푸시는 범위 밖입니다.
