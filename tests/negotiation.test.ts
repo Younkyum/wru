@@ -8,6 +8,8 @@ import { createMuseClient } from '../src/server/muse/factory';
 import { MetaMuse } from '../src/server/muse/meta';
 import { MockMuse, decideMock } from '../src/server/muse/mock';
 import { runNegotiation, type Agent } from '../src/server/negotiation/engine';
+import { makeFamilyAgents } from '../src/server/auth/gateway';
+import { StaticWhereCtx } from '../src/server/wherectx/static-adapter';
 import { heroSample } from '../src/server/samples';
 import { leaks, makeApp, req, SIM_DATE } from './helpers';
 
@@ -35,7 +37,7 @@ const HERO_PRESENCE: Record<PersonId, Presence> = {
 };
 
 function agentsFrom(p: Record<PersonId, Presence>, muse: MuseClient = new MockMuse()): Agent[] {
-  return PERSON_IDS.map((id) => ({ person_id: id, wherectx: { person_id: id, presence: () => p[id] }, muse }));
+  return makeFamilyAgents(new StaticWhereCtx(p), muse).agents;
 }
 
 async function negotiateAt(minutes: number, deadline = '18:00') {

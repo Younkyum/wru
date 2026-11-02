@@ -17,45 +17,45 @@ function expectPresenceContract(p: any) {
 }
 
 describe('Presence 계약', () => {
-  it('어댑터는 계약 필드만 돌려준다', () => {
+  it('어댑터는 계약 필드만 돌려준다', async () => {
     const adapter = new SimWhereCtx(new Simulator({ date: SIM_DATE }));
     for (const id of PERSON_IDS) {
-      expectPresenceContract(adapter.get_presence(id));
-      expect(Object.keys(adapter.get_eta(id)).sort()).toEqual(['eta_minutes', 'person_id', 'updated_at']);
+      expectPresenceContract(await adapter.get_presence(id));
+      expect(Object.keys(await adapter.get_eta(id)).sort()).toEqual(['eta_minutes', 'person_id', 'updated_at']);
     }
   });
 
-  it('17:30 히어로 시작 상태: 엄마=home, 아빠=in_transit(~20분), 형=near_home', () => {
+  it('17:30 히어로 시작 상태: 엄마=home, 아빠=in_transit(~20분), 형=near_home', async () => {
     const adapter = new SimWhereCtx(new Simulator({ date: SIM_DATE }));
-    expect(adapter.get_presence('mom')).toMatchObject({ state: 'home', eta_minutes: null });
-    expect(adapter.get_presence('dad')).toMatchObject({ state: 'in_transit', eta_minutes: 20 });
-    expect(adapter.get_presence('sibling').state).toBe('near_home');
-    expect(adapter.get_presence('mom').updated_at).toBe(`${SIM_DATE}T17:30:00+09:00`);
+    expect(await adapter.get_presence('mom')).toMatchObject({ state: 'home', eta_minutes: null });
+    expect(await adapter.get_presence('dad')).toMatchObject({ state: 'in_transit', eta_minutes: 20 });
+    expect((await adapter.get_presence('sibling')).state).toBe('near_home');
+    expect((await adapter.get_presence('mom')).updated_at).toBe(`${SIM_DATE}T17:30:00+09:00`);
   });
 
-  it('시계를 돌리면 상태가 바뀐다', () => {
+  it('시계를 돌리면 상태가 바뀐다', async () => {
     const sim = new Simulator({ date: SIM_DATE });
     const adapter = new SimWhereCtx(sim);
     sim.advance(10);
-    expect(adapter.get_presence('dad')).toMatchObject({ state: 'in_transit', eta_minutes: 10 });
+    expect(await adapter.get_presence('dad')).toMatchObject({ state: 'in_transit', eta_minutes: 10 });
     sim.advance(10);
-    expect(adapter.get_presence('dad')).toMatchObject({ state: 'home', eta_minutes: null });
+    expect(await adapter.get_presence('dad')).toMatchObject({ state: 'home', eta_minutes: null });
     sim.advance(20);
-    expect(adapter.get_presence('sibling').state).toBe('home');
+    expect((await adapter.get_presence('sibling')).state).toBe('home');
     sim.reset();
-    expect(adapter.get_presence('dad').state).toBe('in_transit');
+    expect((await adapter.get_presence('dad')).state).toBe('in_transit');
   });
 
-  it('좌표 요청은 refuse', () => {
+  it('좌표 요청은 refuse', async () => {
     const adapter = new SimWhereCtx(new Simulator({ date: SIM_DATE }));
-    expect(adapter.request_location_detail('dad', 'raw_coords')).toMatchObject({
+    expect(await adapter.request_location_detail('dad', 'raw_coords')).toMatchObject({
       refused: true,
       person_id: 'dad',
       reason_code: 'location_detail_refused',
     });
     // home 반경 안(집 · 집 근처)은 home_zone_refused
-    expect(adapter.request_location_detail('mom', 'raw_coords').reason_code).toBe('home_zone_refused');
-    expect(adapter.request_location_detail('sibling', 'address').reason_code).toBe('home_zone_refused');
+    expect((await adapter.request_location_detail('mom', 'raw_coords')).reason_code).toBe('home_zone_refused');
+    expect((await adapter.request_location_detail('sibling', 'address')).reason_code).toBe('home_zone_refused');
   });
 });
 

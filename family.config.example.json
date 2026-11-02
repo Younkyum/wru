@@ -1,0 +1,13 @@
+{
+  "members": {
+    "mom": {
+      "adapter": "wherectx",
+      "wherectx_url": "https://location.example.com",
+      "token_env": "WRU_WHERECTX_TOKEN_MOM",
+      "home_place": "home",
+      "eta_mode": "car"
+    },
+    "dad": { "adapter": "sim" },
+    "sibling": { "adapter": "sim" }
+  }
+}

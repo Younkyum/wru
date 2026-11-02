@@ -1,24 +1,22 @@
 // WRU 협상 엔진. 라운드마다 에이전트가 정해진 순서로 한 번씩 행동한다.
 // 엔진은 메시지만 중계하고, 에이전트에게 다른 사람의 presence를 넘기지 않는다.
 
-import { PERSON_LABEL_KO, localHHMM, type PersonId, type Presence, type Task } from '../../shared/contracts.js';
+import { PERSON_LABEL_KO, localHHMM, type PersonId, type Task } from '../../shared/contracts.js';
 import type { Assignment, MessageBody, NegotiationMessage } from '../../shared/negotiation.js';
-import type { LocationDetail, MuseClient } from '../muse/client.js';
+import type { PresenceGateway } from '../auth/gateway.js';
+import type { MuseClient } from '../muse/client.js';
 import { filterMessage, type Gate } from '../privacy/filter.js';
 import { beats, decideMock, readTranscript } from '../muse/mock.js';
 import { validateAction } from './validate.js';
 
-/** 에이전트가 볼 수 있는 건 자기 WhereCtx뿐 */
-export interface SelfWhereCtx {
-  readonly person_id: PersonId;
-  presence(): Presence;
-  /** 게이트 off 실험에서만 쓰는 상세 위치. 게이트 on이면 엔진이 부르지 않는다 */
-  detail?(): LocationDetail | null;
-}
-
+/**
+ * 에이전트 하나 = 구성원 하나. 에이전트는 자기 토큰만 들고 있고, presence는 게이트웨이를 거쳐 읽는다.
+ * 게이트웨이가 토큰 주인을 확인하므로 다른 구성원의 presence는 읽을 수 없다 (403).
+ */
 export interface Agent {
   person_id: PersonId;
-  wherectx: SelfWhereCtx;
+  token: string;
+  gateway: PresenceGateway;
   muse: MuseClient;
 }
 
@@ -59,8 +57,8 @@ export async function runNegotiation(input: NegotiationInput): Promise<Negotiati
     let spoke = false;
     for (const agent of agents) {
       if (allCommitted()) break;
-      const presence = agent.wherectx.presence();
-      const detail = gate === 'off' ? agent.wherectx.detail?.() ?? undefined : undefined;
+      const presence = await agent.gateway.presence(agent.token, agent.person_id);
+      const detail = gate === 'off' ? ((await agent.gateway.detail?.(agent.token, agent.person_id)) ?? undefined) : undefined;
       const turn = {
         self: agent.person_id,
         presence,
