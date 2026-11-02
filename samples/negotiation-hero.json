@@ -38,7 +38,8 @@
     "constraints": {
       "max_subtasks_per_person": 1
     },
-    "received_at": "2026-10-26T17:30:00+09:00"
+    "received_at": "2026-10-26T17:30:00+09:00",
+    "requested_by": "mom"
   },
   "negotiation": {
     "negotiation_id": "n_001",

@@ -1,7 +1,7 @@
 // 태스크 인박스 (메모리 저장).
 
 import { labelHints } from './privacy/filter.js';
-import { SUBTASK_KINDS, findForbiddenKey, type Subtask, type Task, type TaskConstraints } from '../shared/contracts.js';
+import { SUBTASK_KINDS, findForbiddenKey, isPersonId, type PersonId, type Subtask, type Task, type TaskConstraints } from '../shared/contracts.js';
 
 export interface TaskInput {
   task_id?: string;
@@ -9,6 +9,7 @@ export interface TaskInput {
   deadline: string;
   subtasks: Subtask[];
   constraints?: Partial<TaskConstraints>;
+  requested_by?: PersonId;
 }
 
 export type SubmitResult = { ok: true; task: Task } | { ok: false; error: string };
@@ -21,6 +22,7 @@ export const HERO_TASK: TaskInput = {
     { id: 'milk', label: '우유 사기', kind: 'errand' },
   ],
   constraints: { max_subtasks_per_person: 1 },
+  requested_by: 'mom',
 };
 
 const HHMM = /^([01]\d|2[0-3]):([0-5]\d)$/;
@@ -64,6 +66,9 @@ export class TaskInbox {
       subtasks.push(s.kind ? { id: s.id, label: s.label.trim(), kind: s.kind } : { id: s.id, label: s.label.trim() });
     }
 
+    if (body.requested_by !== undefined && !isPersonId(String(body.requested_by))) {
+      return { ok: false, error: 'requested_by는 mom, dad, sibling 중 하나예요.' };
+    }
     const max = body.constraints?.max_subtasks_per_person ?? null;
     if (max !== null && (!Number.isInteger(max) || max < 1)) {
       return { ok: false, error: 'max_subtasks_per_person은 1 이상의 정수여야 해요.' };
@@ -80,6 +85,7 @@ export class TaskInbox {
       subtasks,
       constraints: { max_subtasks_per_person: max },
       received_at: this.now(),
+      ...(body.requested_by !== undefined ? { requested_by: body.requested_by } : {}),
     };
     this.tasks.push(task);
     return { ok: true, task };

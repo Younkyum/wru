@@ -214,7 +214,8 @@ function Hub({ state, task, latest, revealing, shown, onSubmitHeroTask, onNegoti
             <span className="hub-deadline">{localHHMM(task.deadline)}까지</span>
           </div>
           <div className="hub-sub">
-            {task.constraints.max_subtasks_per_person === 1 ? '한 사람은 한 가지 일만' : '인원 제한 없음'} · {task.task_id}
+            {task.requested_by ? `${PERSON_LABEL_KO[task.requested_by]}가 낸 일 · ` : ''}
+            {task.constraints.max_subtasks_per_person === 1 ? '한 사람은 한 가지 일만' : '인원 제한 없음'}
           </div>
         </div>
         <button className="btn btn-primary" onClick={() => onNegotiate(task.task_id)}>
@@ -248,10 +249,12 @@ function Hub({ state, task, latest, revealing, shown, onSubmitHeroTask, onNegoti
           ))}
         </div>
         {latest.status === 'approved' ? (
-          <span className="hub-ok">승인됨 · 각자 자기 역할만 받았어요</span>
+          <span className="hub-ok">
+            {task.requested_by ? `${PERSON_LABEL_KO[task.requested_by]}가 승인 · ` : '승인됨 · '}각자 자기 역할만 받았어요
+          </span>
         ) : (
           <button className="btn btn-primary" onClick={() => onApprove(latest.negotiation_id)}>
-            이대로 승인하고 통지 보내기
+            {task.requested_by ? `${PERSON_LABEL_KO[task.requested_by]}가 승인하고 통지 보내기` : '이대로 승인하고 통지 보내기'}
           </button>
         )}
       </>
@@ -413,19 +416,6 @@ function MusePanel({ turn, shown }: { turn: MuseTurnView | null | undefined; sho
         <p className="side-empty">협상을 먼저 돌려 주세요.</p>
       ) : (
         <div className="io">
-          <div className="io-label">
-            요청 <code>POST /v1/chat/completions</code>
-            <span>
-              MUSE_MODEL={turn.model} · response_format {turn.response_format.type}
-            </span>
-          </div>
-          <pre className="code">{compact(turn.user)}</pre>
-          <div className="io-label">응답 (JSON 하나)</div>
-          {shown ? (
-            <pre className="code code-out">{JSON.stringify(turn.action, null, 2)}</pre>
-          ) : (
-            <pre className="code code-wait">모델이 답하는 중…</pre>
-          )}
           <div className="split">
             <div>
               <div className="split-title">모델이 정함</div>
@@ -435,6 +425,23 @@ function MusePanel({ turn, shown }: { turn: MuseTurnView | null | undefined; sho
               <div className="split-title">WRU가 정함</div>
               <div>토큰 · 스키마 검사 · 이유 문장 템플릿화 · 겹친 commit 판정</div>
             </div>
+          </div>
+          <div className="io-col">
+            <div className="io-label">
+              요청 <code>POST /v1/chat/completions</code>
+              <span>
+                MUSE_MODEL={turn.model} · response_format {turn.response_format.type}
+              </span>
+            </div>
+            <pre className="code">{compact(turn.user)}</pre>
+          </div>
+          <div className="io-col">
+            <div className="io-label">응답 (JSON 하나)</div>
+            {shown ? (
+              <pre className="code code-out">{JSON.stringify(turn.action, null, 2)}</pre>
+            ) : (
+              <pre className="code code-wait">모델이 답하는 중…</pre>
+            )}
           </div>
         </div>
       )}
@@ -449,7 +456,6 @@ function VideoScene({ scene }: { scene: 'intro' | 'outro' }) {
         <div className="scene-kicker">Meta Global AI Developer Hackathon</div>
         <div className="scene-title">WRU</div>
         <div className="scene-line">좌표 없이, 가족의 Muse들이 할 일을 나눠요</div>
-        <div className="scene-q">"누가 민아 데리러 가?"를 정하려고<br />가족 모두의 위치를 공유해야 할까요?</div>
       </div>
     );
   }
@@ -460,7 +466,7 @@ function VideoScene({ scene }: { scene: 'intro' | 'outro' }) {
         <li><b>WhereCtx</b> 각자 자기 서버에서 상태만</li>
         <li><b>에이전트 토큰</b> 내 토큰으로는 내 것만</li>
         <li><b>Muse</b> offer · counter · commit으로 역할만</li>
-        <li><b>게이트</b> 집 98% → 6%, 우연 수준</li>
+        <li><b>게이트</b> 위치를 알아도 로그는 같다</li>
       </ul>
       <div className="scene-line">누구나 자기 서버에 띄워 씁니다 · npm start / Docker</div>
       <div className="scene-note">이 녹화의 Muse는 같은 스키마의 mock · MODEL_API_KEY를 넣으면 Muse Spark</div>
@@ -491,11 +497,6 @@ function Metric({ label, rate, chance }: { label: string; rate: number; chance: 
       <div className="metric-track">
         <div className="metric-fill" style={{ width: `${Math.max(rate * 100, 1)}%` }} />
         <div className="metric-chance" style={{ left: `${chance * 100}%` }} />
-        {label === '학교' && (
-          <span className="chance-label" style={{ left: `${chance * 100}%` }}>
-            우연 {pct(chance)}
-          </span>
-        )}
       </div>
       <span className="metric-value">{pct(rate)}</span>
     </div>
@@ -542,8 +543,8 @@ function LeakPanel({ report, conditions, onShowReport }: LeakPanelProps) {
             })}
           </div>
           <p className="leak-note">
-            막대: {report.adversary === 'meta' ? 'Muse' : '규칙 기반 mock'} 적대자의 적중률 (조건마다 {report.trials}회) · 상한: 같은 로그끼리 묶어 정답을
-            미리 알고 고른 최고치, 적대자 구현과 무관
+            막대: {report.adversary === 'meta' ? 'Muse' : '규칙 기반 mock'} 적대자의 적중률 (조건마다 {report.trials}회) · 세로선: 우연{' '}
+            {pct(report.chance)} · 상한: 같은 로그끼리 묶어 정답을 미리 알고 고른 최고치
           </p>
         </>
       )}

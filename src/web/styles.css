@@ -471,3 +471,28 @@ footer { color: var(--faint); font-size: 12px; text-align: center; }
 .bound { display: grid; gap: 1px; }
 .video-on.focus-report .side { width: 900px; zoom: 1.28; }
 .video-on.focus-channel .stage { grid-template-columns: minmax(0, 1fr) 360px !important; }
+
+/* ── 라운드 4 반영 ─────────────────────────── */
+/* 강조색 정리: 앰버는 어두운 카드에만. 집 근처는 청록 */
+:root { --near: #11807a; }
+.video-on .demo-count { color: var(--ink); }
+.video-on .demo-title { font-size: 24px; }
+/* 혼자 남은 패널은 화면 세로 가운데, 더 크게 */
+.video-on.focus-boundary .stage, .video-on.focus-muse .stage, .video-on.focus-report .stage {
+  min-height: 560px; align-items: center;
+}
+.video-on.focus-boundary .side { zoom: 1.36; width: 760px; }
+.video-on.focus-muse .side { zoom: 1.16; width: 900px; }
+.video-on.focus-muse .io { grid-template-columns: 1fr 1fr; column-gap: 14px; align-items: start; }
+.video-on.focus-muse .io > .split { grid-column: 1 / -1; }
+.video-on.focus-report .side { zoom: 1.32; }
+/* 자막 상자 높이 고정 (1줄 · 2줄에서 흔들리지 않게) */
+.video-on .subtitle { min-height: 92px; display: grid; place-items: center; }
+/* 인트로 카드: 질문은 자막이 맡는다 */
+.scene-title { font-size: 140px; }
+/* 폰 말풍선 */
+.video-on .bubble { font-size: 15px; padding: 9px 12px; }
+.video-on .msg-detail { font-size: 13.5px; }
+.scene-points { gap: 18px; }
+
+.io-col { display: grid; gap: 6px; align-content: start; }

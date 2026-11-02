@@ -94,7 +94,8 @@ async function main() {
     // 협상 메시지 8개를 협상 구간 내레이션 길이에 고르게 나눈다
     const negotiation = SEGMENTS.findIndex((s) => s.reveal);
     const negotiationSec = voice[negotiation]!.reduce((n, v) => n + v.seconds + GAP, 0);
-    const revealMs = Math.round(((negotiationSec - 1) * 1000) / 8);
+    // 마지막 확정 메시지가 마지막 문장보다 조금 먼저 끝나게
+    const revealMs = Math.round(((negotiationSec - 3) * 1000) / 8);
     await page.goto(`http://localhost:${PORT}/demo?video=1&reveal=${revealMs}`);
     await page.waitForFunction(() => !!(window as unknown as { __wru?: unknown }).__wru);
     await page.evaluate(() => document.fonts.ready);

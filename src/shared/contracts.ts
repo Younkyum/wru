@@ -61,6 +61,8 @@ export interface Task {
   constraints: TaskConstraints;
   /** 인박스에 들어온 시각 (시뮬 시계) */
   received_at: string;
+  /** 태스크를 낸 사람. 협상 결과를 이 사람이 한 번 승인한다 */
+  requested_by?: PersonId;
 }
 
 export type LogKind = 'task_received' | 'clock' | 'refusal' | 'reset' | 'negotiation' | 'approval';

@@ -98,6 +98,7 @@ describe('API', () => {
       subtasks: HERO_TASK.subtasks,
       constraints: { max_subtasks_per_person: 1 },
       received_at: `${SIM_DATE}T17:30:00+09:00`,
+      requested_by: 'mom',
     });
     const list = await req(app, 'GET', '/api/tasks');
     expect(list.json).toHaveLength(1);
