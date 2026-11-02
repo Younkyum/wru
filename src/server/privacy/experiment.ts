@@ -5,6 +5,8 @@ import { PERSON_IDS, type PersonId, type Presence, type Task } from '../../share
 import type { MuseClient } from '../muse/client.js';
 import { MockMuse } from '../muse/mock.js';
 import { runNegotiation, type Agent } from '../negotiation/engine.js';
+import { makeFamilyAgents } from '../auth/gateway.js';
+import { StaticWhereCtx } from '../wherectx/static-adapter.js';
 import { createAdversary, type Adversary, type PublicLog } from './adversary.js';
 import { labelHints, locationHints, sanitizeSubtasks, type Gate } from './filter.js';
 import { DISTRICTS } from './gazetteer.js';
@@ -29,26 +31,29 @@ function scenarioTask(s: Scenario, gate: Gate): Task {
   };
 }
 
-/** 시나리오용 WhereCtx: 게이트 off일 때만 상세를 내준다 */
+/** 시나리오용 에이전트: 구성원마다 토큰을 받고, 게이트 off일 때만 게이트웨이가 상세를 내준다 */
 function scenarioAgents(s: Scenario, condition: Condition, muse: MuseClient): Agent[] {
   const gate: Gate = condition === 'off' ? 'off' : 'on';
-  return PERSON_IDS.map((person_id: PersonId) => {
+  const people = Object.fromEntries(
+    PERSON_IDS.map((person_id) => {
+      const p = s.people[person_id];
+      return [person_id, { person_id, state: p.state, eta_minutes: p.eta_minutes, updated_at: NOW } satisfies Presence];
+    }),
+  ) as Record<PersonId, Presence>;
+  const detailOf = (person_id: PersonId) => {
     const p = s.people[person_id];
-    const presence: Presence = { person_id, state: p.state, eta_minutes: p.eta_minutes, updated_at: NOW };
-    const detail = { area: p.area, distance_km: p.distance_km, style: p.style };
-    // filter_only: WhereCtx를 거치지 않고 에이전트 입력에 상세 위치를 몰래 끼워 넣는다
-    const leaky: MuseClient = { kind: muse.kind, decide: (input) => muse.decide({ ...input, detail }) };
-    return {
-      person_id,
-      muse: condition === 'filter_only' ? leaky : muse,
-      wherectx: {
-        person_id,
-        presence: () => presence,
-        // 게이트 on에서는 엔진이 detail을 부르지 않는다. off일 때만 상세가 나간다.
-        detail: () => (gate === 'off' ? detail : null),
-      },
-    };
+    return { area: p.area, distance_km: p.distance_km, style: p.style };
+  };
+  const { agents } = makeFamilyAgents(new StaticWhereCtx(people), muse, {
+    // 게이트 on에서는 엔진이 detail을 부르지 않는다. off일 때만 상세가 나간다.
+    detail: (person_id) => (gate === 'off' ? detailOf(person_id) : null),
   });
+  if (condition !== 'filter_only') return agents;
+  // filter_only: WhereCtx를 거치지 않고 에이전트 입력에 상세 위치를 몰래 끼워 넣는다
+  return agents.map((a) => ({
+    ...a,
+    muse: { kind: muse.kind, decide: (input) => muse.decide({ ...input, detail: detailOf(a.person_id) }) },
+  }));
 }
 
 export interface ExperimentOptions {

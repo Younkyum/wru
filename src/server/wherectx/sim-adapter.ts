@@ -5,18 +5,18 @@ import { refuseLocationDetail, type WhereCtxAdapter } from './adapter.js';
 export class SimWhereCtx implements WhereCtxAdapter {
   constructor(private readonly sim: Simulator) {}
 
-  get_presence(person_id: PersonId): Presence {
+  async get_presence(person_id: PersonId): Promise<Presence> {
     // 계약 필드만 골라 담는다 (구현이 필드를 늘려도 바깥으로 새지 않게)
     const { state, eta_minutes, updated_at } = this.sim.presence(person_id);
     return { person_id, state, eta_minutes, updated_at };
   }
 
-  get_eta(person_id: PersonId): Eta {
+  async get_eta(person_id: PersonId): Promise<Eta> {
     const { eta_minutes, updated_at } = this.sim.presence(person_id);
     return { person_id, eta_minutes, updated_at };
   }
 
-  request_location_detail(person_id: PersonId, _requested: string): Refusal {
+  async request_location_detail(person_id: PersonId, _requested: string): Promise<Refusal> {
     return refuseLocationDetail(person_id, this.sim.presence(person_id).state);
   }
 }

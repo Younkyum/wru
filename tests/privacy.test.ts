@@ -7,6 +7,8 @@ import { MetaMuse } from '../src/server/muse/meta';
 import { MockMuse, decideMock } from '../src/server/muse/mock';
 import { offerReason } from '../src/server/muse/policy';
 import { runNegotiation, type Agent } from '../src/server/negotiation/engine';
+import { makeFamilyAgents } from '../src/server/auth/gateway';
+import { StaticWhereCtx } from '../src/server/wherectx/static-adapter';
 import { guessMock, MuseAdversary, PRIOR } from '../src/server/privacy/adversary';
 import { renderLeakReport, runLeakExperiment } from '../src/server/privacy/experiment';
 import { filterMessage, findPlaceWords, labelHints, locationHints, normalize, sanitizeLabel } from '../src/server/privacy/filter';
@@ -124,7 +126,7 @@ describe('게이트 on 협상', () => {
     },
   };
   const agents = (muse: MuseClient): Agent[] =>
-    PERSON_IDS.map((id) => ({ person_id: id, muse, wherectx: { person_id: id, presence: () => PRESENCE[id], detail: () => ({ area: '망원동', distance_km: 3, style: 'area' as const }) } }));
+    makeFamilyAgents(new StaticWhereCtx(PRESENCE), muse, { detail: () => ({ area: '망원동', distance_km: 3, style: 'area' as const }) }).agents;
 
   it('LLM이 지명을 써도 로그에는 남지 않고, 결과는 그대로', async () => {
     const r = await runNegotiation({ task, agents: agents(leakyLLM), now: NOW });

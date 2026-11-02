@@ -75,6 +75,8 @@ export interface LogEntry {
 export interface DemoState {
   clock: { now: string; label: string };
   muse: 'mock' | 'meta';
+  /** 실제 WhereCtx가 하나라도 붙어 있는지 (true면 실제 시계) */
+  live: boolean;
   presence: Presence[];
   tasks: Task[];
   negotiations: NegotiationRecord[];
