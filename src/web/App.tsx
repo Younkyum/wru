@@ -5,9 +5,11 @@ import { api } from './client';
 import { DemoPage, type DemoView, type VideoOverlay } from './DemoPage';
 import { DEMO_STEPS, type StepAction } from './demoSteps';
 import type { BoundaryMatrix } from '../shared/boundary';
+import type { MuseTurnView } from '../shared/muse-turn';
 
 const HERO_TASK_ID = 't_pickup_milk_001';
-const REVEAL_MS = 700;
+/** 협상 메시지 간격. 영상 녹화는 ?reveal=ms로 내레이션에 맞춘다 */
+const REVEAL_MS = Number(new URLSearchParams(window.location.search).get('reveal')) || 700;
 
 export function App() {
   const [state, setState] = useState<DemoState | null>(null);
@@ -18,6 +20,7 @@ export function App() {
   const [reveal, setReveal] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const [boundary, setBoundary] = useState<BoundaryMatrix | null>(null);
+  const [museTurn, setMuseTurn] = useState<MuseTurnView | null>(null);
   const videoMode = new URLSearchParams(window.location.search).has('video');
   const [video, setVideo] = useState<VideoOverlay>({ caption: null, scene: null });
 
@@ -64,16 +67,14 @@ export function App() {
     reset: async () => {
       setPlaying(false);
       setReport(null);
+      setMuseTurn(null);
       await api.reset();
       setBoundary(await api.boundary());
     },
     boundary: async () => setBoundary(await api.boundary()),
     task: api.submitHeroTask,
     negotiate: () => api.negotiate(HERO_TASK_ID),
-    approve: async () => {
-      const id = state?.negotiations.at(-1)?.negotiation_id;
-      if (id) await api.approve(id);
-    },
+    muse: async () => setMuseTurn(await api.museTurn()),
     leak: async () => setReport(await api.leakReport()),
     none: async () => {},
   };
@@ -98,6 +99,10 @@ export function App() {
       next: () => (demoStep === null ? goTo(0) : goTo(demoStep + 1)),
       step: demoStep,
       busy: busy || (reveal !== null && reveal < total),
+      approve: async () => {
+        const id = state?.negotiations.at(-1)?.negotiation_id;
+        if (id) await run(() => api.approve(id));
+      },
       caption: (text: string | null) => setVideo((v) => ({ ...v, caption: text })),
       scene: (scene: VideoOverlay['scene']) => setVideo((v) => ({ ...v, scene })),
     };
@@ -136,6 +141,7 @@ export function App() {
       onAdvance={(m) => void run(() => api.advance(m))}
       report={report}
       boundary={boundary}
+      museTurn={museTurn}
       onShowBoundary={() => void run(async () => setBoundary(await api.boundary()))}
       onShowReport={() => void run(async () => setReport(await api.leakReport()))}
       onReset={() => {

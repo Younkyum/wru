@@ -2,6 +2,7 @@ import type { DemoState, Task } from '../shared/contracts';
 import type { NegotiationRecord } from '../shared/negotiation';
 import type { LeakReport } from '../shared/leak-report';
 import type { BoundaryMatrix } from '../shared/boundary';
+import type { MuseTurnView } from '../shared/muse-turn';
 
 /**
  * 서버에 WRU_ADMIN_TOKEN이 설정돼 있으면 /demo#key=<토큰>으로 한 번 열면 된다.
@@ -38,5 +39,6 @@ export const api = {
   negotiate: (taskId: string) => call<NegotiationRecord>(`/tasks/${taskId}/negotiate`, { method: 'POST' }),
   leakReport: () => call<LeakReport>('/leak-report'),
   boundary: () => call<BoundaryMatrix>('/demo/boundary'),
+  museTurn: () => call<MuseTurnView>('/demo/muse-turn?person=dad'),
   approve: (negotiationId: string) => call<NegotiationRecord>(`/negotiations/${negotiationId}/approve`, { method: 'POST' }),
 };

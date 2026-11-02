@@ -309,3 +309,54 @@ footer { color: var(--faint); font-size: 12px; text-align: center; }
 /* 영상에서는 아래 자막이 내레이션을 맡으므로 진행 막대는 제목만 */
 .video-on .demo-caption { display: none; }
 .video-on .demo-title { font-size: 22px; }
+
+/* ── Muse 요청 · 응답 ─────────────────────── */
+.io { display: grid; gap: 8px; overflow-y: auto; }
+.io-label { font-size: 13px; font-weight: 700; display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; }
+.io-label code { font-size: 12px; color: var(--transit); }
+.io-label span { font-size: 11px; font-weight: 500; color: var(--muted); }
+.code {
+  margin: 0; background: #151514; color: #e9e6df; border-radius: 10px; padding: 10px 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; line-height: 1.5;
+  white-space: pre-wrap; word-break: break-all;
+}
+.code-out { color: #b9e4c9; }
+.checks { list-style: none; margin: 2px 0 0; padding: 0; display: grid; gap: 3px; font-size: 12.5px; color: var(--home); font-weight: 600; }
+.focus-muse .zone-hub, .focus-muse .zone-phones { opacity: 0.3; filter: grayscale(1); }
+.focus-muse .zone-side { box-shadow: 0 0 0 2px var(--ink); }
+.focus-muse .stage { grid-template-columns: minmax(0, 1fr) 520px; }
+.focus-muse .phones { grid-template-columns: repeat(3, minmax(140px, 1fr)); }
+
+/* ── 라운드 1 디자인 지적 반영 ─────────────────── */
+/* 흐림은 회색조로, 폰 테두리는 유지 */
+.focus-phones .zone-feed, .focus-task .zone-presence, .focus-channel .zone-presence, .focus-roles .zone-presence,
+.focus-boundary .zone-feed, .focus-boundary .zone-presence, .focus-report .zone-phones,
+.focus-phones .zone-hub, .focus-phones .zone-side, .focus-task .zone-side, .focus-channel .zone-hub, .focus-roles .zone-side,
+.focus-boundary .zone-hub, .focus-report .zone-hub { filter: grayscale(1); }
+/* 채널 위쪽이 잘려 보이지 않게 */
+.channel { mask-image: linear-gradient(to bottom, transparent 0, #000 18px); padding-top: 6px; }
+/* 자막: 단어 단위 줄바꿈 · 고정 폭 */
+.subtitle { width: min(980px, 88vw); max-width: none; word-break: keep-all; text-wrap: balance; z-index: 50; }
+/* 진행 막대를 덜 무겁게 */
+.video-on .demo-bar { background: #2a2a28; padding: 10px 18px; box-shadow: none; }
+.video-on .demo-count { font-size: 24px; }
+/* 영상에서 글자 키우기 */
+.video-on .bubble { font-size: 14px; }
+.video-on .msg-text { font-size: 15px; }
+.video-on .msg-detail { font-size: 13px; }
+.video-on .side-head span, .video-on .leak-note { font-size: 13px; }
+.video-on .phone-sub, .video-on .note-title { font-size: 12px; }
+.video-on .matrix { font-size: 13px; }
+.video-on .code { font-size: 13px; }
+/* 자막 자리를 비워 폰과 겹치지 않게 */
+.video-on .phone, .video-on .side { height: 470px; }
+.focus-report .role-card { font-size: 13px; }
+/* 인트로 · 아웃트로 */
+.scene > * { animation: rise 0.6s ease both; }
+.scene > *:nth-child(2) { animation-delay: 0.15s; }
+.scene > *:nth-child(3) { animation-delay: 0.3s; }
+.scene > *:nth-child(4) { animation-delay: 0.9s; }
+.scene-foot { font-size: 18px; opacity: 0.8; color: #cfcac2; }
+@keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+.focus-muse .side { height: auto; }
+.focus-muse .io { overflow: visible; }

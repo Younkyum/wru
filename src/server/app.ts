@@ -24,6 +24,9 @@ import { runNegotiation } from './negotiation/engine.js';
 import type { NegotiationRecord } from '../shared/negotiation.js';
 import type { LeakReport } from '../shared/leak-report.js';
 import { runLeakExperiment } from './privacy/experiment.js';
+import { userPrompt } from './muse/meta.js';
+import { DEFAULT_MODEL } from './muse/client.js';
+import type { MuseTurnView } from '../shared/muse-turn.js';
 import { readFile } from 'node:fs/promises';
 import { PERSON_IDS } from '../shared/contracts.js';
 
@@ -267,6 +270,41 @@ export function createApp(options: AppOptions = {}) {
       .then((text) => JSON.parse(text) as LeakReport)
       .catch(() => runLeakExperiment());
     return c.json(await leakReport);
+  });
+
+  // 시연용: 최근 협상에서 아빠 에이전트의 첫 차례를 Meta Model API 요청 본문으로 다시 만든다 (실제 meta.ts 코드 경로)
+  app.get('/demo/muse-turn', async (c) => {
+    const record = negotiations.at(-1);
+    const task = record && inbox.get(record.task_id);
+    const person = (c.req.query('person') ?? 'dad') as PersonId;
+    if (!record || !task || !isPersonId(person)) return c.json({ error: 'no negotiation' }, 404);
+    const index = record.messages.findIndex((m) => m.from === person);
+    if (index < 0) return c.json({ error: 'no message' }, 404);
+    const message = record.messages[index]!;
+    const presence = await wherectx.get_presence(person);
+    const user = JSON.parse(
+      userPrompt({
+        self: person,
+        presence,
+        now: message.at,
+        task,
+        round: message.round,
+        max_rounds: record.max_rounds,
+        transcript: record.messages.slice(0, index),
+      }),
+    ) as Record<string, unknown>;
+    const { id: _id, at: _at, round: _round, fallback: _f, filtered: _fl, ...action } = message;
+    const view: MuseTurnView = {
+      person_id: person,
+      round: message.round,
+      model: env.MUSE_MODEL ?? DEFAULT_MODEL,
+      response_format: { type: 'json_object' },
+      user,
+      action,
+      muse: muse.kind,
+      checks: ['JSON 스키마 (type · subtask_id · fit)', '좌표 · 주소 · 지명 검사', 'reason을 상태 템플릿으로 재작성', 'commit은 엔진이 판정'],
+    };
+    return c.json(view);
   });
 
   app.get('/negotiations', (c) => c.json(negotiations));

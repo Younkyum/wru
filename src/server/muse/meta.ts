@@ -8,7 +8,7 @@ import { DEFAULT_BASE_URL, DEFAULT_MODEL, type AgentDecision, type AgentTurnInpu
 import { decideMock } from './mock.js';
 import { etaBucket, minutesUntil } from './policy.js';
 
-const SYSTEM_PROMPT = `너는 가족 구성원 한 명을 대신하는 협상 에이전트(Muse)다.
+export const SYSTEM_PROMPT = `너는 가족 구성원 한 명을 대신하는 협상 에이전트(Muse)다.
 가족 태스크의 subtask를 누가 맡을지 다른 에이전트와 offer / counter / commit / refuse 메시지로 정한다.
 
 규칙:
@@ -32,7 +32,7 @@ const GATE_OFF_PROMPT = SYSTEM_PROMPT.replace(
   '- my_detail에 있는 동네 이름 · 거리 · 정확한 ETA를 reason에 자유롭게 써도 된다.\n',
 );
 
-function userPrompt(input: AgentTurnInput): string {
+export function userPrompt(input: AgentTurnInput): string {
   const { presence, task } = input;
   return JSON.stringify({
     me: PERSON_LABEL_KO[input.self],

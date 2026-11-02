@@ -4,6 +4,10 @@
 
 export interface Segment {
   id: string;
+  /** 대본 문서에 쓰는 컷 이름 · 화면 설명 · 겨냥하는 심사 항목 */
+  title: string;
+  screen: string;
+  rubric: string;
   /** 인트로 · 아웃트로 카드. 없으면 데모 화면 */
   scene?: 'intro' | 'outro';
   /** 이 구간에서 들어갈 데모 모드 컷 (0부터). 없으면 컷을 넘기지 않는다 */
@@ -11,30 +15,43 @@ export interface Segment {
   lines: string[];
   /** 내레이션이 끝난 뒤 더 머무를 초 */
   hold?: number;
+  /** 협상 메시지를 이 구간 내레이션 길이에 맞춰 하나씩 보여 준다 */
+  reveal?: boolean;
+  /** 이 번호 문장을 읽은 뒤 승인 버튼을 누른다 */
+  approveAfter?: number;
 }
 
 export const SEGMENTS: Segment[] = [
   {
     id: 'intro',
+    title: '오프닝 카드',
+    screen: '검은 카드: WRU · "누가 민아 데리러 가?"',
+    rubric: 'Impact',
     scene: 'intro',
     lines: [
       '"누가 민아 데리러 가?" 이걸 정하려고, 많은 가족이 위치 공유 앱을 켭니다.',
-      '그러면 가족 모두의 좌표가 하루 종일 어딘가에 쌓이죠.',
-      'WRU는 좌표 없이, 가족 각자의 Muse 에이전트가 할 일을 나눕니다.',
+      '그러면 가족 모두의 이동 기록이 하루 종일 서버에 쌓이죠.',
+      'WRU는 좌표 없이, 가족 각자의 AI 에이전트가 협상해서 일을 나눕니다.',
     ],
-    hold: 0.6,
+    hold: 0.4,
   },
   {
     id: 'phones',
+    title: '1. 좌표 없는 지도',
+    screen: '폰 3대의 상태 카드 강조 (엄마 집 · 아빠 이동 중 20분 · 형 집 근처)',
+    rubric: 'Impact · Demo',
     step: 0,
     lines: [
       '폰 세 대는 엄마, 아빠, 형의 화면입니다.',
-      '각자 자기 서버의 WhereCtx에서 거친 상태만 받습니다.',
+      '위치는 각자 자기 서버에 둡니다. WhereCtx라는 개인 위치 서버이고, WRU는 거기서 거친 상태만 받습니다.',
       '엄마는 집, 아빠는 퇴근길 20분, 형은 집 근처. 지도도, 좌표도 없습니다.',
     ],
   },
   {
     id: 'boundary',
+    title: '2. 내 토큰으로는 내 것만',
+    screen: '오른쪽 열에 토큰 경계표 5×3 (대각선만 200), 폰마다 토큰 지문',
+    rubric: 'Technical Depth',
     step: 1,
     lines: [
       '에이전트마다 자기 토큰이 하나씩 있습니다.',
@@ -44,35 +61,65 @@ export const SEGMENTS: Segment[] = [
   },
   {
     id: 'task',
+    title: '3. 태스크 투입',
+    screen: 'WRU 바에 태스크, 폰마다 "가족 일" 알림',
+    rubric: 'Demo',
     step: 2,
     lines: ['저녁 6시까지 민아 픽업과 우유 사기. 한 사람은 한 가지 일만 맡습니다.'],
   },
   {
     id: 'negotiation',
+    title: '4. Muse 3명의 협상',
+    screen: 'Muse 채널과 각자 폰에 메시지 8개가 내레이션에 맞춰 하나씩',
+    rubric: 'Use of Meta AI Tooling · Demo',
     step: 3,
+    reveal: true,
     lines: [
-      '세 Muse가 자기 상태만 보고 손을 듭니다.',
-      '아빠는 가는 길이라 픽업에 적합도 높음. 형은 집 근처라 우유로 바꾸고, 엄마는 양보합니다.',
-      '오가는 건 offer, counter, commit 메시지뿐이고, 이유 문장도 WRU가 상태 템플릿으로 다시 씁니다.',
+      '각 사람의 에이전트는 Meta의 Muse Spark 모델로 움직이는 Muse입니다.',
+      '세 Muse가 자기 상태만 보고 손을 듭니다. 아빠는 퇴근길이라 픽업에 적합도 높음.',
+      '엄마와 형은 우유로 바꾸고, 엄마가 더 가까운 형에게 양보합니다.',
+      '아빠와 형이 차례로 확정합니다.',
+    ],
+  },
+  {
+    id: 'muse',
+    title: '5. Muse에게 가는 것',
+    screen: '오른쪽 열: Meta Model API 요청 본문(JSON)과 응답, 검사 목록',
+    rubric: 'Use of Meta AI Tooling · Technical Depth',
+    step: 4,
+    lines: [
+      '아빠의 Muse가 받는 건 이게 전부입니다. 내 상태, ETA 구간, 마감까지 남은 분, 지금까지 오간 메시지.',
+      '모델은 JSON 하나로 답합니다. WRU는 스키마와 위치어를 검사하고, 이유 문장은 상태 템플릿으로 바꿔 협상에 올립니다.',
+      '판단은 모델이 하고, 위치가 샐 수 있는 말은 WRU가 막습니다. 이 영상은 API 키가 없어 같은 스키마의 mock이 답했습니다.',
     ],
   },
   {
     id: 'roles',
-    step: 4,
-    lines: ['결과는 역할뿐입니다.', '한 번 승인하면 아빠 폰에는 픽업, 형 폰에는 우유만 뜹니다.'],
+    title: '6. 역할 통지',
+    screen: 'WRU 바에 역할 → 승인 버튼 → 폰마다 자기 역할 카드',
+    rubric: 'Impact · Demo',
+    step: 5,
+    approveAfter: 0,
+    lines: ['결과는 역할뿐입니다.', '사람이 한 번 승인하면, 아빠 폰에는 픽업, 형 폰에는 우유만 뜹니다.'],
   },
   {
     id: 'leak',
-    step: 5,
+    title: '7. 로그로 집을 찾을 수 있을까?',
+    screen: '게이트 on 카드 (집 6% · 학교 0%, 우연 4%)',
+    rubric: 'Technical Depth',
+    step: 6,
     lines: [
       '그럼 이 로그만으로 집을 찾을 수 있을까요?',
       '시나리오 50개의 협상 로그를 적대자에게 주고, 서울 25개 구 중 집과 학교를 맞히게 했습니다.',
-      '집 6퍼센트, 학교 0퍼센트. 찍는 것과 같습니다.',
+      '집 6퍼센트, 학교 0퍼센트. 우연 수준인 4퍼센트에 가깝습니다. 적대자는 로그에서 단서를 찾는 규칙 기반 추론기입니다.',
     ],
   },
   {
     id: 'gate',
-    step: 6,
+    title: '8. 게이트를 끄면',
+    screen: '카드 3장: off 98% · 72% / 위치를 알 때 6% · 0% / on 6% · 0%',
+    rubric: 'Technical Depth',
+    step: 7,
     lines: [
       '게이트를 끄고 에이전트가 동네 이름과 거리를 말하게 두면, 집 98퍼센트, 학교 72퍼센트.',
       '에이전트가 위치를 알고 말하려 해도, WRU는 그 문장을 내보내지 않습니다.',
@@ -81,11 +128,13 @@ export const SEGMENTS: Segment[] = [
   },
   {
     id: 'outro',
+    title: '클로징 카드',
+    screen: '검은 카드: 네 줄 요약 + 자가 호스팅 + mock 고지',
+    rubric: 'Use of Meta AI Tooling · Impact',
     scene: 'outro',
     lines: [
       'WhereCtx는 상태만, 토큰은 내 것만, Muse는 역할만.',
-      '누구나 자기 서버에 띄워 쓸 수 있습니다.',
-      '이 영상의 Muse는 같은 스키마의 mock이고, Meta Model API 키를 넣으면 Muse Spark로 바뀝니다.',
+      '누구나 자기 서버에 띄워 쓸 수 있고, Meta Model API 키를 넣으면 협상과 적대자 모두 Muse Spark로 바뀝니다.',
     ],
     hold: 1.2,
   },

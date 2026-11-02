@@ -11,6 +11,7 @@ import ffmpegInstaller from '@ffmpeg-installer/ffmpeg';
 import ffprobeInstaller from '@ffprobe-installer/ffprobe';
 import { chromium } from 'playwright';
 import { SEGMENTS, captionText } from './narration.js';
+import { renderScriptDoc } from './script-doc.js';
 
 const OUT = resolve('video-out');
 const TMP = join(OUT, 'tmp');
@@ -89,7 +90,11 @@ async function main() {
     });
     const page = await context.newPage();
     const t0 = Date.now();
-    await page.goto(`http://localhost:${PORT}/demo?video=1`);
+    // 협상 메시지 8개를 협상 구간 내레이션 길이에 고르게 나눈다
+    const negotiation = SEGMENTS.findIndex((s) => s.reveal);
+    const negotiationSec = voice[negotiation]!.reduce((n, v) => n + v.seconds + GAP, 0);
+    const revealMs = Math.round(((negotiationSec - 1) * 1000) / 8);
+    await page.goto(`http://localhost:${PORT}/demo?video=1&reveal=${revealMs}`);
     await page.waitForFunction(() => !!(window as unknown as { __wru?: unknown }).__wru);
     await page.evaluate(() => document.fonts.ready);
     await sleep(800);
@@ -114,6 +119,7 @@ async function main() {
         subs.push({ from: at, to: at + v.seconds, text: captionText(v.line) });
         await wru('caption', captionText(v.line));
         await sleep((v.seconds + GAP) * 1000);
+        if (seg.approveAfter === voice[si]!.indexOf(v)) await wru('approve');
       }
       // 협상 메시지가 다 나올 때까지 기다린다
       while (await busy()) await sleep(200);
@@ -144,9 +150,12 @@ async function main() {
       subs.map((s, i) => `${i + 1}\n${srtTime(s.from)} --> ${srtTime(s.to)}\n${s.text}\n`).join('\n'),
     );
     const total = duration(out);
-    const marks = SEGMENTS.map((seg, i) => `${seg.id} ${subs[voice.slice(0, i).reduce((n, v) => n + v.length, 0)]!.from.toFixed(1)}s`);
+    const starts = Object.fromEntries(
+      SEGMENTS.map((seg, i) => [seg.id, subs[voice.slice(0, i).reduce((n, v) => n + v.length, 0)]!.from]),
+    );
+    writeFileSync('docs/VIDEO_SCRIPT.md', renderScriptDoc(starts, total));
     console.log(`완료: ${out} (${total.toFixed(1)}초)`);
-    console.log(`구간 시작: ${marks.join(' · ')}`);
+    console.log(`구간 시작: ${SEGMENTS.map((s) => `${s.id} ${starts[s.id]!.toFixed(1)}s`).join(' · ')}`);
     if (total > MAX_SECONDS) {
       console.error(`3분(${MAX_SECONDS}초)을 넘었어요: ${total.toFixed(1)}초`);
       process.exitCode = 1;

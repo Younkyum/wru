@@ -1,13 +1,13 @@
-// 데모 모드 7컷. 화면 카피는 docs/COPY.md에도 모아 둔다.
+// 데모 모드 8컷. 화면 카피는 docs/COPY.md에도 모아 둔다.
 
 import type { DemoState } from '../shared/contracts';
 import type { Condition, LeakReport } from '../shared/leak-report';
 
 /** 컷마다 강조할 화면 영역 */
-export type PanelName = 'phones' | 'boundary' | 'task' | 'channel' | 'roles' | 'report';
+export type PanelName = 'phones' | 'boundary' | 'task' | 'channel' | 'muse' | 'roles' | 'report';
 
 /** 컷에 들어갈 때 서버에 하는 일 */
-export type StepAction = 'reset' | 'boundary' | 'task' | 'negotiate' | 'approve' | 'leak' | 'none';
+export type StepAction = 'reset' | 'boundary' | 'task' | 'negotiate' | 'muse' | 'leak' | 'none';
 
 export interface DemoStep {
   title: string;
@@ -47,16 +47,23 @@ export const DEMO_STEPS: DemoStep[] = [
     caption: () => '각자의 Muse가 자기 상태만 보고 offer → counter → commit을 주고받아요. 오가는 건 메시지뿐, 서로의 위치는 모릅니다.',
   },
   {
+    title: 'Muse에게 가는 것',
+    focus: 'muse',
+    action: 'muse',
+    caption: () =>
+      '아빠의 Muse가 받는 건 자기 상태 · ETA 구간 · 마감까지 남은 분 · 지금까지의 메시지뿐이에요. 모델은 JSON 하나로 답하고, WRU가 검사한 뒤 협상에 올려요.',
+  },
+  {
     title: '역할 통지',
     focus: 'roles',
-    action: 'approve',
+    action: 'none',
     caption: ({ state }) => {
       const n = state.negotiations.at(-1);
       const task = state.tasks.find((t) => t.task_id === n?.task_id);
       const roles = n?.assignment.assignments
         .map((a) => `${{ mom: '엄마', dad: '아빠', sibling: '형' }[a.person]} = ${task?.subtasks.find((s) => s.id === a.subtask)?.label}`)
         .join(', ');
-      return `결과는 역할만: ${roles ?? '—'}. 한 번 승인하면 각자 자기 역할만 받아요.`;
+      return `결과는 역할만: ${roles ?? '—'}. 사람이 한 번 승인하면 각자 자기 역할만 받아요.`;
     },
   },
   {

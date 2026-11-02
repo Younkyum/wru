@@ -6,6 +6,7 @@ import type { Fit, MessageType, NegotiationMessage, NegotiationRecord } from '..
 import { REASON_CODE_TEXT } from '../shared/negotiation';
 import type { PanelName } from './demoSteps';
 import type { BoundaryMatrix, BoundaryRow } from '../shared/boundary';
+import type { MuseTurnView } from '../shared/muse-turn';
 
 export interface DemoPageProps {
   state: DemoState;
@@ -21,6 +22,7 @@ export interface DemoPageProps {
   onShowReport: () => void;
   boundary?: BoundaryMatrix | null;
   onShowBoundary?: () => void;
+  museTurn?: MuseTurnView | null;
   onStartDemo?: () => void;
   demo?: DemoView | null;
   /** 영상 녹화 모드 (/demo?video=1): 자막 · 인트로 · 아웃트로 */
@@ -386,6 +388,47 @@ function BoundaryPanel({ boundary, onShow }: { boundary: BoundaryMatrix | null |
   );
 }
 
+/** JSON을 보기 좋게: 긴 transcript는 줄인다 */
+function compact(value: Record<string, unknown>): string {
+  const v = { ...value };
+  if (Array.isArray(v.transcript)) v.transcript = `[메시지 ${v.transcript.length}개]`;
+  if (Array.isArray(v.subtasks)) v.subtasks = (v.subtasks as { id: string }[]).map((s) => s.id).join(', ');
+  delete v.max_rounds;
+  return JSON.stringify(v, null, 1).replace(/\n\s*/g, '\n  ').replace(/\n  }$/, '\n}');
+}
+
+function MusePanel({ turn }: { turn: MuseTurnView | null | undefined }) {
+  return (
+    <>
+      <div className="side-head">
+        <h2>Muse에게 가는 것</h2>
+        <span>아빠 에이전트의 한 차례 · Meta Model API 요청 본문 (실제 코드 경로)</span>
+      </div>
+      {!turn ? (
+        <p className="side-empty">협상을 먼저 돌려 주세요.</p>
+      ) : (
+        <div className="io">
+          <div className="io-label">
+            요청 <code>POST /v1/chat/completions</code>
+            <span>
+              {turn.model} · response_format {turn.response_format.type}
+            </span>
+          </div>
+          <pre className="code">{compact(turn.user)}</pre>
+          <div className="io-label">응답 (JSON 하나)</div>
+          <pre className="code code-out">{JSON.stringify(turn.action, null, 2)}</pre>
+          <ul className="checks">
+            {turn.checks.map((c) => (
+              <li key={c}>✓ {c}</li>
+            ))}
+          </ul>
+          {turn.muse === 'mock' && <p className="leak-note">이 시연은 API 키가 없어 같은 스키마의 mock이 답했어요.</p>}
+        </div>
+      )}
+    </>
+  );
+}
+
 function VideoScene({ scene }: { scene: 'intro' | 'outro' }) {
   if (scene === 'intro') {
     return (
@@ -507,7 +550,7 @@ function DemoBar({ demo }: { demo: DemoView }) {
 
 export function DemoPage(props: DemoPageProps) {
   const { state, playing, error, demo, video } = props;
-  const [tab, setTab] = useState<'channel' | 'boundary' | 'report'>('channel');
+  const [tab, setTab] = useState<'channel' | 'boundary' | 'muse' | 'report'>('channel');
 
   const latest = state.negotiations.at(-1);
   const negotiatedTask = latest && state.tasks.find((t) => t.task_id === latest.task_id);
@@ -517,7 +560,11 @@ export function DemoPage(props: DemoPageProps) {
   const shown = reveal === null ? all : all.slice(0, reveal);
   const revealing = reveal !== null && reveal < all.length;
   const approved = latest?.status === 'approved' && !revealing;
-  const side = demo ? (demo.focus === 'report' ? 'report' : demo.focus === 'boundary' ? 'boundary' : 'channel') : tab;
+  const side = demo
+    ? demo.focus === 'report' || demo.focus === 'boundary' || demo.focus === 'muse'
+      ? demo.focus
+      : 'channel'
+    : tab;
   const tokenMark = (p: PersonId) => props.boundary?.rows.find((r) => r.holder === p)?.token ?? null;
 
   return (
@@ -611,6 +658,8 @@ export function DemoPage(props: DemoPageProps) {
             <Channel messages={shown} task={negotiatedTask} total={all.length} log={demo ? [] : state.log} />
           ) : side === 'boundary' ? (
             <BoundaryPanel boundary={props.boundary} onShow={props.onShowBoundary} />
+          ) : side === 'muse' ? (
+            <MusePanel turn={props.museTurn} />
           ) : (
             <LeakPanel
               report={props.report}
