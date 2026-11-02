@@ -290,6 +290,6 @@ describe('리뷰 반영', () => {
       agents: agentsFrom(HERO_PRESENCE),
       now: NOW,
     });
-    expect(r.assignment.notify.dad).toContain('by 18:00');
+    expect(r.assignment.notify.dad).toContain('by 6 PM');
   });
 });

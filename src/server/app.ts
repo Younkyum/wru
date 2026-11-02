@@ -2,6 +2,7 @@ import { Hono, type Context } from 'hono';
 import {
   PERSON_LABEL,
   localHHMM,
+  localTime,
   isForbiddenLocationKey,
   isPersonId,
   type DemoState,
@@ -127,7 +128,7 @@ export function createApp(options: AppOptions = {}) {
   const logSubmit = (result: SubmitResult) => {
     if (!result.ok) return;
     const labels = result.task.subtasks.map((s) => s.label).join(' + ');
-    log.add('task_received', `Task received: ${labels} (due ${localHHMM(result.task.deadline)})`);
+    log.add('task_received', `Task received: ${labels} (due ${localTime(result.task.deadline)})`);
   };
 
   const app = new Hono().basePath('/api');

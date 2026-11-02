@@ -12,6 +12,29 @@ const HERO_TASK_ID = 't_pickup_milk_001';
 const MANUAL_REVEAL = new URLSearchParams(window.location.search).get('reveal') === 'manual';
 const REVEAL_MS = 700;
 
+/** 요소 위 한 점을 커서 좌표로 (.cam 안의 좌표). 페이지 zoom과 카메라 확대를 rect 비율로 한 번에 되돌린다 */
+function cursorAt(el: HTMLElement, fx: number, fy: number): { x: number; y: number } {
+  const cam = document.querySelector<HTMLElement>('.cam');
+  const c = cam?.getBoundingClientRect() ?? new DOMRect(0, 0, 1, 1);
+  const k = cam ? c.width / cam.offsetWidth : 1;
+  const r = el.getBoundingClientRect();
+  const x = r.left + Math.min(r.width * fx, r.width - 12, 260);
+  const y = r.top + Math.min(r.height * fy, r.height - 6);
+  return { x: (x - c.left) / k, y: (y - c.top) / k };
+}
+
+/** 설명 중인 요소를 가리킬 때: 글자를 덮지 않게 요소 왼쪽 바깥에서 가리킨다 */
+function pointerBeside(el: HTMLElement): { x: number; y: number } {
+  const p = cursorAt(el, 0, 0);
+  const cam = document.querySelector<HTMLElement>('.cam');
+  const k = cam ? cam.getBoundingClientRect().width / cam.offsetWidth : 1;
+  const h = el.getBoundingClientRect().height / k;
+  const w = el.getBoundingClientRect().width / k;
+  // 왼쪽에 자리가 없으면(맨 왼쪽 폰) 요소 아래쪽 가운데를 가리킨다
+  if (p.x < 60) return { x: p.x + w / 2, y: p.y + h * 0.8 };
+  return { x: p.x - 38, y: p.y + Math.min(h / 2, 40) };
+}
+
 export function App() {
   const [state, setState] = useState<DemoState | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -25,10 +48,10 @@ export function App() {
   // 영상에서는 요청을 먼저 보여 주고, 내레이션에 맞춰 응답을 펼친다
   const [museShown, setMuseShown] = useState(!new URLSearchParams(window.location.search).has('video'));
   const videoMode = new URLSearchParams(window.location.search).has('video');
-  const [video, setVideo] = useState<VideoOverlay>({ caption: null, scene: null, hl: null });
+  const [video, setVideo] = useState<VideoOverlay>({ caption: null, scene: null, hl: null, chapter: null, cursor: null });
   // 영상 모드: 1440×900 녹화에서 1280×800 레이아웃으로 보이게 키운다
   useEffect(() => {
-    if (videoMode) document.documentElement.style.setProperty('zoom', '1.15');
+    if (videoMode) document.documentElement.style.setProperty('zoom', '1.4');
   }, [videoMode]);
 
   const run = useCallback(async (action: () => Promise<unknown>) => {
@@ -108,7 +131,42 @@ export function App() {
       busy: busy || (!MANUAL_REVEAL && reveal !== null && reveal < total),
       museShow: () => setMuseShown(true),
       revealTo: (n: number) => setReveal(n),
-      highlight: (key: string | null) => setVideo((v) => ({ ...v, hl: key })),
+      highlight: (key: string | null, hover = true) => {
+        setVideo((v) => ({ ...v, hl: key }));
+        // 강조 대상이 패널 밖에 있으면 실제 스크롤처럼 보이게 끌어온다
+        setTimeout(() => {
+          const el = document.querySelector<HTMLElement>('.hl-on');
+          // 누수 카드는 카드 머리가 패널 위에 오도록 맞춘다 (카드가 반쯤 잘리지 않게)
+          const card = el?.closest<HTMLElement>('.leak-card');
+          (card ?? el)?.scrollIntoView({ block: card ? 'start' : 'center', behavior: 'smooth' });
+          // 설명하는 곳에 커서를 올려 둔다 (발표자가 가리키듯)
+          if (el && hover) setTimeout(() => setVideo((v) => ({ ...v, cursor: { ...pointerBeside(el), down: false } })), 550);
+        }, 60);
+      },
+      chapter: (name: string | null) => setVideo((v) => ({ ...v, chapter: name })),
+      camera: (target: 'panel' | null) => setVideo((v) => ({ ...v, camera: target })),
+      reset: () => run(async () => {
+        setReport(null);
+        setMuseTurn(null);
+        setReveal(null);
+        await api.reset();
+        // 토큰 경계는 영상 안에서 버튼을 눌러 직접 보낸다
+        setBoundary(null);
+      }),
+      /** 녹화용: 커서를 버튼으로 옮기고 눌렀다 뗀 뒤 실제로 클릭한다 */
+      clickTarget: async (key: string) => {
+        const el = document.querySelector<HTMLElement>(`[data-demo="${key}"]`);
+        if (!el) throw new Error(`no demo target: ${key}`);
+        setVideo((v) => ({ ...v, cursor: { ...cursorAt(el, 0.6, 0.55), down: false } }));
+        await new Promise((res) => setTimeout(res, 600));
+        setVideo((v) => ({ ...v, cursor: v.cursor && { ...v.cursor, down: true } }));
+        await new Promise((res) => setTimeout(res, 160));
+        el.click();
+        setVideo((v) => ({ ...v, cursor: v.cursor && { ...v.cursor, down: false } }));
+        // 누른 뒤에는 결과를 가리지 않게 살짝 비켜난다
+        await new Promise((res) => setTimeout(res, 250));
+        setVideo((v) => ({ ...v, cursor: v.cursor && { x: v.cursor.x + 36, y: v.cursor.y + 48, down: false } }));
+      },
       approve: async () => {
         const id = state?.negotiations.at(-1)?.negotiation_id;
         if (id) await run(() => api.approve(id));
@@ -152,6 +210,8 @@ export function App() {
       report={report}
       boundary={boundary}
       museTurn={museTurn}
+      onShowMuse={() => void run(async () => setMuseTurn(await api.museTurn()))}
+      reveal={demoStep === null ? reveal : undefined}
       museShown={museShown}
       onShowBoundary={() => void run(async () => setBoundary(await api.boundary()))}
       onShowReport={() => void run(async () => setReport(await api.leakReport()))}
@@ -162,7 +222,13 @@ export function App() {
       }}
       onTogglePlay={() => setPlaying((p) => !p)}
       onSubmitHeroTask={() => void run(api.submitHeroTask)}
-      onNegotiate={(taskId) => void run(() => api.negotiate(taskId))}
+      onNegotiate={(taskId) =>
+        void run(async () => {
+          await api.negotiate(taskId);
+          // 영상 녹화는 메시지를 문장마다 펼친다
+          if (MANUAL_REVEAL) setReveal(0);
+        })
+      }
       onApprove={(id) => void run(() => api.approve(id))}
     />
   );

@@ -4,7 +4,7 @@ All copy that appears on the demo screen and in the video, in one place. If you 
 
 ## Fixed UI copy
 
-The screen is three family phones (Mom · Dad · Brother), a WRU bar on top, and a right column (Muse channel / Token boundary / Leak test). Each phone shows only that person's own status and what their own Muse said.
+The screen is three family phones (Mom · Dad · Brother), a WRU bar on top, and a right column (Muse channel / Model / Token boundary / Leak test). Each phone shows only that person's own status and what their own Muse said.
 
 | Where | Copy | File |
 | --- | --- | --- |
@@ -12,17 +12,19 @@ The screen is three family phones (Mom · Dad · Brother), a WRU bar on top, and
 | Header button | ▶ Demo mode | 〃 |
 | Phone header | Mom / Dad / Brother · my WhereCtx · my Muse · token fingerprint | 〃 |
 | Phone status card | Home · At home now / On the way · About 20 min from home / Near home · About 8 min from home | 〃, `src/shared/contracts.ts` |
-| Phone empty state | No one else's location is on this phone. | 〃 |
-| Phone task note | Family task · by 18:00 / Pick up Mina + Buy milk | 〃 |
-| Phone role card | Dad, you're on: Pick up Mina (by 18:00) / Mom, nothing for you this time | `src/server/negotiation/engine.ts` |
-| WRU bar (empty) | No family task yet · Add a task and the three Muses split it up · [＋ Pick up Mina + buy milk by 6 pm] | `src/web/DemoPage.tsx` |
-| WRU bar (task) | Pick up Mina + Buy milk · by 18:00 · Requested by Mom · one task per person · [Hand it to the three Muses] | 〃 |
-| WRU bar (result) | Dad = Pick up Mina · Brother = Buy milk · [Mom approves & notifies] → Approved by Mom · each person got only their own role | 〃 |
+| Phone empty state | This phone never shows anyone else's location. | 〃 |
+| Phone task note | Family task · by 6 PM / Pick up Mina + Buy milk | 〃 |
+| Phone role card | Dad, you're on: Pick up Mina (by 6 PM) / Mom, nothing for you this time | `src/server/negotiation/engine.ts` |
+| WRU bar (empty) | No family task yet · Add a task and the three Muses split it up · [＋ Pick up Mina + buy milk by 6 PM] | `src/web/DemoPage.tsx` |
+| WRU bar (task) | Pick up Mina + Buy milk · by 6 PM · Requested by Mom · one task per person · [Hand it to the three Muses] | 〃 |
+| WRU bar (result) | Dad = Pick up Mina · Brother = Buy milk · [Approve as Mom & notify] → Approved by Mom · each person got only their own role | 〃 |
 | Muse channel | Muse agent → Meta Model API → Muse Spark | 〃 |
 | Token boundary | Real GET /api/agent/presence/:id requests with each agent token · 200 allowed / 403 denied / 401 denied | 〃 |
-| What goes to the model | The model decides / WRU enforces · Request POST /v1/chat/completions · Response (one JSON object) · Even if the model slips in a location (real filter code) | 〃 |
-| Leak test | Best-case attacker (knows every answer) · What a rule-based attacker actually found · Log line | 〃 |
+| What the model sees | One turn from Dad's agent: the real request body. In this recording, a mock with the same JSON format replies. · The model decides / WRU enforces · Request POST /v1/chat/completions · Response (one JSON object) · Even if the model slips in a location (real filter code) | 〃 |
+| Leak test | Best-case attacker (knows which families share each log) · What a rule-based attacker actually found · Log line | 〃 |
 | Footer | No coordinates, addresses or school names are collected or shown. From WhereCtx we only take status and ETA. | 〃 |
+| Phone messages | I'll pick up Mina / I'll buy milk instead / Pick up Mina (under COMMIT) / "Dad's Muse is thinking" (video) | 〃 |
+| Video only | Browser tab "WRU · <chapter>", terminal: `cat .env` (masked) → `npm start` | `src/web/DemoPage.tsx` |
 
 ## Agent message templates (gate on)
 
@@ -47,7 +49,7 @@ File: `src/web/demoSteps.ts`. Captions with numbers are filled in from the leak 
 | 1 | Status only |
 | 2 | A task comes in |
 | 3 | Three Muses negotiate |
-| 4 | What goes to the model |
+| 4 | What the model sees |
 | 5 | Only roles come out |
 | 6 | Nobody can peek |
 | 7 | Can the log reveal home? |

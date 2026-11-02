@@ -40,7 +40,7 @@ export const DEMO_STEPS: DemoStep[] = [
     caption: () => "Each Muse looks only at its own status and trades offer → counter → commit. Only messages travel; nobody learns anyone's location.",
   },
   {
-    title: 'What goes to the model',
+    title: 'What the model sees',
     focus: 'muse',
     action: 'muse',
     caption: () =>

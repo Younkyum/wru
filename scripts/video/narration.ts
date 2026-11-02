@@ -9,8 +9,10 @@ export interface Line {
   hl?: string;
   /** 협상 컷: 이 문장을 시작할 때까지 보여 줄 메시지 수 */
   reveal?: number;
+  /** 이 문장을 읽으면서 커서로 누를 버튼 (DemoPage의 data-demo 값) */
+  click?: string;
   /** 이 문장을 읽은 뒤 화면에서 할 일 */
-  after?: 'approve' | 'museShow';
+  after?: 'museShow';
 }
 
 export interface Segment {
@@ -19,10 +21,12 @@ export interface Segment {
   title: string;
   screen: string;
   rubric: string;
-  /** 인트로 · 아웃트로 카드. 없으면 데모 화면 */
+  /** 인트로 · 터미널 · 아웃트로 카드. 없으면 앱 화면 */
   scene?: 'intro' | 'host' | 'outro';
-  /** 이 구간에서 들어갈 데모 모드 컷 (0부터). 없으면 컷을 넘기지 않는다 */
-  step?: number;
+  /** 브라우저 탭에 보일 챕터 이름 (앱 화면일 때) */
+  chapter?: string;
+  /** 오른쪽 패널을 설명하는 컷: 폰과 WRU 바를 흐리게 해 시선을 패널로 보낸다 */
+  camera?: 'panel';
   lines: Line[];
   /** 내레이션이 끝난 뒤 더 머무를 초 */
   hold?: number;
@@ -38,113 +42,116 @@ export const SEGMENTS: Segment[] = [
     rubric: 'Impact',
     scene: 'intro',
     lines: [
-      L('"Who\'s picking up Mina?" To answer that, many families share their location all day.'),
-      L("Or nobody answers the group chat until it's too late."),
-      L('WRU, short for "where are you", lets each person\'s AI agent split the errands without sharing coordinates.'),
+      L('"Who\'s picking up Mina?" Many families answer that by sharing their location all day.'),
     ],
-    hold: 0.3,
+    hold: 0.2,
   },
   {
     id: 'phones',
+    chapter: 'Status only',
     title: '1. Status only',
     screen: 'Three phones (Mom home · Dad on the way, 20 min · Brother near home)',
     rubric: 'Impact · Demo',
-    step: 0,
     lines: [
-      L('Each person runs WhereCtx, a small location server of their own.'),
-      L('WRU only gets a coarse status from it: home, near home, or on the way.'),
-      L('Mom is home, Dad is twenty minutes out, and Brother is near home.', { hl: 'phones' }),
+      L('WRU, short for "where are you", lets each person\'s AI agent split the errands without sharing coordinates.'),
+      L('Each person runs WhereCtx, their own small location server. WRU gets only a coarse status from it, like home, near home or on the way, plus a rough ETA.'),
+      L('Mom is home,', { hl: 'mom' }),
+      L('Dad is twenty minutes out,', { hl: 'dad' }),
+      L('and Brother is near home.', { hl: 'sibling' }),
     ],
   },
   {
     id: 'task',
+    chapter: 'A task comes in',
     title: '2. A task comes in',
     screen: 'WRU bar shows the task (requested by Mom); each phone gets a "Family task" note',
     rubric: 'Demo',
-    step: 1,
     lines: [
-      L("Mom posts a task: pick up Mina and buy milk by 6 pm. Mina's school is a fifteen-minute trip from home.", { hl: 'hub' }),
+      L("Mom posts a task: pick up Mina from school and buy milk by 6 PM.", { click: 'hero', hl: 'hub' }),
       L('The rule: one task per person.', { hl: 'hub' }),
     ],
   },
   {
     id: 'negotiation',
+    chapter: 'Three Muses negotiate',
     title: '3. Three Muses negotiate',
     screen: 'Phones + Muse channel; messages appear round by round in step with the narration',
     rubric: 'Use of Meta AI Tooling · Demo',
-    step: 2,
     lines: [
-      L("We call each agent a Muse. It's built for Meta's Muse Spark model.", { reveal: 0 }),
-      L('In this recording, a mock with the same output format stands in for the model.', { reveal: 3 }),
-      L('In round one, everyone who can make it in time offers to do the pickup.', { reveal: 3 }),
-      L("Each Muse judges only from its own status. Dad is already out and can stop by on the way, so he's the best fit.", { reveal: 3, hl: 'dad' }),
-      L('Mom and Brother both offer to get the milk instead.', { reveal: 6 }),
-      L('Brother is near home, so Mom steps aside.', { reveal: 8, hl: 'sibling' }),
-    ],
-  },
-  {
-    id: 'muse',
-    title: '4. What goes to the model',
-    screen: 'Meta Model API request body (JSON) → response JSON, "The model decides / WRU enforces", a real filter rewrite',
-    rubric: 'Use of Meta AI Tooling · Technical Depth',
-    step: 3,
-    lines: [
-      L("This is the data Dad's Muse sends to the model:", { hl: 'request' }),
-      L('its own state, an ETA range, minutes to the deadline, and the messages so far, in turn order.', { hl: 'request', after: 'museShow' }),
-      L('The model replies with one JSON object: which task, and how good a fit.', { hl: 'response' }),
-      L('WRU checks that the reply is valid and comes from the right agent.', { hl: 'split' }),
-      L('If the model slips a location into its reason, the log shows only a stock phrase.', { hl: 'rewrite' }),
+      L("Mom hands it to the family's agents. Each agent is called a Muse, and it's built to run on Meta's Muse Spark model.", { click: 'negotiate', reveal: 0 }),
+      L('In round one, all three offer to do the pickup.', { reveal: 3 }),
+      L("Each Muse judges only from its own status. Dad is already out and heading home, so the pickup fits him best.", { reveal: 3, hl: 'dad' }),
+      L('Mom and Brother switch their offers to the milk.', { reveal: 6 }),
+      L('Brother is near home and can drop by the store, so Mom steps back.', { reveal: 8, hl: 'mom+sibling' }),
     ],
   },
   {
     id: 'roles',
-    title: '5. Only roles come out',
+    chapter: 'Only roles come out',
+    title: '4. Only roles come out',
     screen: 'WRU bar shows roles → Mom approves → each phone shows only its own role',
     rubric: 'Impact · Demo',
-    step: 4,
     lines: [
-      L('The result is just who does what. Mom approves once,', { hl: 'hub', after: 'approve' }),
-      L("and each phone gets only its own job: pickup for Dad, milk for Brother.", { hl: 'roles' }),
+      L('The result is just who does what, and Mom approves it once.', { click: 'approve', hl: 'hub' }),
+      L('Each phone gets only its own task: pickup for Dad, milk for Brother.', { hl: 'roles' }),
+    ],
+  },
+  {
+    id: 'muse',
+    chapter: 'What the model sees',
+    title: '5. What the model sees',
+    screen: 'Phones fade; the panel shows the Meta Model API request body (JSON) → response JSON, "The model decides / WRU enforces", a real filter rewrite',
+    rubric: 'Use of Meta AI Tooling · Technical Depth',
+    camera: 'panel',
+    lines: [
+      L("Here is what Dad's Muse sends the model: its own status, an ETA range, minutes to the deadline, and the messages so far.", { click: 'tab-model', hl: 'request', after: 'museShow' }),
+      L('The model replies with one JSON object: which task, and how good a fit.', { hl: 'response' }),
+      L('In this recording, a mock that returns the same JSON format stands in for Muse Spark.', { hl: 'response' }),
+      L('WRU checks that the reply is valid and comes from the right agent.', { hl: 'split' }),
+      L('If the model slips a location into its reason, WRU swaps it for a fixed template before logging.', { hl: 'rewrite' }),
     ],
   },
   {
     id: 'boundary',
+    chapter: 'Nobody can peek',
     title: '6. Nobody can peek',
     screen: 'Token boundary matrix 5×3 (only the diagonal is 200), the 403 cell highlighted',
     rubric: 'Technical Depth',
-    step: 5,
+    camera: 'panel',
     lines: [
-      L('Could one agent peek at another? Each one holds its own token.', { hl: 'diag' }),
-      L("Dad's token asking for Mom's status gets a 403.", { hl: 'dad-mom' }),
-      L('We sent fifteen real requests: each of the three tokens, no token, and a forged one, asking about all three people.'),
+      L('Could one agent peek at another? Each one holds its own token.', { click: 'tab-boundary', hl: 'diag' }),
+      L('We send fifteen real requests: five callers, each asking about all three people.', { click: 'run-boundary', hl: 'grid' }),
+      L("A request with Dad's token for Mom's status gets 403 Forbidden.", { hl: 'dad-mom' }),
     ],
   },
   {
     id: 'leak',
+    chapter: 'Can the log reveal home?',
     title: '7. Can the log reveal home?',
-    screen: 'Three cards in order: gate off (50 logs, home 98% · school 72%) → gate on (5 logs, ceiling 22% · 24%, rule-based attacker 6% · 0%, chance 4%) → agent secretly knows (same 5 logs)',
+    screen: 'Three cards in order: gate off (50 logs, home 98% · school 72%) → gate on (5 logs, ceiling 22% · 24%, rule-based attacker 6% · 0%, chance 4%) → agent knows its location (same 5 logs)',
     rubric: 'Technical Depth',
-    step: 6,
+    camera: 'panel',
     lines: [
-      L("Could these logs reveal where the family lives? We simulated fifty families across Seoul's twenty-five districts."),
-      L("The privacy gate hides everything but status. Without it, agents chat freely and every family's log is unique.", { hl: 'card-off' }),
-      L('A simple attacker then finds the home district 98 percent of the time.', { hl: 'card-off' }),
-      L('With the gate on, those fifty families produce just five different logs.', { hl: 'card-on' }),
-      L('Even an attacker who knew every answer in advance could be right only 22 percent of the time, against 4 percent for random guessing.', { hl: 'card-on' }),
-      L('All of that comes from the coarse status. In our test, the negotiation added nothing beyond it.', { hl: 'card-on' }),
-      L('An agent that secretly knows its exact location produces exactly the same logs as one that does not.', { hl: 'card-filter_only' }),
+      L("Could these logs reveal where the family lives? We simulated fifty families across Seoul's twenty-five districts.", { click: 'tab-leak' }),
+      L("The privacy gate lets through only status and a rough ETA. Without it, agents chat freely and every family's log is unique.", { hl: 'card-off' }),
+      L('A rule-based attacker then finds the home district 98 percent of the time.', { hl: 'off-actual' }),
+      L('With the gate on, those fifty families produce just five different logs.', { hl: 'on-logs' }),
+      L("Families that share a log look identical, so even the best-case attacker gets the home district right only 22 percent of the time.", { hl: 'on-bound' }),
+      L('Our rule-based attacker got 6 percent, and random guessing gets 4 percent.', { hl: 'on-actual' }),
+      L('Status alone is what gives away that 22 percent.', { hl: 'on-bound' }),
+      L('Even an agent that knows its exact location produces the same logs.', { hl: 'card-filter_only' }),
     ],
   },
   {
     id: 'host',
     title: 'Self-hosting',
-    screen: 'Light card: WhereCtx token per person → family server .env and family.config.json → npm start / Docker',
+    screen: 'Terminal: cat .env shows a masked, read-only WhereCtx token for Mom; npm start prints the family (mom=location.example.com, dad=sim, sibling=sim)',
     rubric: 'Impact · Technical Depth',
     scene: 'host',
     lines: [
-      L('One family runs one server.'),
-      L('Each member adds a read-only access token from their own WhereCtx, and one command starts the server.'),
-      L('Locations never leave each person\'s own server.'),
+      L("Each member adds a read-only token from their own WhereCtx. In this config, Mom's is real and the others are simulated."),
+      L('One command starts the family server.'),
+      L('Exact locations never leave each person\'s own server.'),
     ],
   },
   {
@@ -154,9 +161,9 @@ export const SEGMENTS: Segment[] = [
     rubric: 'Use of Meta AI Tooling · Impact',
     scene: 'outro',
     lines: [
-      L('Add a Meta API key, and the same code calls Muse Spark.'),
+      L('Add a Meta Model API key, and the same code calls Muse Spark.'),
     ],
-    hold: 1.2,
+    hold: 0.8,
   },
 
 ];
@@ -165,6 +172,8 @@ export const SEGMENTS: Segment[] = [
 export function captionText(line: string): string {
   return line
     .replace(/(\d+) percent/g, '$1%')
+    .replace(/(\d) PM/g, '$1\u00a0PM')
+    .replace(/best-case/g, 'best\u2011case')
     .replace('fifteen', '15')
     .replace('fifty scenarios', '50 scenarios')
     .replace('all fifty logs', 'all 50 logs')
