@@ -142,8 +142,8 @@
       "unassigned": [],
       "notify": {
         "mom": "Mom, nothing for you this time",
-        "dad": "Dad, you're on: Pick up Mina (by 18:00)",
-        "sibling": "Brother, you're on: Buy milk (by 18:00)"
+        "dad": "Dad, you're on: Pick up Mina (by 6 PM)",
+        "sibling": "Brother, you're on: Buy milk (by 6 PM)"
       }
     },
     "status": "awaiting_approval",

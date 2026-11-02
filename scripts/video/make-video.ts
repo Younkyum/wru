@@ -19,9 +19,9 @@ const PORT = Number(process.env.WRU_VIDEO_PORT ?? 8790);
 const VOICE = process.env.WRU_VIDEO_VOICE ?? 'Samantha';
 const RATE = process.env.WRU_VIDEO_RATE ?? '182';
 const MAX_SECONDS = 180;
-// 1440×900으로 녹화하고, 영상 모드(?video=1)는 CSS zoom 1.125로 그려 글자를 키운다 (1280×800 레이아웃)
-const W = 1440;
-const H = 900;
+// 1920×1080으로 녹화하고, 영상 모드(?video=1)는 CSS zoom 1.4로 그려 글자를 키운다 (약 1371×771 레이아웃)
+const W = 1920;
+const H = 1080;
 
 const ffmpeg = ffmpegInstaller.path;
 const ffprobe = ffprobeInstaller.path;
@@ -39,13 +39,18 @@ function srtTime(sec: number): string {
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')},${String(ms % 1000).padStart(3, '0')}`;
 }
 
+/** TTS가 잘못 읽는 이름은 소리 나는 대로 바꿔 읽힌다 (자막은 원래 표기) */
+function spoken(line: string): string {
+  return line.replace(/WhereCtx/g, 'Where Context').replace(/\bWRU\b/g, 'W R U').replace(/\u2011/g, '-');
+}
+
 /** 문장마다 따로 녹음해서 길이를 안다 (자막을 문장 단위로 맞추기 위해) */
 function narrate() {
   return SEGMENTS.map((seg) =>
     seg.lines.map(({ text: line }, i) => {
       const aiff = join(TMP, `${seg.id}-${i}.aiff`);
       const wav = join(TMP, `${seg.id}-${i}.wav`);
-      execFileSync('say', ['-v', VOICE, '-r', RATE, '-o', aiff, line]);
+      execFileSync('say', ['-v', VOICE, '-r', RATE, '-o', aiff, spoken(line)]);
       execFileSync(ffmpeg, ['-y', '-loglevel', 'error', '-i', aiff, '-ar', '48000', '-ac', '1', wav]);
       return { line, wav, seconds: duration(wav) };
     }),
@@ -93,38 +98,41 @@ async function main() {
     const t0 = Date.now();
     // 협상 메시지는 문장마다 정한 수만큼 스크립트가 직접 펼친다
     await page.goto(`http://localhost:${PORT}/demo?video=1&reveal=manual`);
+    await page.mouse.move(-10, -10);
     await page.waitForFunction(() => !!(window as unknown as { __wru?: unknown }).__wru);
     await page.evaluate(() => document.fonts.ready);
     await sleep(800);
     const start = (Date.now() - t0) / 1000; // 영상에서 잘라낼 앞부분 (로딩)
 
-    const wru = <T>(fn: string, arg?: unknown) =>
-      page.evaluate(([f, a]) => (window as any).__wru[f as string](a), [fn, arg] as const) as Promise<T>;
+    const wru = <T>(fn: string, ...args: unknown[]) =>
+      page.evaluate(([f, a]) => (window as any).__wru[f as string](...(a as unknown[])), [fn, args] as const) as Promise<T>;
     const busy = () => page.evaluate(() => (window as any).__wru.busy as boolean);
 
     const clips: { wav: string; at: number }[] = [];
     const subs: { from: number; to: number; text: string }[] = [];
+    await wru('reset');
     for (const [si, seg] of SEGMENTS.entries()) {
       await wru('scene', seg.scene ?? null);
-      if (seg.step !== undefined) {
-        await (seg.step === 0 ? wru('start') : wru('next'));
-        await page.waitForFunction((s) => (window as any).__wru.step === s, seg.step);
-      }
+      await wru('chapter', seg.chapter ?? null);
+      // 탭을 바꿀 때는 창 전체로 물러났다가, 누른 뒤에 패널로 다가간다
+      await wru('camera', null);
       await sleep(250);
       for (const [li, v] of voice[si]!.entries()) {
         const line = seg.lines[li]!;
         if (line.reveal !== undefined) await wru('revealTo', line.reveal);
-        await wru('highlight', line.hl ?? null);
+        await wru('highlight', line.hl ?? null, !line.click);
         const at = (Date.now() - t0) / 1000 - start;
         clips.push({ wav: v.wav, at });
         subs.push({ from: at, to: at + v.seconds, text: captionText(v.line) });
         await wru('caption', captionText(v.line));
-        await sleep((v.seconds + GAP) * 1000);
+        // 문장을 읽는 동안 커서가 버튼으로 가서 실제로 누른다
+        const click = (line.click ? wru('clickTarget', line.click) : Promise.resolve()).then(() =>
+          seg.camera && li === 0 ? sleep(300).then(() => wru('camera', seg.camera)) : undefined,
+        );
+        await Promise.all([click, sleep((v.seconds + GAP) * 1000)]);
         if (line.after) await wru(line.after);
       }
       await wru('highlight', null);
-      // 협상 메시지가 다 나올 때까지 기다린다
-      while (await busy()) await sleep(200);
       await sleep((seg.hold ?? 0.3) * 1000);
       await wru('caption', null);
     }

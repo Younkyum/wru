@@ -696,3 +696,173 @@ footer { color: var(--faint); font-size: 12px; text-align: center; }
 .scene-intro .subtitle, .scene-outro .subtitle { background: rgba(20, 20, 19, 0.88); border-color: rgba(255, 255, 255, 0.16); color: #fff; }
 .subtitle { background: rgba(20, 20, 19, 0.86); }
 .scene-note { font-size: 20px; }
+
+/* ════════════════════════════════════════════════════════════
+   라이브 시연 영상 (v2): 진짜 앱을 브라우저 창 안에서 조작하는 화면
+   - 폰 3대는 처음부터 끝까지 같은 크기 · 같은 자리
+   - 오른쪽 패널만 탭으로 바뀐다 (채널 → Model → 토큰 경계 → 누수)
+   - 화면 아래 130px은 자막 자리
+   ════════════════════════════════════════════════════════════ */
+.video-on .wru, .wru.video-on { padding: 0 20px 136px; gap: 12px; max-width: none; }
+.video-on .browser-bar {
+  margin: 0 -20px; display: flex; align-items: center; gap: 14px; height: 38px; padding: 0 16px;
+  background: #e1dfd9; border-bottom: 1px solid #d3d0c8; font-size: 13px; color: #55534e;
+}
+.browser-bar .dots { display: inline-flex; gap: 7px; }
+.browser-bar .dots i { width: 11px; height: 11px; border-radius: 50%; background: #c9c6be; display: block; }
+.browser-bar .dots i:nth-child(1) { background: #ec6a5e; }
+.browser-bar .dots i:nth-child(2) { background: #f4bf4f; }
+.browser-bar .dots i:nth-child(3) { background: #61c554; }
+.browser-bar .url {
+  flex: 1; max-width: 560px; margin: 0 auto; text-align: center; background: #f4f3ef; border-radius: 8px;
+  padding: 4px 12px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px;
+}
+.browser-bar .chapter {
+  position: absolute; right: 18px; font-size: 13px; font-weight: 700; color: var(--ink);
+  background: #fff; border: 1px solid var(--line); border-radius: 999px; padding: 3px 12px;
+}
+.wru.video-on .top { padding-top: 2px; }
+.wru.video-on .brand strong { font-size: 22px; }
+.wru.video-on footer { display: none; }
+/* 고정 레이아웃 */
+.wru.video-on .stage { grid-template-columns: minmax(0, 1fr) 520px !important; gap: 16px; }
+.wru.video-on .phones { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; gap: 14px; }
+.wru.video-on .phone { height: 468px !important; }
+.wru.video-on .side { height: 468px !important; max-height: 468px; overflow-y: auto; zoom: 1 !important; width: auto !important; scroll-behavior: smooth; }
+.wru.video-on .hub { min-height: 60px; }
+.wru.video-on .self-ring { width: 80px; height: 80px; }
+.wru.video-on .me { padding: 10px 10px 12px; gap: 2px; }
+.wru.video-on .state { font-size: 23px; }
+/* 오른쪽 패널 안 크기 (520px 폭) */
+.wru.video-on .leak { grid-template-columns: 1fr !important; gap: 10px; }
+.wru.video-on .leak-card { padding: 10px 14px; }
+.wru.video-on .leak-desc { margin-bottom: 2px; }
+.wru.video-on .bound-nums b { font-size: 28px; }
+.wru.video-on .io { grid-template-columns: 1fr !important; }
+.wru.video-on .code { font-size: 12.5px; }
+.wru.video-on .matrix .cell { padding: 11px 4px; font-size: 13.5px; }
+/* 커서 */
+.cursor {
+  position: fixed; z-index: 60; pointer-events: none; transform: translate(-4px, -2px);
+  transition: left 0.7s cubic-bezier(0.3, 0.7, 0.2, 1), top 0.7s cubic-bezier(0.3, 0.7, 0.2, 1);
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.3));
+}
+.cursor::after {
+  content: ''; position: absolute; left: -10px; top: -10px; width: 28px; height: 28px; border-radius: 50%;
+  background: rgba(47, 95, 208, 0.35); transform: scale(0); transition: transform 0.15s ease;
+}
+.cursor.down::after { transform: scale(1); }
+.cursor.down svg { transform: scale(0.9); }
+/* 터미널 장면 */
+.scene-term { background: #1b1b19; justify-content: center; }
+.term { width: min(1080px, 90vw); border-radius: 14px; overflow: hidden; border: 1px solid #3a3a36; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45); text-align: left; }
+.term-bar { display: flex; align-items: center; gap: 14px; height: 34px; padding: 0 14px; background: #2b2b28; color: #a9a59c; font-size: 13px; }
+.term-bar .dots { display: inline-flex; gap: 7px; }
+.term-bar .dots i { width: 11px; height: 11px; border-radius: 50%; background: #555; display: block; }
+.term-bar .dots i:nth-child(1) { background: #ec6a5e; }
+.term-bar .dots i:nth-child(2) { background: #f4bf4f; }
+.term-bar .dots i:nth-child(3) { background: #61c554; }
+.term-body {
+  margin: 0; padding: 22px 24px; background: #121211; color: #e8e5dd; font-size: 19px; line-height: 1.6;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre-wrap;
+}
+.term-body .p { color: #6fd0a0; }
+.term-body .c { color: #8e8a82; }
+.term-body .err { color: #ff8a78; }
+.browser-bar { position: relative; }
+/* v2 보정: 헤더 높이 고정(폰이 위아래로 흔들리지 않게), 폰 키우기, 이름 잘림 방지 */
+.wru.video-on .hub { height: 64px; min-height: 64px; box-sizing: border-box; overflow: hidden; }
+.wru.video-on .phone { height: 528px !important; }
+.wru.video-on .side { height: 528px !important; max-height: 528px; }
+.wru.video-on .phone-sub { display: none; }
+.wru.video-on .phone-owner { white-space: nowrap; font-size: 17px; }
+.wru.video-on .feed { mask-image: linear-gradient(to bottom, transparent 0, #000 40px); }
+.term-body .tl { display: block; opacity: 0; animation: term-in 0.25s ease forwards; }
+.term-body .tl.gap { margin-top: 1.6em; }
+@keyframes term-in { to { opacity: 1; } }
+.wru.video-on .phone { height: 514px !important; }
+.wru.video-on .side { height: 514px !important; max-height: 514px; }
+.wru.video-on .phone-head { gap: 8px; padding-right: 12px; }
+.wru.video-on .phone-head .key { padding: 2px 6px; font-size: 11px; flex-shrink: 0; margin-left: auto; }
+.wru.video-on .phone-head .key svg { display: none; }
+/* 라이브 라운드 1 반영: 흐림은 회색막 대신 채도·투명도, 강조 테두리는 한 줄, 작은 글씨 키우기 */
+.wru.video-on .phone.hl-dim .phone-screen { opacity: 0.5; filter: saturate(0.2); }
+.wru.video-on .hl-dim, .wru.video-on .cell.hl-dim, .wru.video-on .leak-card.hl-dim { opacity: 0.45; filter: saturate(0.3); }
+.wru.video-on .phone.hl-on { outline: 3px solid var(--transit); outline-offset: 0; box-shadow: none; }
+.wru.video-on .tabs [role='tab'] { color: #4a4843; font-size: 14px; }
+.wru.video-on .tabs [role='tab'][aria-selected='true'] { color: var(--ink); }
+.wru.video-on .phone-head .key { font-size: 12px; color: #55534e; }
+.wru.video-on .event-log, .wru.video-on details { font-size: 13px; }
+.term { width: min(1240px, 94vw); }
+.term-body { font-size: 22px; padding: 28px 30px; }
+.wru.video-on .tabs [role='tab'] { white-space: nowrap; font-size: 13.5px; padding-left: 6px; padding-right: 6px; }
+/* 라이브 라운드 2: 1920×1080 녹화(zoom 1.4 → 약 1371×771), 자막은 창 밖 띠, 브라우저 탭 */
+.wru.video-on { padding-bottom: 138px; }
+.wru.video-on .stage { grid-template-columns: minmax(0, 1fr) 600px !important; }
+.wru.video-on .phone { height: 500px !important; }
+.wru.video-on .side { height: 500px !important; max-height: 500px; }
+.video-on .browser-bar { height: 40px; }
+.browser-bar .tab {
+  align-self: flex-end; height: 32px; display: inline-flex; align-items: center; padding: 0 16px; margin-left: 6px;
+  background: #f4f3ef; border-radius: 9px 9px 0 0; font-size: 13px; font-weight: 600; color: var(--ink); white-space: nowrap;
+}
+.browser-bar .url { flex: 1; max-width: 520px; margin: 0 auto 0 24px; text-align: left; }
+.browser-bar .chapter { display: none; }
+.sub-band {
+  position: fixed; left: 0; right: 0; bottom: 0; height: 126px; z-index: 70; background: #161615;
+  display: flex; align-items: center; justify-content: center; border-top: 1px solid #2c2c29;
+}
+.sub-band .subtitle {
+  position: static; transform: none; background: transparent !important; border: 0 !important; box-shadow: none !important;
+  color: #f4f1ea; padding: 0 24px; font-size: 25px; min-height: 0; width: auto; max-width: min(1150px, 92vw);
+}
+/* 폰 피드: 잘린 카드 없이 마지막 3장만 */
+.wru.video-on .feed { mask-image: none; overflow: hidden; justify-content: flex-end; }
+.wru.video-on .feed > :not(:nth-last-child(-n + 3)) { display: none; }
+/* 강조 테두리는 폰 안쪽에 그려 폰 크기가 달라 보이지 않게 */
+.wru.video-on .phone.hl-on { outline: 3px solid var(--transit); outline-offset: -3px; }
+.wru.video-on pre, .wru.video-on .code { white-space: pre-wrap; word-break: break-word; }
+.wru.video-on .hub-muse { font-size: 14px; color: #4a4843; }
+.term-body .caret { display: inline-block; width: 0.55em; height: 1.05em; margin-left: 2px; vertical-align: -0.15em; background: #e8e5dd; }
+.term-body .tl { opacity: 1; animation: none; }
+/* 라이브 라운드 3: .cam(앱 화면 묶음) · 커서는 .cam 기준 · 스크롤 가장자리 · 폰 글자 */
+.cam { display: contents; }
+.wru.video-on .cam {
+  display: flex; flex-direction: column; gap: 12px; position: relative;
+}
+.wru.video-on .cursor { position: absolute; }
+.wru.video-on .side { scroll-padding-top: 12px; }
+.wru.video-on .eta { white-space: nowrap; }
+.wru.video-on .hub.hl-on { outline-offset: -3px; }
+.wru.video-on .code { overflow-wrap: anywhere; }
+.wru.video-on .logs b { font-size: 26px; }
+.wru.video-on .metric .bar i, .wru.video-on .bar-fill { min-width: 4px; }
+.sub-band .subtitle { line-height: 1.35; }
+/* 라이브 라운드 4: 브라우저 바는 확대 밖에 고정, 확대는 1.15×(패널 오른쪽 아래 기준), 패널 강조는 안쪽 테두리만 */
+.video-on .browser-bar { position: relative; z-index: 20; }
+.wru.video-on .cam-panel .phone .phone-screen, .wru.video-on .cam-panel .hub { opacity: 0.4; filter: saturate(0.3); transition: opacity 0.6s; }
+.wru.video-on .side .hl-on { outline-offset: 4px; }
+.wru.video-on .side .hl-dim, .wru.video-on .side .cell.hl-dim, .wru.video-on .side .leak-card.hl-dim,
+.wru.video-on .side .io-col.hl-dim, .wru.video-on .side .split.hl-dim, .wru.video-on .side .rewrite.hl-dim { opacity: 1; filter: none; }
+.wru.video-on .note-body { text-wrap: balance; }
+/* 커서: 조금 크게, 누를 때 물결이 퍼진다 */
+.wru.video-on .cursor svg { width: 32px; height: 32px; }
+.wru.video-on .cursor { transition-duration: 0.55s; }
+.wru.video-on .cursor::after { left: -16px; top: -16px; width: 44px; height: 44px; background: rgba(47, 95, 208, 0.4); }
+/* 토큰 표: 칸이 차례로 찬다 */
+.wru.video-on .matrix .cell { animation: cell-in 0.25s ease both; }
+@keyframes cell-in { from { opacity: 0; transform: scale(0.92); } to { opacity: 1; transform: none; } }
+/* 협상 채널: 다음 Muse가 생각 중 */
+.msg-thinking .msg-from { color: var(--muted); font-weight: 500; }
+.dots-typing { display: inline-flex; gap: 4px; margin-left: 4px; }
+.dots-typing i { width: 6px; height: 6px; border-radius: 50%; background: var(--faint); animation: dot 1s infinite ease-in-out; }
+.dots-typing i:nth-child(2) { animation-delay: 0.15s; }
+.dots-typing i:nth-child(3) { animation-delay: 0.3s; }
+@keyframes dot { 0%, 80%, 100% { opacity: 0.25; } 40% { opacity: 1; } }
+/* 라이브 라운드 5: 카메라 확대는 쓰지 않는다(폰 크기가 컷마다 같아야 하므로). 증명 컷에서는 폰만 흐리게 */
+.wru.video-on .leak-card { scroll-margin-top: 10px; }
+.wru.video-on .log { display: none; }
+.sub-band { height: 112px; }
+.wru.video-on { padding-bottom: 124px; }
+.wru.video-on .phone { height: 512px !important; }
+.wru.video-on .side { height: 512px !important; max-height: 512px; }

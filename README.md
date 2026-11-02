@@ -22,12 +22,12 @@ Submitted to the Meta Global AI Developer Hackathon (2026-10-26 to 11-04).
 Open `/demo` and press **▶ Demo mode**. It resets, then each **Next ▶** moves one cut. On-screen copy is in [docs/COPY.md](docs/COPY.md) and screenshots in [docs/screens/](docs/screens/).
 
 1. **Status only**: three phones, each showing only its own status (Mom home, Dad on the way about 20 min out, Brother near home).
-2. **A task comes in**: Mom posts "Pick up Mina + buy milk by 6 pm". The rule: one task per person.
+2. **A task comes in**: Mom posts "Pick up Mina + buy milk by 6 PM". The rule: one task per person.
 3. **Three Muses negotiate**: offer, counter and commit, round by round.
-4. **What goes to the model**: the exact Meta Model API request body one agent sends, the JSON it gets back, and what WRU checks.
+4. **What the model sees**: the exact Meta Model API request body one agent sends, the JSON it gets back, and what WRU checks.
 5. **Only roles come out**: Mom approves once; Dad's phone says pickup, Brother's says milk.
 6. **Nobody can peek**: a 5×3 matrix of real requests. Each agent token reads only its owner (200); someone else's gets 403; no token or a forged one gets 401.
-7. **Can the log reveal home?**: Without the privacy gate, all 50 logs differ and a simple attacker finds the home district 98% of the time (school 72%). With the gate on, 50 families produce only 5 distinct logs. Even the best possible guess, made in hindsight, is right 22% of the time (school 24%), against 4% chance; that floor comes from the status itself. An agent that secretly knows its exact location produces the same logs.
+7. **Can the log reveal home?**: Without the privacy gate, all 50 logs differ and a rule-based attacker finds the home district 98% of the time (school 72%). With the gate on, 50 families produce only 5 distinct logs, so even the best-case attacker is right only 22% of the time (school 24%); our rule-based attacker got 6%, against 4% chance. That ceiling comes from the status itself. An agent that knows its exact location produces the same logs.
 
 ## Run it
 

@@ -133,3 +133,58 @@ From this round a third reviewer joined: an **English copy critic** (native-spea
   - Internal flags leaked "the agent tried to say something else" into public logs.
   - The bound was mislabelled as a "floor".
   - The leak report's text contradicted its own table.
+
+# Live-demo redesign (rounds L1–L5)
+
+Feedback after round 12: the phones changed shape from cut to cut, and the video felt like slides. The video was rebuilt to drive the normal app in a browser window. The three phones stay the same size and position the whole time. A cursor moves to the real buttons and tabs and clicks them, and only the right-hand panel changes. Self-hosting is now a terminal where the commands run line by line. The same three critics (presentation, design, English copy) ran every round. Each was a fresh agent that saw only that round's frames, subtitles and copy.
+
+## Round L1
+
+| Critic | Score | Main findings | Action |
+| --- | --- | --- | --- |
+| Presentation | 5 | HIGH: the cursor stays parked top-right while buttons fire on their own; the 15 s title card reads as a slide; the leak panel sits idle for 42 s | ✅ Cursor bug fixed: the page's CSS zoom was applied twice to the cursor position. The cursor now travels to each button before the click and rests on whatever the narration describes. The title card is down to one sentence (about 5 s), and the rest of the intro plays over the live app |
+| Design | 7 | Phones measured identical in every frame (±1 px) ✅. Cut-off names, grey dimming that muddies text, a double highlight ring, small tab and log text, a small terminal | ✅ Fixed header height; the "my WhereCtx · my Muse" subline is hidden in the video so names fit; dimming uses desaturation; single 3 px ring; larger tab and key text; bigger terminal |
+| English copy | 7 | The narration says one thing while the chips say another (offer vs. COUNTER vs. REFUSE); attacker names drift; 18:00 vs. 6 pm; section names differ; the leak panel reads like a translation | ✅ "all three offer", "switch their offers to the milk", "Mom drops out"; "rule-based attacker"; US time everywhere (6 PM, phone clock 5:30); one name per section; leak panel question and footnote rewritten |
+
+## Round L2
+
+| Critic | Score | Main findings | Action |
+| --- | --- | --- | --- |
+| Presentation | 6 | Proof text too small next to the phones; 25 s with no motion at the start; the narration says 98% while 100% is the biggest number on screen; the terminal looks staged; the round-one messages appear before the narration reaches them | ✅ Re-recorded at 1920×1080. The opening is two lines shorter. The leak panel now highlights the exact row being read (the rule-based bars for 98%, the best-case box for 22%). The terminal types each command, then prints the output. Messages start on "In round one" |
+| Design | 6.5 | Phones identical (±1 px) ✅, but the ring makes a phone look 3 px bigger; feed cards cut in half at the top; the cursor covers the number being read; JSON runs off the panel; the chapter chip and in-page subtitle look like a deck | ✅ Ring drawn inside the bezel; feeds show only the last three whole cards; the cursor rests at the corner of the element and steps aside after each click; code wraps; subtitles moved to a band below the browser window; the chapter is now the browser tab title |
+| English copy | 7 | "Brother is closer to home" is illogical (Mom is home); three names for the API key; "22% vs 4%" sounds like a leak; "the log replaces it"; capitalised task names mid-sentence | ✅ "Brother can grab the milk on his way home, so Mom steps back"; "Meta Model API key" and MODEL_API_KEY; "no attacker can beat 22% here. Our rule-based attacker got 6%, and random guessing gets 4%"; "WRU swaps it for a fixed template before logging"; cards read "I'll pick up Mina" / "I'll buy milk instead"; 403 Forbidden |
+
+## Round L3
+
+| Critic | Score | Main findings | Action |
+| --- | --- | --- | --- |
+| Presentation | 6 | About 90 s of unchanging phones while the evidence sits small in the right panel; dead air while the Muse is introduced; the approve button waits 25 s behind the model tour; too many numbers in the leak section; the terminal repeats the 403 | ✅ A screen-recording-style camera zooms the whole window 1.25× toward the panel for the model, token and leak cuts. The phones keep their shape, they are just partly out of frame. Negotiation starts on "one task per person". Approval moved right after the negotiation. The mock disclosure moved to the model cut. The terminal shows the masked `.env` and `npm start` |
+| Design | 6.5 | Phones identical (±1 px) ✅; the header ring crowds the phones; panes cut cards in half; the highlight misses the spoken number (5 logs, 6%); the JSON reason wraps to column 0; Dad's ETA wraps onto two lines; the cursor sits on text | ✅ Header ring drawn inside; each leak line rings its own row (logs, ceiling, rule-based bars); 5 is now large; code wraps anywhere; ETA on one line; the pointer rests just left of the element it explains |
+| English copy | 7 | "on his way home" doesn't fit Brother (near home); "stop by on the way" implies route knowledge; "mock" phrasing in three versions; "Dad's token asking"; "Locations never leave" overclaims; "secretly knows" | ✅ "Brother is near home and can drop by the store"; "can make the trip before 6"; one phrase: "a mock that returns the same JSON format"; "A request with Dad's token…"; "Exact locations never leave…"; "Even an agent that knows its exact location produces the same logs" (the card title matches) |
+
+## Round L4
+
+| Critic | Score | Main findings | Action |
+| --- | --- | --- | --- |
+| Presentation | 5.5 | The zoom never pulls back, so the browser frame is gone for 85 s; the proof is revealed, not run; clicks are hard to see; messages appear exactly on cue with no sign of an agent working; all three phones grey out just before approval | ✅ The browser bar now sits outside the zoom and stays on screen. On every tab change the camera pulls back to the full window, the cursor clicks the tab, then the camera moves in. The token grid fills cell by cell as the results come in. The channel shows "Dad's Muse is thinking…" before each message. Bigger cursor and click ripple. The approval line is split so the WRU bar is lit for the click and the phones only after it |
+| Design | 6.5 | Phones keep their proportions under the zoom (uniform 1.25×) ✅; the zoom crops the browser and Mom's phone; focus rings clipped by the scroller; the phones still dominate during panel cuts; grey dimming makes the code blocks muddy; the cursor lags the narration | ✅ Zoom reduced to 1.15× anchored at the panel's bottom-right; phones and WRU bar fade while zoomed; no dimming inside the panel, only a ring with room around it; highlights scroll to the centre; the cursor moves faster (0.55 s) and arrives 200 ms after the cue |
+| English copy | 7 | "status only" while ETA is also passed; "knows every answer" contradicts 22%; Dad's fit isn't explained; 6 pm vs 6 PM; TTS reads WhereCtx/WRU badly; "Committed:" repeats the badge | ✅ "a coarse status and a rough ETA"; label "knows which families share each log"; "Dad is already out and heading home, so the pickup fits him best"; 6 PM everywhere on screen; the voice says "Where Context" and "W R U" (subtitles keep the names); commit cards show the task only; "Approve as Mom & notify"; the gate card says "Agents can only say their status and a rough ETA" |
+
+## Round L5 (final)
+
+| Critic | Score | Main findings | Action |
+| --- | --- | --- | --- |
+| Presentation | 6 | Nothing moves for the first 22 s; the cursor parks in dead spots or on text; the proof is precomputed (the token grid is already full when "we sent 15 requests" is said); the phones waste space while zoomed; "mock" said three times | ✅ The status line is now three short beats, and the cursor points at each phone as it is named. The token grid starts empty: the cursor presses **Send the 15 requests** and the cells fill one by one. The pointer waits for the scroll to finish and sits beside text, never on it. The event log is hidden in the video. ➖ The mock is still disclosed in the narration once, plus the small "Muse: mock" label and the closing card. Hiding it would overstate what the recording shows |
+| Design | 6 | **The camera zoom breaks the "same phones" rule**: measured 262×580 → 304×668 px while the browser frame stays put; leak cards caught mid-scroll; rings clipped; the outro reads as slides | ✅ **Camera zoom removed.** The phones are now the same size and position from the first app frame to the last; proof cuts only fade them. Leak cards scroll so the whole card sits at the top of the panel. The whole-grid highlight is one ring around the table. Subtitle band reduced to 112 px. ➖ The terminal and closing card stay full-screen: the voice-over for self-hosting needs a terminal, and a fake desktop would be more staged, not less |
+| English copy | 7.5 | "school district" means something else in the US; the gate described two ways; the terminal shows only Mom's token while the line says "each member"; "50 families" vs "50 scenarios"; "a Muse, designed to run on Muse Spark" dangles; "five kinds of token" includes no token | ✅ "which district the family lives in, or where the school is"; "lets through only status and a rough ETA"; "In this config, Mom's is real and the others are simulated"; the screen says "50 families"; "Each agent is called a Muse, and it's built to run on Meta's Muse Spark model"; "five callers, each asking about all three people"; Docker dropped from the closing card |
+
+## Where the live-demo redesign ended
+
+- The user's two complaints are fixed. The phones are identical in every app frame: the critics measured them at ±1 px in L1–L3 and L5, and the L4 zoom was the one exception, so it was removed. The video drives the real app in a browser window with a cursor that clicks the real buttons and tabs, at 1920×1080 with subtitles in a band below the window.
+- Scores by round:
+  - Presentation: 5 → 6 → 6 → 5.5 → 6.
+  - Design: 7 → 6.5 → 6.5 → 6.5 → 6.
+  - English copy: 7 → 7 → 7 → 7 → 7.5.
+- The design scores moved sideways because the bar rose each round. Each round's fresh critic held the new cut to a stricter "live product" standard and flagged things earlier rounds had accepted, such as the zoom, the scrolling panel and the terminal card.
+- What still limits the score is the same as before: no real Muse Spark call (blocked on the API key). Several critics also asked for a real terminal recording and a live gate on/off toggle in the leak test. Both are possible follow-ups.
+- Final cut: 176 s, 35 subtitle lines, 136 tests passing.

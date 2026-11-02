@@ -102,7 +102,7 @@ describe('품질 게이트', () => {
           onShowReport={noop}
           boundary={boundary}
           museTurn={museTurn}
-          video={{ caption: step.title, scene: i === 0 ? 'intro' : i === DEMO_STEPS.length - 1 ? 'outro' : null, hl: i % 2 ? 'bound' : 'dad' }}
+          video={{ caption: step.title, scene: i === 0 ? 'intro' : i === DEMO_STEPS.length - 1 ? 'outro' : null, hl: i % 2 ? 'bound' : 'dad', chapter: step.title, cursor: { x: 10, y: 10, down: i % 2 === 0 } }}
           demo={{
             step: i,
             total: DEMO_STEPS.length,
@@ -158,7 +158,10 @@ describe('영상 대본', () => {
         expect(scan(captionText(text))).toEqual([]);
       }
     }
-    const steps = SEGMENTS.filter((s) => s.step !== undefined).map((s) => s.step);
-    expect(steps).toEqual(DEMO_STEPS.map((_, i) => i));
+    // 커서가 누를 버튼은 화면에 실제로 있는 data-demo 값이어야 한다
+    const page = readFileSync('src/web/DemoPage.tsx', 'utf8');
+    const clicks = SEGMENTS.flatMap((s) => s.lines.flatMap((l) => (l.click ? [l.click] : [])));
+    expect(clicks.length).toBeGreaterThan(4);
+    for (const key of clicks) expect([key, page.includes(`data-demo="${key}"`)]).toEqual([key, true]);
   });
 });

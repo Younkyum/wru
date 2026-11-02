@@ -106,6 +106,13 @@ export function localHHMM(iso: string): string {
   );
 }
 
+/** ISO8601 → 서울 기준 미국식 시각 ("6 PM", "5:30 PM") — 화면 · 알림 문구용 */
+export function localTime(iso: string): string {
+  const [h, m] = localHHMM(iso).split(':').map(Number) as [number, number];
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  return `${h12}${m ? `:${String(m).padStart(2, '0')}` : ''} ${h < 12 ? 'AM' : 'PM'}`;
+}
+
 export function isPersonId(value: string): value is PersonId {
   return (PERSON_IDS as readonly string[]).includes(value);
 }
