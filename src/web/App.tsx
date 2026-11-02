@@ -23,6 +23,10 @@ export function App() {
   const [museTurn, setMuseTurn] = useState<MuseTurnView | null>(null);
   const videoMode = new URLSearchParams(window.location.search).has('video');
   const [video, setVideo] = useState<VideoOverlay>({ caption: null, scene: null });
+  // 영상 모드: 1440×900 녹화에서 1280×800 레이아웃으로 보이게 키운다
+  useEffect(() => {
+    if (videoMode) document.documentElement.style.setProperty('zoom', '1.125');
+  }, [videoMode]);
 
   const run = useCallback(async (action: () => Promise<unknown>) => {
     try {

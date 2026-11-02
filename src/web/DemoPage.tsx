@@ -394,6 +394,8 @@ function compact(value: Record<string, unknown>): string {
   if (Array.isArray(v.transcript)) v.transcript = `[메시지 ${v.transcript.length}개]`;
   if (Array.isArray(v.subtasks)) v.subtasks = (v.subtasks as { id: string }[]).map((s) => s.id).join(', ');
   delete v.max_rounds;
+  delete v.round;
+  delete v.capacity;
   return JSON.stringify(v, null, 1).replace(/\n\s*/g, '\n  ').replace(/\n  }$/, '\n}');
 }
 
@@ -404,6 +406,7 @@ function MusePanel({ turn }: { turn: MuseTurnView | null | undefined }) {
         <h2>Muse에게 가는 것</h2>
         <span>아빠 에이전트의 한 차례 · Meta Model API 요청 본문 (실제 코드 경로)</span>
       </div>
+      {turn?.muse === 'mock' && <p className="mock-note">이 녹화는 API 키 발급 전이라 같은 JSON 스키마의 mock이 답했어요</p>}
       {!turn ? (
         <p className="side-empty">협상을 먼저 돌려 주세요.</p>
       ) : (
@@ -411,18 +414,22 @@ function MusePanel({ turn }: { turn: MuseTurnView | null | undefined }) {
           <div className="io-label">
             요청 <code>POST /v1/chat/completions</code>
             <span>
-              {turn.model} · response_format {turn.response_format.type}
+              MUSE_MODEL={turn.model} · response_format {turn.response_format.type}
             </span>
           </div>
           <pre className="code">{compact(turn.user)}</pre>
           <div className="io-label">응답 (JSON 하나)</div>
           <pre className="code code-out">{JSON.stringify(turn.action, null, 2)}</pre>
-          <ul className="checks">
-            {turn.checks.map((c) => (
-              <li key={c}>✓ {c}</li>
-            ))}
-          </ul>
-          {turn.muse === 'mock' && <p className="leak-note">이 시연은 API 키가 없어 같은 스키마의 mock이 답했어요.</p>}
+          <div className="split">
+            <div>
+              <div className="split-title">모델이 정함</div>
+              <div>어느 일에 나설지 · 적합도 · offer / counter / commit / refuse</div>
+            </div>
+            <div>
+              <div className="split-title">WRU가 정함</div>
+              <div>토큰 · 스키마 검사 · 이유 문장 템플릿화 · 겹친 commit 판정</div>
+            </div>
+          </div>
         </div>
       )}
     </>
@@ -450,15 +457,21 @@ function VideoScene({ scene }: { scene: 'intro' | 'outro' }) {
         <li><b>게이트</b> 집 98% → 6%, 우연 수준</li>
       </ul>
       <div className="scene-line">누구나 자기 서버에 띄워 씁니다 · npm start / Docker</div>
-      <div className="scene-foot">이 영상의 Muse는 같은 스키마의 결정론적 mock입니다. MODEL_API_KEY를 넣으면 Meta Model API(Muse Spark)로 바뀝니다.</div>
+      <div className="scene-note">이 녹화의 Muse는 같은 스키마의 mock · MODEL_API_KEY를 넣으면 Muse Spark</div>
     </div>
   );
 }
 
 const CONDITION_LABEL: Record<Condition, { title: string; desc: string }> = {
   off: { title: '게이트 off', desc: '동네 이름 · 거리 · 정확한 ETA를 그대로 말할 때' },
-  filter_only: { title: '게이트 on · 에이전트가 위치를 알 때', desc: '말하려 해도 자유 문장은 내보내지 않음' },
+  filter_only: { title: '게이트 on · 에이전트가 위치를 알 때', desc: '위치를 몰래 쥐여 줘도 로그엔 템플릿만 → on과 같은 숫자' },
   on: { title: '게이트 on (WRU 기본)', desc: '상세 위치 거절 · 상태 템플릿 · ETA 구간' },
+};
+
+/** 조건마다 로그에 남는 문장 꼴 (동네 이름 · 숫자는 가림) */
+const EXAMPLE: Partial<Record<Condition, string>> = {
+  off: '"지금 ○○동 지나는 중이에요. 집까지 N km, N분 남았어요"',
+  on: '"이동 중이라 가는 길에 들를 수 있어요 (도착 20분 이내)"',
 };
 
 function pct(v: number): string {
@@ -472,6 +485,11 @@ function Metric({ label, rate, chance }: { label: string; rate: number; chance: 
       <div className="metric-track">
         <div className="metric-fill" style={{ width: `${Math.max(rate * 100, 1)}%` }} />
         <div className="metric-chance" style={{ left: `${chance * 100}%` }} />
+        {label === '집' && (
+          <span className="chance-label" style={{ left: `${chance * 100}%` }}>
+            우연 {pct(chance)}
+          </span>
+        )}
       </div>
       <span className="metric-value">{pct(rate)}</span>
     </div>
@@ -506,6 +524,7 @@ function LeakPanel({ report, conditions, onShowReport }: LeakPanelProps) {
                   <div className="leak-desc">{CONDITION_LABEL[k].desc}</div>
                   <Metric label="집" rate={g.home_rate} chance={report.chance} />
                   <Metric label="학교" rate={g.school_rate} chance={report.chance} />
+                  {EXAMPLE[k] && <div className="example">로그 예: {EXAMPLE[k]}</div>}
                 </section>
               );
             })}

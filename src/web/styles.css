@@ -360,3 +360,53 @@ footer { color: var(--faint); font-size: 12px; text-align: center; }
 @keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
 .focus-muse .side { height: auto; }
 .focus-muse .io { overflow: visible; }
+
+/* ── 라운드 2 반영 ─────────────────────────── */
+.mock-note {
+  margin: 0; font-size: 13px; font-weight: 600; color: #8a5a07; background: #fbf1dc;
+  border: 1px solid #f0dcae; border-radius: 8px; padding: 6px 10px;
+}
+.split { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12.5px; line-height: 1.45; }
+.split > div { border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; color: var(--muted); }
+.split-title { font-weight: 800; color: var(--ink); margin-bottom: 2px; }
+.split > div:first-child .split-title { color: var(--transit); }
+.split > div:last-child .split-title { color: var(--home); }
+.focus-muse .side { max-height: 560px; }
+.focus-muse .code { font-size: 12px; padding: 8px 10px; }
+.scene-note {
+  margin-top: 18px; font-size: 20px; font-weight: 600; color: #f2d48a;
+  border: 1px solid rgba(242, 212, 138, 0.4); border-radius: 999px; padding: 8px 18px;
+}
+.scene > *:nth-child(5) { animation-delay: 1.2s; }
+.scene .scene-line { color: rgba(255, 255, 255, 0.65); }
+.scene-q { font-size: 40px; }
+/* 어두운 장면에서도 자막 상자가 보이게 */
+.subtitle { border: 1px solid rgba(255, 255, 255, 0.16); }
+/* 폰 피드: 아래 정렬 + 위쪽 페이드 */
+.feed { justify-content: flex-end; mask-image: linear-gradient(to bottom, transparent 0, #000 22px); }
+.feed > :first-child { margin-top: auto; }
+/* 누수 차트: 우연선 라벨, 예시 문장 */
+.metric-track { overflow: visible; }
+.metric-fill { overflow: hidden; }
+.chance-label {
+  position: absolute; top: -17px; transform: translateX(-50%); font-size: 11px; font-weight: 700;
+  color: var(--ink); opacity: 0.65; white-space: nowrap;
+}
+.metric + .metric { margin-top: 10px; }
+.leak-card .metric:first-of-type { margin-top: 18px; }
+.example { margin-top: 10px; font-size: 12.5px; color: var(--muted); line-height: 1.45; }
+.leak-desc { font-size: 12.5px; }
+/* 진행 막대: 밝게, 번호만 강조색 */
+.video-on .demo-bar { background: #fff; color: var(--ink); border: 1px solid var(--line); }
+.video-on .demo-count { color: #c08a12; }
+.video-on .demo-count span { color: var(--faint); opacity: 1; }
+/* Muse 컷: WRU 바를 접어 패널 자리를 만든다 */
+.video-on.focus-muse .zone-hub { display: none; }
+.video-on.focus-muse .side { max-height: none; }
+/* 누수 컷: WRU 바를 접고 카드를 촘촘하게 (자막과 안 겹치게) */
+.video-on.focus-report .zone-hub { display: none; }
+.video-on.focus-report .side { height: auto; min-height: 0; }
+.video-on.focus-report .leak { gap: 8px; }
+.video-on.focus-report .leak-card { padding: 10px 14px; }
+.video-on.focus-report .metric + .metric { margin-top: 4px; }
+.video-on.focus-report .example { margin-top: 6px; }
