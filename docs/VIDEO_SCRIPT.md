@@ -1,4 +1,4 @@
-# Demo video script (about 2:38)
+# Demo video script (about 2:42)
 
 `npm run video` builds the draft video from this script and rewrites this document. It works in three steps:
 
@@ -13,21 +13,21 @@ The outputs are not committed. The narration source is `scripts/video/narration.
 | 0:00 | Opening card | Dark card: WRU · typical location sharing (pins on a map) vs WRU (status chips) | Impact |
 | 0:16 | 1. Status only | Three phones (Mom home · Dad on the way, 20 min · Brother near home) | Impact · Demo |
 | 0:30 | 2. A task comes in | WRU bar shows the task (requested by Mom); each phone gets a "Family task" note | Demo |
-| 0:38 | 3. Three Muses negotiate | Phones + Muse channel; messages appear round by round in step with the narration | Use of Meta AI Tooling · Demo |
+| 0:39 | 3. Three Muses negotiate | Phones + Muse channel; messages appear round by round in step with the narration | Use of Meta AI Tooling · Demo |
 | 1:04 | 4. What goes to the model | Meta Model API request body (JSON) → response JSON, "The model decides / WRU enforces", a real filter rewrite | Use of Meta AI Tooling · Technical Depth |
-| 1:26 | 5. Only roles come out | WRU bar shows roles → Mom approves → each phone shows only its own role | Impact · Demo |
+| 1:27 | 5. Only roles come out | WRU bar shows roles → Mom approves → each phone shows only its own role | Impact · Demo |
 | 1:35 | 6. Nobody can peek | Token boundary matrix 5×3 (only the diagonal is 200), the 403 cell highlighted | Technical Depth |
-| 1:46 | 7. Can the log reveal home? | Three cards in order: gate off (50 logs, home 98% · school 72%) → gate on (5 logs, ceiling 22% · 24%, rule-based attacker 6% · 0%, chance 4%) → agent secretly knows (same 5 logs) | Technical Depth |
-| 2:19 | Self-hosting | Light card: WhereCtx token per person → family server .env and family.config.json → npm start / Docker | Impact · Technical Depth |
-| 2:30 | Closing card | Dark card: five-line summary + mock disclosure | Use of Meta AI Tooling · Impact |
+| 1:49 | 7. Can the log reveal home? | Three cards in order: gate off (50 logs, home 98% · school 72%) → gate on (5 logs, ceiling 22% · 24%, rule-based attacker 6% · 0%, chance 4%) → agent secretly knows (same 5 logs) | Technical Depth |
+| 2:25 | Self-hosting | Light card: WhereCtx token per person → family server .env and family.config.json → npm start / Docker | Impact · Technical Depth |
+| 2:37 | Closing card | Dark card: five-line summary + mock disclosure | Use of Meta AI Tooling · Impact |
 
 ## Narration
 
 ### 0:00 Opening card
 
-- "Who's picking up Mina?" Today, answering that means everyone shares their live location all day.
+- "Who's picking up Mina?" Usually, answering that means everyone shares their live location all day.
 - Or nobody answers the group chat until it is too late.
-- WRU, short for "where are you", lets each person's AI agent split the errands without anyone sharing a location.
+- WRU, short for "where are you", lets each person's AI agent split the errands without sharing coordinates.
 
 ### 0:16 1. Status only
 
@@ -37,17 +37,17 @@ The outputs are not committed. The narration source is `scripts/video/narration.
 
 ### 0:30 2. A task comes in
 
-- Mom posts a task: pick up Mina and buy milk by 6 pm.
+- Mom posts a task: pick up Mina and buy milk by 6 pm. Mina's school is a fifteen-minute trip from home.
 - The rule: one task per person.
 
-### 0:38 3. Three Muses negotiate
+### 0:39 3. Three Muses negotiate
 
-- Each agent is a Muse, named after Meta's Muse Spark model, which it calls.
+- We call each agent a Muse. It runs on Meta's Muse Spark model.
 - In this recording, a mock with the same output format stands in for the model.
 - In round one, everyone who can make it in time offers to do the pickup.
-- Dad is already out with time to spare, so he's the best fit.
-- Mom and Brother both offer to get the milk instead, and Dad commits to the pickup.
-- Brother is near home, so Mom backs off.
+- Dad is already out with time to spare, so he's the best fit for the pickup.
+- Mom and Brother both offer to get the milk instead.
+- Brother is near home, so Mom steps aside.
 
 ### 1:04 4. What goes to the model
 
@@ -55,39 +55,38 @@ The outputs are not committed. The narration source is `scripts/video/narration.
 - its own state, an ETA range, minutes to the deadline, and the messages so far.
 - The model replies with one JSON object: which task, and how good a fit.
 - WRU checks that the reply is valid and comes from the right agent.
-- If the model slips a location into its reason, the log still only shows a stock phrase.
+- If the model slips a location into its reason, the log still only shows a fixed sentence.
 
-### 1:26 5. Only roles come out
+### 1:27 5. Only roles come out
 
-- The only output is roles. Mom approves once,
-- and Dad's phone says pickup, Brother's says milk. Nothing else.
+- What comes out is roles. Mom approves once,
+- and each phone gets only its own job: pickup for Dad, milk for Brother.
 
 ### 1:35 6. Nobody can peek
 
 - Could one agent peek at another? Each one holds its own token.
 - Dad's token asking for Mom's status gets a 403.
-- These are fifteen real requests we just sent to the server.
+- That is every agent asking about every person: fifteen real requests, just sent.
 
-### 1:46 7. Can the log reveal home?
+### 1:49 7. Can the log reveal home?
 
 - Could these logs reveal where the family lives? We tried fifty families across Seoul's twenty-five districts.
-- With the privacy gate off, every log is different.
-- A simple attacker finds the home district 98 percent of the time.
+- Without the privacy gate, which hides everything but status, every log is different.
+- A simple attacker then finds the home district 98 percent of the time.
 - With the gate on, those fifty families produce just five different logs.
-- Even an attacker who knew every answer could only reach 22 percent.
-- That much comes from the status alone. The negotiation adds nothing.
+- Even the best possible guess, made in hindsight, is right only 22 percent of the time.
+- That floor comes from the status itself. The negotiation adds nothing.
 - And an agent that secretly knows its exact location produces the very same logs.
 
-### 2:19 Self-hosting
+### 2:25 Self-hosting
 
 - One family runs one server.
-- Each member adds a read-only token from their own WhereCtx, and one command starts it.
-- WRU then gives every agent its own agent token.
+- Each member adds a read-only token from their own WhereCtx, and one command starts the server.
+- Locations never leave each person's own server.
 
-### 2:30 Closing card
+### 2:37 Closing card
 
-- Status in, roles out.
-- Add a Meta API key, and Muse Spark makes the decisions itself.
+- Add a Meta API key, and the same code calls Muse Spark.
 
 ## Re-recording
 

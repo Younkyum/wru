@@ -673,3 +673,16 @@ footer { color: var(--faint); font-size: 12px; text-align: center; }
 /* 누수 카드 세 장: 여유 있게 */
 .video-on.focus-report .leak { gap: 14px; }
 .video-on.focus-report .leak-card { padding: 14px 16px; }
+
+/* ── 라운드 10 반영: 흐림을 가볍게, 흐린 글자도 읽히게 ── */
+.hl-dim, .cell.hl-dim, .leak-card.hl-dim { opacity: 0.6; }
+.split.hl-dim, .rewrite.hl-dim, .io-col.hl-dim { opacity: 0.6; filter: none; }
+.io-col.hl-dim .io-label { opacity: 1; }
+.phone.hl-dim .phone-screen { opacity: 0.6; filter: saturate(0.5); }
+.rewrite-from { color: #c03d2c; }
+.video-on .side-head span, .video-on .msg-detail, .video-on .side-empty { color: #555; }
+.scene-host .scene-line { color: #3d3b37; }
+.contrast-wru { border-color: #3f9a6b; }
+.scene-host .scene-kicker { font-size: 28px; letter-spacing: 0.08em; }
+.bound-label { white-space: nowrap; }
+.bound-nums b { font-size: 34px; }

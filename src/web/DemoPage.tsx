@@ -179,7 +179,7 @@ function Phone({ person, tokenMark, presence, clock, task, messages, role }: Pho
           </div>
         </section>
         <div className="feed zone-feed" ref={feed}>
-          {!task && <p className="feed-empty">No one else's location is on this phone.</p>}
+          {!task && <p className="feed-empty">This phone never shows anyone else's location.</p>}
           {task && (
             <div className="note">
               <div className="note-title">Family task · by {localHHMM(task.deadline)}</div>
@@ -603,7 +603,7 @@ function LeakCard({ k, report }: { k: Condition; report: LeakReport }) {
         {g.trials} scenarios → <b>{g.distinct_logs}</b> distinct logs
       </div>
       <div className={`bound-big${hlBound}`}>
-        <div className="bound-label">Best possible guess <span>· even knowing every answer</span></div>
+        <div className="bound-label">Best possible guess <span>(with hindsight)</span></div>
         <div className="bound-nums">
           <span>
             home <b>{pct(g.bound_home_rate)}</b>

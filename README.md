@@ -2,7 +2,7 @@
 
 **Family errands, split by AI agents without sharing coordinates.**
 
-WRU (short for "where are you") is a negotiation layer on top of WhereCtx, a personal location server. Family members never share coordinates. Each person's agent (a *Muse*, built to call Meta's Muse Spark model) reads only that person's coarse status from their own WhereCtx (`home`, `near_home` or `in_transit`, plus an ETA), and the agents split a family task with offer → counter → commit messages. The output is a set of roles, never a location.
+WRU (short for "where are you") is a negotiation layer on top of WhereCtx, a personal location server. Family members never share coordinates. Each person's agent (a *Muse*, built to call Meta's Muse Spark model) reads only that person's coarse status from their own WhereCtx (`home`, `near_home` or `in_transit`, plus an ETA), and the agents split a family task with offer → counter → commit messages. It outputs roles only.
 
 Submitted to the Meta Global AI Developer Hackathon (2026-10-26 to 11-04).
 
@@ -27,7 +27,7 @@ Open `/demo` and press **▶ Demo mode**. It resets, then each **Next ▶** move
 4. **What goes to the model**: the exact Meta Model API request body one agent sends, the JSON it gets back, and what WRU checks.
 5. **Only roles come out**: Mom approves once; Dad's phone says pickup, Brother's says milk.
 6. **Nobody can peek**: a 5×3 matrix of real requests. Each agent token reads only its owner (200); someone else's gets 403; no token or a forged one gets 401.
-7. **Can the log reveal home?**: with the privacy gate off, all 50 logs differ and a simple attacker finds the home district 98% of the time (school 72%). With it on, 50 families produce 5 distinct logs, so even an attacker who knows every answer tops out at 22% (school 24%); that is what the status alone reveals, against 4% chance. The same attacker finds 6%. An agent that secretly knows its exact location produces the very same logs.
+7. **Can the log reveal home?**: Without the privacy gate, all 50 logs differ and a simple attacker finds the home district 98% of the time (school 72%). With the gate on, 50 families produce only 5 distinct logs. Even the best possible guess, made in hindsight, is right 22% of the time (school 24%), against 4% chance; that floor comes from the status itself. An agent that secretly knows its exact location produces the very same logs.
 
 ## Run it
 
@@ -133,7 +133,7 @@ curl -H "Authorization: Bearer $WRU_AGENT_TOKEN_DAD" https://<server>/api/agent/
 
 - Members are fixed to three seats: `mom`, `dad`, `sibling`.
 - State is in memory; a restart clears tasks and negotiations.
-- There is one `MODEL_API_KEY` per server. Agent tokens split location access per agent; the model key is shared.
+- There is one `MODEL_API_KEY` per server. Each agent can read only its own owner's location; the model key is shared.
 
 ## Built during the hackathon vs. before
 

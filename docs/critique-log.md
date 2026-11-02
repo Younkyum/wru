@@ -74,3 +74,17 @@ From this round a third reviewer joined: an **English copy critic** (native-spea
 | | | HIGH: leak report said gate-on hits were "the same as chance" while its table shows 6% vs 4% | ✅ "close to chance"; footnote explaining the replaced-wording column |
 | | | HIGH: token/key naming inconsistent, `_SIBLING` vs "Brother" | ✅ "read-only token" (WhereCtx) vs "agent token" (WRU); README notes `sibling` = Brother |
 | | | MED: em dashes, "X, not Y" formulas, slogan fragments, "judges commits" | ✅ Em dashes removed from README, SUBMISSION and COPY; formulas rewritten as plain statements; one tagline kept for the closing card |
+
+## Round 9
+
+| Critic | Score | Key finding (severity) | Outcome |
+| --- | --- | --- | --- |
+| Presentation | 5.5 (Impact 6 · Tooling 3 · Depth 7 · Demo 7) | HIGH: no real Muse Spark exchange; model's role looks thin | ➖ No key. The model's role is stated once ("which task, and how good a fit") and the mock is disclosed when the model is introduced |
+| | | HIGH: "22%" still heard as a leak | ✅ **Structural**: the two leak cuts merged into one ordered story: gate off (every log differs, 98%) → gate on (5 logs, ceiling 22%, "that much comes from the status alone; the negotiation adds nothing") → agent that secretly knows (same logs) |
+| | | MED: "Brother is closer" implies location; 90 s of internals; no "why agents" line | ✅ "Brother is near home, so Mom backs off"; leak section shortened to one cut; intro adds "Or nobody answers the group chat until it is too late" |
+| | | LOW: "key" vs "token" | ✅ "read-only token" everywhere |
+| Design | 7 | HIGH: subtitle over the model panel's key line; small code text; channel header wrap | ✅ Mock banner folded into the panel subtitle to free space; wider panel; code 14 px; header no-wrap |
+| | | MED: double focus ring, dim cells unreadable, intro tagline contrast | ✅ Dimmed matrix cells at 0.55, tagline #cfcfcf, intro cards scaled up |
+| English copy | narration 6.5 · SUBMISSION 7 · README 7.5 · COPY 8 · leak report 6.5 | HIGH: question split across cues; hard-to-follow milk exchange; "So…" opener with unexplained jargon; 7-second cue | ✅ All four rewritten; long cue split |
+| | | HIGH: bound overclaimed ("bounds every adversary"); confusing 0/386 column | ✅ "on these scenarios, at district level"; column renamed "Agent wording that differed from the template" with a footnote |
+| | | MED: attacker vs adversary, WRU never spelled out, "ETAs leave", formula phrases, British/American mix | ✅ "attacker" in narration, UI and docs; "WRU, short for 'where are you'"; "are only ever shown as ranges"; formulas rewritten; American spelling throughout |
