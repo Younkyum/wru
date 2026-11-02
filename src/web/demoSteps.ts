@@ -73,17 +73,17 @@ export const DEMO_STEPS: DemoStep[] = [
     conditions: ['on'],
     caption: ({ report }) =>
       report
-        ? `같은 협상 로그를 적대자에게 주고 집 · 학교가 서울 25개 구 중 어디인지 ${report.trials}번 맞히게 했어요. 집 ${pct(report.gates.on.home_rate)}, 학교 ${pct(report.gates.on.school_rate)}. 우연(${pct(report.chance)})과 비슷해요.`
+        ? `시나리오 ${report.trials}개의 협상 로그가 ${report.gates.on.distinct_logs}종류뿐이라, 정답을 미리 알고 골라도 집 ${pct(report.gates.on.bound_home_rate)}, 학교 ${pct(report.gates.on.bound_school_rate)}가 최대예요 (우연 ${pct(report.chance)}). 규칙 기반 적대자는 집 ${pct(report.gates.on.home_rate)}, 학교 ${pct(report.gates.on.school_rate)}.`
         : '누수 테스트를 불러오는 중…',
   },
   {
-    title: '게이트를 끄면',
+    title: '위치를 알아도 같은 로그',
     focus: 'report',
     action: 'none',
     conditions: ['off', 'filter_only', 'on'],
     caption: ({ report }) =>
       report
-        ? `에이전트가 동네 이름 · 거리 · 정확한 ETA를 그대로 말하게 두면 집 ${pct(report.gates.off.home_rate)}, 학교 ${pct(report.gates.off.school_rate)}까지 맞혀요. WRU는 그 문장을 내보내지 않습니다.`
+        ? `에이전트에게 위치를 몰래 쥐여 줘도 로그는 게이트 on과 같아요 (로그 ${report.gates.filter_only.distinct_logs}종류). 게이트를 끄면 로그 ${report.gates.off.distinct_logs}개가 다 달라지고 규칙 기반 적대자도 집 ${pct(report.gates.off.home_rate)}, 학교 ${pct(report.gates.off.school_rate)}를 맞혀요.`
         : '',
   },
 ];

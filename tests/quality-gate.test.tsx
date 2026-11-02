@@ -102,7 +102,7 @@ describe('품질 게이트', () => {
           onShowReport={noop}
           boundary={boundary}
           museTurn={museTurn}
-          video={{ caption: step.title, scene: i === 0 ? 'intro' : i === DEMO_STEPS.length - 1 ? 'outro' : null }}
+          video={{ caption: step.title, scene: i === 0 ? 'intro' : i === DEMO_STEPS.length - 1 ? 'outro' : null, hl: i % 2 ? 'bound' : 'dad' }}
           demo={{
             step: i,
             total: DEMO_STEPS.length,
@@ -153,9 +153,9 @@ describe('영상 대본', () => {
     const { SEGMENTS, captionText } = await import('../scripts/video/narration');
     const doc = readFileSync('docs/VIDEO_SCRIPT.md', 'utf8');
     for (const seg of SEGMENTS) {
-      for (const line of seg.lines) {
-        expect([seg.id, doc.includes(line)]).toEqual([seg.id, true]);
-        expect(scan(captionText(line))).toEqual([]);
+      for (const { text } of seg.lines) {
+        expect([seg.id, doc.includes(text)]).toEqual([seg.id, true]);
+        expect(scan(captionText(text))).toEqual([]);
       }
     }
     const steps = SEGMENTS.filter((s) => s.step !== undefined).map((s) => s.step);

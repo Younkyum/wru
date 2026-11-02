@@ -9,7 +9,7 @@ function mmss(sec: number): string {
 
 export function renderScriptDoc(starts: Record<string, number>, total: number): string {
   const rows = SEGMENTS.map((s) => `| ${mmss(starts[s.id] ?? 0)} | ${s.title} | ${s.screen} | ${s.rubric} |`);
-  const body = SEGMENTS.map((s) => [`### ${mmss(starts[s.id] ?? 0)} ${s.title}`, '', ...s.lines.map((l) => `- ${l}`), ''].join('\n'));
+  const body = SEGMENTS.map((s) => [`### ${mmss(starts[s.id] ?? 0)} ${s.title}`, '', ...s.lines.map((l) => `- ${l.text}`), ''].join('\n'));
   return `# 데모 영상 대본 (약 ${mmss(total)})
 
 \`npm run video\`가 이 대본으로 영상 초안을 만들고, 이 문서도 다시 씁니다. 순서는 이렇습니다.

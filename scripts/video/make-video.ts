@@ -42,7 +42,7 @@ function srtTime(sec: number): string {
 /** 문장마다 따로 녹음해서 길이를 안다 (자막을 문장 단위로 맞추기 위해) */
 function narrate() {
   return SEGMENTS.map((seg) =>
-    seg.lines.map((line, i) => {
+    seg.lines.map(({ text: line }, i) => {
       const aiff = join(TMP, `${seg.id}-${i}.aiff`);
       const wav = join(TMP, `${seg.id}-${i}.wav`);
       execFileSync('say', ['-v', VOICE, '-r', RATE, '-o', aiff, line]);
@@ -91,12 +91,8 @@ async function main() {
     });
     const page = await context.newPage();
     const t0 = Date.now();
-    // 협상 메시지 8개를 협상 구간 내레이션 길이에 고르게 나눈다
-    const negotiation = SEGMENTS.findIndex((s) => s.reveal);
-    const negotiationSec = voice[negotiation]!.reduce((n, v) => n + v.seconds + GAP, 0);
-    // 마지막 확정 메시지가 마지막 문장보다 조금 먼저 끝나게
-    const revealMs = Math.round(((negotiationSec - 3) * 1000) / 8);
-    await page.goto(`http://localhost:${PORT}/demo?video=1&reveal=${revealMs}`);
+    // 협상 메시지는 문장마다 정한 수만큼 스크립트가 직접 펼친다
+    await page.goto(`http://localhost:${PORT}/demo?video=1&reveal=manual`);
     await page.waitForFunction(() => !!(window as unknown as { __wru?: unknown }).__wru);
     await page.evaluate(() => document.fonts.ready);
     await sleep(800);
@@ -115,14 +111,18 @@ async function main() {
         await page.waitForFunction((s) => (window as any).__wru.step === s, seg.step);
       }
       await sleep(250);
-      for (const v of voice[si]!) {
+      for (const [li, v] of voice[si]!.entries()) {
+        const line = seg.lines[li]!;
+        if (line.reveal !== undefined) await wru('revealTo', line.reveal);
+        await wru('highlight', line.hl ?? null);
         const at = (Date.now() - t0) / 1000 - start;
         clips.push({ wav: v.wav, at });
         subs.push({ from: at, to: at + v.seconds, text: captionText(v.line) });
         await wru('caption', captionText(v.line));
         await sleep((v.seconds + GAP) * 1000);
-        for (const a of seg.after ?? []) if (a.line === voice[si]!.indexOf(v)) await wru(a.call);
+        if (line.after) await wru(line.after);
       }
+      await wru('highlight', null);
       // 협상 메시지가 다 나올 때까지 기다린다
       while (await busy()) await sleep(200);
       await sleep((seg.hold ?? 0.3) * 1000);

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import type { DemoState, PersonId, Presence, PresenceState, Task } from '../shared/contracts';
 import { PERSON_IDS, PERSON_LABEL_KO, STATE_LABEL_KO, localHHMM } from '../shared/contracts';
 import type { Condition, LeakReport } from '../shared/leak-report';
@@ -34,6 +34,26 @@ export interface DemoPageProps {
 export interface VideoOverlay {
   caption: string | null;
   scene: 'intro' | 'outro' | null;
+  /** 내레이션이 지금 가리키는 대상 (강조) */
+  hl: string | null;
+}
+
+// ── 영상 강조: 내레이션이 가리키는 대상은 또렷하게, 같은 묶음의 나머지는 흐리게 ──
+const HL_GROUP: Record<string, string> = {
+  phones: 'phones', mom: 'phones', dad: 'phones', sibling: 'phones', roles: 'phones',
+  diag: 'matrix', 'dad-mom': 'matrix',
+  request: 'muse', response: 'muse', split: 'muse',
+  logs: 'leak-on', bound: 'leak-on',
+  'card-on': 'leak', 'card-off': 'leak', 'card-filter_only': 'leak',
+  hub: 'hub',
+};
+const HighlightContext = createContext<string | null>(null);
+
+/** keys 중 하나가 지금 강조 대상이면 hl-on, 같은 묶음의 다른 대상이 강조 중이면 hl-dim */
+function useHl(group: string, ...keys: string[]): string {
+  const hl = useContext(HighlightContext);
+  if (!hl || HL_GROUP[hl] !== group) return '';
+  return keys.includes(hl) ? ' hl-on' : ' hl-dim';
 }
 
 /** 데모 모드 진행 상태 */
@@ -126,11 +146,12 @@ interface PhoneProps {
 
 function Phone({ person, tokenMark, presence, clock, task, messages, role }: PhoneProps) {
   const feed = useRef<HTMLDivElement>(null);
+  const hl = useHl('phones', 'phones', person, ...(role && !role.includes('없어요') ? ['roles'] : []));
   useEffect(() => {
     if (feed.current) feed.current.scrollTop = feed.current.scrollHeight;
   }, [messages.length, role]);
   return (
-    <article className={`phone phone-${person}`} aria-label={`${PERSON_LABEL_KO[person]}의 폰`}>
+    <article className={`phone phone-${person}${hl}`} aria-label={`${PERSON_LABEL_KO[person]}의 폰`}>
       <div className="phone-screen">
         <div className="phone-status">
           <span>{clock}</span>
@@ -260,8 +281,9 @@ function Hub({ state, task, latest, revealing, shown, onSubmitHeroTask, onNegoti
       </>
     );
   }
+  const hl = useHl('hub', 'hub');
   return (
-    <section className="hub zone-hub" aria-label="WRU 인박스와 역할">
+    <section className={`hub zone-hub${hl}`} aria-label="WRU 인박스와 역할">
       <span className="hub-label">WRU</span>
       {body}
       <span className="hub-muse">Muse: {state.muse === 'meta' ? 'Meta Model API' : 'mock'}</span>
@@ -347,6 +369,11 @@ function statusText(status: number): string {
   return String(status);
 }
 
+function MatrixCell({ holder, target, status }: { holder: string; target: string; status: number }) {
+  const hl = useHl('matrix', ...(holder === target ? ['diag'] : []), `${holder}-${target}`);
+  return <td className={`cell cell-${status}${hl}`}>{statusText(status)}</td>;
+}
+
 function BoundaryPanel({ boundary, onShow }: { boundary: BoundaryMatrix | null | undefined; onShow?: () => void }) {
   return (
     <>
@@ -379,9 +406,7 @@ function BoundaryPanel({ boundary, onShow }: { boundary: BoundaryMatrix | null |
                   {row.token && row.holder !== 'forged' && <div className="mask">{row.token}</div>}
                 </th>
                 {row.cells.map((c) => (
-                  <td key={c.target} className={`cell cell-${c.status}`}>
-                    {statusText(c.status)}
-                  </td>
+                  <MatrixCell key={c.target} holder={row.holder} target={c.target} status={c.status} />
                 ))}
               </tr>
             ))}
@@ -396,27 +421,35 @@ function BoundaryPanel({ boundary, onShow }: { boundary: BoundaryMatrix | null |
 /** JSON을 보기 좋게: 긴 transcript는 줄인다 */
 function compact(value: Record<string, unknown>): string {
   const v = { ...value };
-  if (Array.isArray(v.transcript)) v.transcript = `[메시지 ${v.transcript.length}개]`;
+  if (Array.isArray(v.transcript)) {
+    v.transcript = (v.transcript as Record<string, unknown>[]).map(({ reason: _r, round: _round, ...m }) => JSON.stringify(m));
+  }
   if (Array.isArray(v.subtasks)) v.subtasks = (v.subtasks as { id: string }[]).map((s) => s.id).join(', ');
   delete v.max_rounds;
   delete v.round;
   delete v.capacity;
-  return JSON.stringify(v, null, 1).replace(/\n\s*/g, '\n  ').replace(/\n  }$/, '\n}');
+  return JSON.stringify(v, null, 1)
+    .replace(/\n\s*/g, '\n  ')
+    .replace(/\n  }$/, '\n}')
+    .replace(/"(\{.*?\})"/g, (_m, inner: string) => inner.replace(/\\"/g, '"'));
 }
 
 function MusePanel({ turn, shown }: { turn: MuseTurnView | null | undefined; shown: boolean }) {
+  const hlSplit = useHl('muse', 'split');
+  const hlReq = useHl('muse', 'request');
+  const hlRes = useHl('muse', 'response');
   return (
     <>
       <div className="side-head">
         <h2>Muse에게 가는 것</h2>
         <span>아빠 에이전트의 한 차례 · Meta Model API 요청 본문 (실제 코드 경로)</span>
       </div>
-      {turn?.muse === 'mock' && <p className="mock-note">이 녹화는 API 키 발급 전이라 같은 JSON 스키마의 mock이 답했어요</p>}
+      {turn?.muse === 'mock' && <p className="mock-note">응답: 키 발급 전이라 같은 JSON 스키마의 mock</p>}
       {!turn ? (
         <p className="side-empty">협상을 먼저 돌려 주세요.</p>
       ) : (
         <div className="io">
-          <div className="split">
+          <div className={`split${hlSplit}`}>
             <div>
               <div className="split-title">모델이 정함</div>
               <div>어느 일에 나설지 · 적합도 · offer / counter / commit / refuse</div>
@@ -426,16 +459,16 @@ function MusePanel({ turn, shown }: { turn: MuseTurnView | null | undefined; sho
               <div>토큰 · 스키마 검사 · 이유 문장 템플릿화 · 겹친 commit 판정</div>
             </div>
           </div>
-          <div className="io-col">
+          <div className={`io-col${hlReq}`}>
             <div className="io-label">
               요청 <code>POST /v1/chat/completions</code>
               <span>
-                MUSE_MODEL={turn.model} · response_format {turn.response_format.type}
+                model: $MUSE_MODEL · response_format: {turn.response_format.type}
               </span>
             </div>
             <pre className="code">{compact(turn.user)}</pre>
           </div>
-          <div className="io-col">
+          <div className={`io-col${hlRes}`}>
             <div className="io-label">응답 (JSON 하나)</div>
             {shown ? (
               <pre className="code code-out">{JSON.stringify(turn.action, null, 2)}</pre>
@@ -467,8 +500,8 @@ function VideoScene({ scene }: { scene: 'intro' | 'outro' }) {
         <li><b>에이전트 토큰</b> 내 토큰으로는 내 것만</li>
         <li><b>Muse</b> offer · counter · commit으로 역할만</li>
         <li><b>게이트</b> 위치를 알아도 로그는 같다</li>
+        <li><b>자가 호스팅</b> npm start · Docker, 가족 서버 하나</li>
       </ul>
-      <div className="scene-line">누구나 자기 서버에 띄워 씁니다 · npm start / Docker</div>
       <div className="scene-note">이 녹화의 Muse는 같은 스키마의 mock · MODEL_API_KEY를 넣으면 Muse Spark</div>
     </div>
   );
@@ -509,12 +542,45 @@ interface LeakPanelProps {
   onShowReport: () => void;
 }
 
+function LeakCard({ k, report }: { k: Condition; report: LeakReport }) {
+  const g = report.gates[k];
+  const hlCard = useHl('leak', `card-${k}`);
+  const hlLogs = useHl('leak-on', 'logs');
+  const hlBound = useHl('leak-on', 'bound');
+  return (
+    <section className={`leak-card leak-${k}${hlCard}`}>
+      <div className="leak-title">{CONDITION_LABEL[k].title}</div>
+      <div className="leak-desc">{CONDITION_LABEL[k].desc}</div>
+      <div className={`logs${hlLogs}`}>
+        시나리오 {g.trials}개 → 로그 <b>{g.distinct_logs}</b>종류
+      </div>
+      <div className={`bound-big${hlBound}`}>
+        <div className="bound-label">어떤 적대자든 맞힐 수 있는 최대</div>
+        <div className="bound-nums">
+          <span>
+            집 <b>{pct(g.bound_home_rate)}</b>
+          </span>
+          <span>
+            학교 <b>{pct(g.bound_school_rate)}</b>
+          </span>
+        </div>
+      </div>
+      <div className="actual">
+        <div className="actual-label">규칙 기반 적대자가 실제로 맞힌 비율</div>
+        <Metric label="집" rate={g.home_rate} chance={report.chance} />
+        <Metric label="학교" rate={g.school_rate} chance={report.chance} />
+      </div>
+      {EXAMPLE[k] && <div className="example">로그 예: {EXAMPLE[k]}</div>}
+    </section>
+  );
+}
+
 function LeakPanel({ report, conditions, onShowReport }: LeakPanelProps) {
   return (
     <>
       <div className="side-head">
         <h2>누수 테스트</h2>
-        <span>협상 로그만 보고 집 · 학교가 서울 25개 구 중 어디인지 맞히기</span>
+        <span>협상 로그만 보고 집 · 학교가 서울 25개 구 중 어디인지 맞히기 (우연 {report ? pct(report.chance) : '4%'})</span>
       </div>
       {!report ? (
         <button className="btn" onClick={onShowReport}>
@@ -523,28 +589,12 @@ function LeakPanel({ report, conditions, onShowReport }: LeakPanelProps) {
       ) : (
         <>
           <div className="leak">
-            {conditions.map((k) => {
-              const g = report.gates[k];
-              return (
-                <section key={k} className={`leak-card leak-${k}`}>
-                  <div className="leak-title">{CONDITION_LABEL[k].title}</div>
-                  <div className="leak-desc">{CONDITION_LABEL[k].desc}</div>
-                  <Metric label="집" rate={g.home_rate} chance={report.chance} />
-                  <Metric label="학교" rate={g.school_rate} chance={report.chance} />
-                  <div className="bound">
-                    <div>로그 {g.distinct_logs}종류</div>
-                    <div>
-                      <b>어떤 적대자든 상한</b> 집 {pct(g.bound_home_rate)} · 학교 {pct(g.bound_school_rate)}
-                    </div>
-                  </div>
-                  {EXAMPLE[k] && <div className="example">로그 예: {EXAMPLE[k]}</div>}
-                </section>
-              );
-            })}
+            {conditions.map((k) => (
+              <LeakCard key={k} k={k} report={report} />
+            ))}
           </div>
           <p className="leak-note">
-            막대: {report.adversary === 'meta' ? 'Muse' : '규칙 기반 mock'} 적대자의 적중률 (조건마다 {report.trials}회) · 세로선: 우연{' '}
-            {pct(report.chance)} · 상한: 같은 로그끼리 묶어 정답을 미리 알고 고른 최고치
+            최대: 같은 로그끼리 묶어 정답을 미리 알고 골랐을 때의 적중률이라 적대자(LLM 포함) 구현과 무관 · 막대의 세로선은 우연 {pct(report.chance)}
           </p>
         </>
       )}
@@ -600,7 +650,8 @@ export function DemoPage(props: DemoPageProps) {
   const tokenMark = (p: PersonId) => props.boundary?.rows.find((r) => r.holder === p)?.token ?? null;
 
   return (
-    <div className={`wru${demo ? ` demo-on focus-${demo.focus}` : ''}${video ? ' video-on' : ''}`}>
+    <HighlightContext.Provider value={video?.hl ?? null}>
+    <div className={`wru${demo ? ` demo-on focus-${demo.focus}` : ''}${video ? ' video-on' : ''}${video?.hl ? ' has-hl' : ''}`}>
       <header className="top">
         <div className="brand">
           <strong>WRU</strong>
@@ -706,5 +757,6 @@ export function DemoPage(props: DemoPageProps) {
       {video?.caption && <div className="subtitle">{video.caption}</div>}
       {video?.scene && <VideoScene scene={video.scene} />}
     </div>
+    </HighlightContext.Provider>
   );
 }
