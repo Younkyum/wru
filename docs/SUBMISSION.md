@@ -4,7 +4,7 @@ Meta Global AI Developer Hackathon (2026-10-26 to 11-04)
 
 ## Problem
 
-To decide "who's picking up the kid?", a family has to know where everyone is right now. Families often turn on location sharing, which records everyone's exact routes all day. The only thing they actually needed was one answer: who can make it in time.
+To decide "who's picking up the kid?", a family has to know where everyone is right now. Many families turn on always-on location sharing. The only thing they actually needed was one answer: who can make it in time.
 
 ## Solution
 
@@ -24,7 +24,7 @@ WRU assigns roles without any person, agent or log seeing coordinates.
 | refuse | from, subtask_id, reason_code | I can't (busy_in_transit, deadline_unreachable, …; templates only) |
 
 - Each agent sends the model only its own state, an ETA range, minutes to the deadline and the messages so far. The model answers with one JSON object (`response_format: json_object`) that says which subtask to go for, how good a fit, and which message type.
-- **The model picks the move; WRU checks it.** WRU checks the token, validates the schema, publishes every reason as a status template, and decides which commits stand. A commit stands only if the agent's claim has gone a full round unbeaten, and only within capacity (one task per person). Anything still open after the maximum rounds is unassigned.
+- **WRU validates every move the model makes.** It checks the token, validates the schema, publishes every reason as a status template, and decides which commits stand. A commit stands only if the agent's claim has gone a full round unbeaten, and only within capacity (one task per person). Anything still open after the maximum rounds is unassigned.
 - The outcome follows from status. At 17:30 Dad gets the pickup and Brother gets the milk; at 17:52 nobody can make the deadline and both stay unassigned.
 - With a real Meta Model API key, any output that fails schema validation or the location check falls back to the template decision for the same input.
 
@@ -34,7 +34,7 @@ WRU issues every family member an agent token. The server stores only SHA-256 ha
 
 ## Privacy gate
 
-1. WhereCtx refuses location detail.
+1. WhereCtx refuses location details.
 2. Real Muse output is validated for schema and location patterns.
 3. **Agents' own words are never published.** Reasons are replaced with stock status phrases, and ETAs are only ever shown as ranges.
 4. Task labels containing location hints are rejected by the inbox.
@@ -50,7 +50,7 @@ We give an attacker only the negotiation log and ask which of Seoul's 25 distric
 | Gate on (WRU default) | 5 | **22% · 24%** | 6% · 0% |
 | Chance (1/25) | | 4% | 4% |
 
-The hindsight bound groups identical logs and picks the right answer in hindsight, so no attacker, LLMs included, can beat it on our 50 scenarios at district level. With the gate on, 50 different families produce only 5 distinct logs. The remaining 22% comes from the coarse status itself ("on the way, within 20 min"), which the family chose to share, and no gate can remove it. Internal flags (fallback, filtered) are stripped from public logs, so an agent that secretly knows its location produces exactly the same logs as one that does not.
+The hindsight bound groups identical logs and picks the right answer in hindsight, so no attacker can beat it on our 50 scenarios at district level. With the gate on, 50 different families produce only 5 distinct logs. The remaining 22% comes from the coarse status itself ("on the way, within 20 min"). The family chose to share that status, and no gate can remove it. Internal flags (fallback, filtered) are stripped from public logs, so an agent that secretly knows its location produces exactly the same logs as one that does not.
 
 Quality-gate tests check API responses, the event log, every demo render, samples, the leak report and the docs for coordinate keys, decimal coordinates, street addresses, school names and Seoul place names: zero hits. The full suite has over 130 tests.
 

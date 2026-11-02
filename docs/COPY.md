@@ -59,6 +59,6 @@ The source is `scripts/video/narration.ts`. Start times, every sentence and what
 ## Checklist
 
 - [ ] "Mina" is a made-up child's name. Do not replace it with a real one.
-- [ ] Current leak numbers. Gate on: 5 distinct logs, hindsight bound home 22% · school 24%, rule-based adversary home 6% · school 0%. Gate off: home 98% · school 72%. Chance 4%.
-- [ ] Leak numbers come from the mock adversary and the adversary-independent bound. If you re-run `npm run leak` with a Meta Model API key, on-screen captions update automatically; video narration does not.
+- [ ] Current leak numbers. Gate on: 5 distinct logs, hindsight bound home 22% · school 24%, rule-based attacker home 6% · school 0%. Gate off: home 98% · school 72%. Chance 4%.
+- [ ] Leak numbers come from the rule-based attacker and the attacker-independent ceiling. If you re-run `npm run leak` with a Meta Model API key, on-screen captions update automatically; video narration does not.
 - [ ] The model id is set with `MUSE_MODEL` and is not shown on screen.

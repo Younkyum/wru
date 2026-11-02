@@ -101,7 +101,7 @@ Set `WRU_ADMIN_TOKEN` in `.env` and the family dashboard API requires it. In the
 
 ### 3. Connect each person's WhereCtx
 
-[WhereCtx](https://github.com/Younkyum/WhereCtx) is a server where one person hosts their own location (a separate project that predates WRU). For each member you connect:
+[WhereCtx](https://github.com/Younkyum/WhereCtx) is a self-hosted server for one person's location (a separate project that predates WRU). For each member you connect:
 
 1. That person issues an **agent token** on their WhereCtx (`POST /v1/tokens`, role `agent`) and registers their home place under the name `home`.
 2. Put the token in the WRU server's `.env`, under any name:
@@ -142,7 +142,7 @@ The hackathon only counts new work, so here is the split.
 | | What | Evidence |
 | --- | --- | --- |
 | **Built during the hackathon** | All of WRU: simulator, negotiation engine (offer · counter · commit · refuse), Muse clients (mock · Meta Model API), privacy gate, leak test, demo UI, **agent token boundary**, **HttpWhereCtx adapter**, family config, self-hosting setup, video pipeline | This repo's first commit is 2026-10-26; every commit is after that |
-| **Existed before** | [WhereCtx](https://github.com/Younkyum/WhereCtx): a server where one person hosts their location and hands out coarse status to agent tokens | Developed 2026-06-06 to 2026-10-19, no commits during the hackathon. WRU does not reuse its code; it only calls its public REST API (`/v1/presence`, `/v1/geo/eta`) |
+| **Existed before** | [WhereCtx](https://github.com/Younkyum/WhereCtx): a self-hosted server for one person's location that hands out coarse status to agent tokens | Developed 2026-06-06 to 2026-10-19, no commits during the hackathon. WRU does not reuse its code; it only calls its public REST API (`/v1/presence`, `/v1/geo/eta`) |
 
 ## Layout
 
@@ -178,9 +178,9 @@ At 17:30 this gives Dad = pickup, Brother = milk; at 17:45 Dad = pickup, Mom = m
 
 The gate has four layers:
 
-1. **WhereCtx adapter** refuses coordinate and detail requests; inside the home zone it answers `home_zone_refused`.
+1. **WhereCtx adapter** refuses coordinate and location-detail requests; inside the home zone it answers `home_zone_refused`.
 2. **Output validation** checks the real Muse's JSON for schema and location patterns and falls back to the template decision if it fails.
-3. **Agents' own words are never published.** Every offer/counter reason is replaced with a stock status phrase, and ETAs are only ever shown as ranges ("within 10 min"). The model decides what to do, and WRU controls what gets said. This does not rely on a word list, so spacing tricks, zero-width characters or romanized names do not reach the log either.
+3. **Agents' own words are never published.** Every offer/counter reason is replaced with a stock status phrase, and ETAs are only ever shown as ranges ("within 10 min"). This does not rely on a word list, so spacing tricks, zero-width characters or romanized names do not reach the log either.
 4. **Label check.** Task labels are the user's own text and appear in notifications and the event log, so the inbox rejects labels with place names, neighborhood stems, "○○-dong / station / road" forms, landmarks, school names or distances. Negotiation messages never include labels.
 
 The family screen shows exact ETA minutes per the Presence contract; negotiation logs and agent messages carry only ranges.
@@ -194,7 +194,7 @@ The family screen shows exact ETA minutes per the Presence contract; negotiation
 | Gate on (WRU default) | 5 | 22% · 24% | 6% · 0% |
 | Chance (1/25) | | 4% | 4% |
 
-The hindsight bound groups identical logs and picks the right answer in hindsight, so no attacker (LLMs included) can beat it on these scenarios, at district level. The 22% that remains comes from the coarse status itself, which the family chose to share. Without a key, the rule-based attacker scores districts from neighborhood names, "N km from home" and "N min left" in the log; it never sees scenario answers. With `MODEL_API_KEY` set, both the agents and the attacker use Muse.
+The hindsight bound groups identical logs and picks the right answer in hindsight, so no attacker can beat it on these scenarios at district level. The 22% that remains comes from the coarse status itself, which the family chose to share. Without a key, the rule-based attacker scores districts from neighborhood names, "N km from home" and "N min left" in the log; it never sees scenario answers. With `MODEL_API_KEY` set, both the agents and the attacker use Muse.
 
 ## API
 

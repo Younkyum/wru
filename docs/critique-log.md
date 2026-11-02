@@ -88,3 +88,29 @@ From this round a third reviewer joined: an **English copy critic** (native-spea
 | English copy | narration 6.5 · SUBMISSION 7 · README 7.5 · COPY 8 · leak report 6.5 | HIGH: question split across cues; hard-to-follow milk exchange; "So…" opener with unexplained jargon; 7-second cue | ✅ All four rewritten; long cue split |
 | | | HIGH: bound overclaimed ("bounds every adversary"); confusing 0/386 column | ✅ "on these scenarios, at district level"; column renamed "Agent wording that differed from the template" with a footnote |
 | | | MED: attacker vs adversary, WRU never spelled out, "ETAs leave", formula phrases, British/American mix | ✅ "attacker" in narration, UI and docs; "WRU, short for 'where are you'"; "are only ever shown as ranges"; formulas rewritten; American spelling throughout |
+
+## Round 10
+
+| Critic | Score | Key finding (severity) | Outcome |
+| --- | --- | --- | --- |
+| Presentation | 5.5 (Impact 6 · Tooling 3 · Depth 7 · Demo 7) | HIGH: Muse Spark never runs; nothing shows why an LLM is needed (e.g. a free-text constraint) | ➖ Both need a real model. Faking a free-text effect with the mock would misrepresent the system, so we did not |
+| | | MED: "without anyone sharing a location" overclaims (ETA ranges still go out) | ✅ "without sharing coordinates" |
+| | | MED: Mom's low pickup fit unexplained | ✅ "Mina's school is a 15-minute trip from home" |
+| | | MED: 22% framing; LOW: "Nothing else" vs screen | ✅ "That floor comes from the status itself"; "each phone gets only its own job" |
+| Design | 7 | HIGH: dimming too strong in the model cut (the strikethrough and safe sentence vanish); muddy phones; dimmed text unreadable | ✅ One lighter dim (0.6), no blur, phones desaturated rather than greyed; secondary text darkened |
+| | | MED: leak label wrap, intro card pairing, host title | ✅ Label no-wrap, larger bound numbers, green border on the WRU card, larger host title |
+| English copy | narration 7 · SUBMISSION 6 · README 6.5 · COPY 6.5 · leak report 5.5 | HIGH: "an attacker who knew every answer could only reach 22%" sounds contradictory; "which it calls"; closing overclaim; hard-to-follow offers | ✅ "Even the best possible guess, made in hindsight, is right only 22% of the time"; "We call each agent a Muse. It runs on Meta's Muse Spark model."; "Add a Meta API key, and the same code calls Muse Spark."; offers split into short lines |
+| | | HIGH: README item 7 too long; SUBMISSION "So…" opener and unsupported "stored indefinitely"; leak report phrasing | ✅ Split into short sentences; claims removed; report wording rewritten, column renamed "Rewritten messages" |
+
+## Round 11
+
+| Critic | Score | Key finding (severity) | Outcome |
+| --- | --- | --- | --- |
+| Presentation | 5.5 (Impact 6 · Tooling 3 · Depth 7 · Demo 7) | HIGH: Muse Spark never runs; the model's job is thin | ➖ Needs a key |
+| | | HIGH: "That floor" is wrong (the 22% is a ceiling) and still reads as a leak | ✅ "That 22% is what the status alone reveals. The negotiation leaks nothing extra." |
+| | | MED: "15 requests" did not add up; "everything Dad's Muse sends" overclaims (no system prompt shown); fit logic unexplained | ✅ "Three agent tokens, no token and a forged one, each asking about all three people"; "the data Dad's Muse sends"; "Fit comes from status alone…" |
+| | | LOW: "Meta API key" vs `MODEL_API_KEY` on the card | ✅ Narration says `MODEL_API_KEY` |
+| Design | 7 | HIGH: small phone text, dimming, subtitle bar, ring colour | ✅ Phone meta 13 px/600, ETA 15 px, darker 403 text and lighter 401 grey, one subtitle style on every scene. Ring colour ➖: earlier rounds asked for it not to clash with the blue status colour |
+| English copy | narration 7 · SUBMISSION 7 · README 7.5 · COPY 8 · leak report 6.5 | HIGH: "floor" vs "ceiling"; "15 requests"; "What comes out is roles" | ✅ All three fixed |
+| | | HIGH: attacker vs adversary in the docs | ✅ "attacker" throughout the docs (code identifiers keep `adversary`) |
+| | | MED: "runs on" overclaims; "tried 50 families"; formula sentences; "So we also…"; colon formula; "location detail" | ✅ "built for"; "simulated 50 families"; formulas and "So" openers rewritten; "location details" |

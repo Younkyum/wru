@@ -686,3 +686,13 @@ footer { color: var(--faint); font-size: 12px; text-align: center; }
 .scene-host .scene-kicker { font-size: 28px; letter-spacing: 0.08em; }
 .bound-label { white-space: nowrap; }
 .bound-nums b { font-size: 34px; }
+
+/* ── 라운드 11 반영 ─────────────────────────── */
+.video-on .phone-sub { font-size: 13px; font-weight: 600; color: #6b6863; }
+.video-on .eta { font-size: 15px; }
+.cell-403 { color: #9b2318; }
+.cell-401 { color: #666; }
+/* 자막은 모든 장면에서 같은 상자 */
+.scene-intro .subtitle, .scene-outro .subtitle { background: rgba(20, 20, 19, 0.88); border-color: rgba(255, 255, 255, 0.16); color: #fff; }
+.subtitle { background: rgba(20, 20, 19, 0.86); }
+.scene-note { font-size: 20px; }
