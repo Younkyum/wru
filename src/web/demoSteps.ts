@@ -1,4 +1,4 @@
-// 데모 모드 8컷. 화면 카피는 docs/COPY.md에도 모아 둔다.
+// 데모 모드 7컷. 화면 카피는 docs/COPY.md에도 모아 둔다.
 
 import type { DemoState } from '../shared/contracts';
 import type { Condition, LeakReport } from '../shared/leak-report';
@@ -22,7 +22,7 @@ const pct = (v: number) => `${Math.round(v * 100)}%`;
 
 export const DEMO_STEPS: DemoStep[] = [
   {
-    title: 'A map without coordinates',
+    title: 'Status only',
     focus: 'phones',
     action: 'reset',
     caption: () => 'Each phone shows only its own status. Mom is home, Dad is on the way (about 20 min), Brother is near home. No map, no pins, no coordinates.',
@@ -47,7 +47,7 @@ export const DEMO_STEPS: DemoStep[] = [
       "Dad's Muse sends only its own state, an ETA range, minutes to the deadline and the messages so far. The model answers with one JSON object, which WRU checks before it joins the negotiation.",
   },
   {
-    title: 'Roles, not locations',
+    title: 'Only roles come out',
     focus: 'roles',
     action: 'none',
     caption: ({ state }) => {
@@ -70,20 +70,10 @@ export const DEMO_STEPS: DemoStep[] = [
     title: 'Can the log reveal home?',
     focus: 'report',
     action: 'leak',
-    conditions: ['on'],
+    conditions: ['off', 'on', 'filter_only'],
     caption: ({ report }) =>
       report
-        ? `${report.trials} scenarios produce only ${report.gates.on.distinct_logs} distinct logs, so even picking answers in hindsight tops out at home ${pct(report.gates.on.bound_home_rate)}, school ${pct(report.gates.on.bound_school_rate)} (chance ${pct(report.chance)}). The rule-based adversary hit home ${pct(report.gates.on.home_rate)}, school ${pct(report.gates.on.school_rate)}.`
+        ? `With the privacy gate off, all ${report.gates.off.distinct_logs} logs differ and a simple attacker finds the home ${pct(report.gates.off.home_rate)} of the time. With it on, ${report.trials} families produce ${report.gates.on.distinct_logs} distinct logs: even with every answer known, ${pct(report.gates.on.bound_home_rate)} is the ceiling, which is what the status alone reveals. An agent that secretly knows its location produces the very same logs.`
         : 'Loading the leak test…',
-  },
-  {
-    title: 'Same log, even if it knows',
-    focus: 'report',
-    action: 'none',
-    conditions: ['off', 'filter_only', 'on'],
-    caption: ({ report }) =>
-      report
-        ? `Slip the location to an agent and the log is still identical to gate on (${report.gates.filter_only.distinct_logs} distinct logs). Turn the gate off and all ${report.gates.off.distinct_logs} logs differ; the same adversary hits home ${pct(report.gates.off.home_rate)}, school ${pct(report.gates.off.school_rate)}.`
-        : '',
   },
 ];

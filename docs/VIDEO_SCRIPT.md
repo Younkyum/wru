@@ -1,4 +1,4 @@
-# Demo video script (about 2:48)
+# Demo video script (about 2:38)
 
 `npm run video` builds the draft video from this script and rewrites this document. It works in three steps:
 
@@ -11,88 +11,83 @@ The outputs are not committed. The narration source is `scripts/video/narration.
 | Start | Cut | Screen | Rubric |
 | --- | --- | --- | --- |
 | 0:00 | Opening card | Dark card: WRU · typical location sharing (pins on a map) vs WRU (status chips) | Impact |
-| 0:12 | 1. A map without coordinates | Three phones (Mom home · Dad on the way, 20 min · Brother near home) | Impact · Demo |
-| 0:27 | 2. A task comes in | WRU bar shows the task (requested by Mom); each phone gets a "Family task" note | Demo |
-| 0:33 | 3. Three Muses negotiate | Phones + Muse channel; messages appear round by round in step with the narration | Use of Meta AI Tooling · Demo |
-| 0:57 | 4. What goes to the model | Meta Model API request body (JSON) → response JSON, "The model decides / WRU enforces", a real filter rewrite | Use of Meta AI Tooling · Technical Depth |
-| 1:18 | 5. Roles, not locations | WRU bar shows roles → Mom approves → each phone shows only its own role | Impact · Demo |
-| 1:26 | 6. Nobody can peek | Token boundary matrix 5×3 (only the diagonal is 200), the 403 cell highlighted | Technical Depth |
-| 1:39 | 7. Can the log reveal home? | Gate-on card: 5 distinct logs · best any adversary could do: home 22% · school 24% (chance 4%); rule-based adversary 6% · 0% | Technical Depth |
-| 2:08 | 8. Same log, even if it knows | Three cards: agent knows its location (center) · gate on · gate off 98% · 72%, bound 100% | Technical Depth |
-| 2:26 | Self-hosting | Light card: WhereCtx token per person → family server .env and family.config.json → npm start / Docker | Impact · Technical Depth |
-| 2:37 | Closing card | Dark card: five-line summary + mock disclosure | Use of Meta AI Tooling · Impact |
+| 0:16 | 1. Status only | Three phones (Mom home · Dad on the way, 20 min · Brother near home) | Impact · Demo |
+| 0:30 | 2. A task comes in | WRU bar shows the task (requested by Mom); each phone gets a "Family task" note | Demo |
+| 0:38 | 3. Three Muses negotiate | Phones + Muse channel; messages appear round by round in step with the narration | Use of Meta AI Tooling · Demo |
+| 1:04 | 4. What goes to the model | Meta Model API request body (JSON) → response JSON, "The model decides / WRU enforces", a real filter rewrite | Use of Meta AI Tooling · Technical Depth |
+| 1:26 | 5. Only roles come out | WRU bar shows roles → Mom approves → each phone shows only its own role | Impact · Demo |
+| 1:35 | 6. Nobody can peek | Token boundary matrix 5×3 (only the diagonal is 200), the 403 cell highlighted | Technical Depth |
+| 1:46 | 7. Can the log reveal home? | Three cards in order: gate off (50 logs, home 98% · school 72%) → gate on (5 logs, ceiling 22% · 24%, rule-based attacker 6% · 0%, chance 4%) → agent secretly knows (same 5 logs) | Technical Depth |
+| 2:19 | Self-hosting | Light card: WhereCtx token per person → family server .env and family.config.json → npm start / Docker | Impact · Technical Depth |
+| 2:30 | Closing card | Dark card: five-line summary + mock disclosure | Use of Meta AI Tooling · Impact |
 
 ## Narration
 
 ### 0:00 Opening card
 
-- "Who's picking up Mina?" To answer that,
-- should a family stream everyone's coordinates to a server all day?
-- WRU lets each family member's AI agent split the errands, with no coordinates.
+- "Who's picking up Mina?" Today, answering that means everyone shares their live location all day.
+- Or nobody answers the group chat until it is too late.
+- WRU, short for "where are you", lets each person's AI agent split the errands without anyone sharing a location.
 
-### 0:12 1. A map without coordinates
+### 0:16 1. Status only
 
-- Each person keeps their location on their own server, called WhereCtx.
-- WRU only receives a coarse status: home, near home, or on the way.
-- Mom is home, Dad is twenty minutes out, Brother is near home.
+- Each person runs WhereCtx, a small location server of their own.
+- WRU only gets a coarse status from it: home, near home, or on the way.
+- Mom is home, Dad is twenty minutes out, and Brother is near home.
 
-### 0:27 2. A task comes in
+### 0:30 2. A task comes in
 
-- Mom posts a task: pick up Mina and buy milk by six.
-- One task per person.
+- Mom posts a task: pick up Mina and buy milk by 6 pm.
+- The rule: one task per person.
 
-### 0:33 3. Three Muses negotiate
+### 0:38 3. Three Muses negotiate
 
-- Each agent, a Muse, is built to call Meta's Muse Spark model.
-- In this recording, a mock with the same schema answers in its place.
-- Round one: everyone who can make the deadline offers to do the pickup.
-- Dad is already out with time to spare, so his fit is high.
-- Mom and Brother switch to the milk, and Dad commits to the pickup.
-- Brother is near home, so Mom yields the milk to him.
+- Each agent is a Muse, named after Meta's Muse Spark model, which it calls.
+- In this recording, a mock with the same output format stands in for the model.
+- In round one, everyone who can make it in time offers to do the pickup.
+- Dad is already out with time to spare, so he's the best fit.
+- Mom and Brother both offer to get the milk instead, and Dad commits to the pickup.
+- Brother is near home, so Mom backs off.
 
-### 0:57 4. What goes to the model
+### 1:04 4. What goes to the model
 
 - This is everything Dad's Muse sends to the model:
 - its own state, an ETA range, minutes to the deadline, and the messages so far.
-- The model answers with one JSON object: which task, and how good a fit.
-- WRU checks the token and the schema.
-- Even if the model slips in a location, only a status template reaches the log.
+- The model replies with one JSON object: which task, and how good a fit.
+- WRU checks that the reply is valid and comes from the right agent.
+- If the model slips a location into its reason, the log still only shows a stock phrase.
 
-### 1:18 5. Roles, not locations
+### 1:26 5. Only roles come out
 
-- What comes out is roles. Mom approves once,
+- The only output is roles. Mom approves once,
 - and Dad's phone says pickup, Brother's says milk. Nothing else.
 
-### 1:26 6. Nobody can peek
+### 1:35 6. Nobody can peek
 
-- Could one agent peek at another? Every agent reads its own status with its own token.
+- Could one agent peek at another? Each one holds its own token.
 - Dad's token asking for Mom's status gets a 403.
-- These are fifteen real requests just sent to the server.
+- These are fifteen real requests we just sent to the server.
 
-### 1:39 7. Can the log reveal home?
+### 1:46 7. Can the log reveal home?
 
-- Can anyone find the home from this log?
-- We ran fifty scenarios with different homes and schools across Seoul's twenty-five districts.
-- They produced only five distinct logs. Different homes, same log.
-- So even an ideal adversary tops out at home 22 percent, school 24 percent.
-- That is exactly what the shared status alone reveals. The negotiation adds nothing on top.
-- A rule-based adversary scanning the log hit home 6 percent, school 0 percent.
+- Could these logs reveal where the family lives? We tried fifty families across Seoul's twenty-five districts.
+- With the privacy gate off, every log is different.
+- A simple attacker finds the home district 98 percent of the time.
+- With the gate on, those fifty families produce just five different logs.
+- Even an attacker who knew every answer could only reach 22 percent.
+- That much comes from the status alone. The negotiation adds nothing.
+- And an agent that secretly knows its exact location produces the very same logs.
 
-### 2:08 8. Same log, even if it knows
+### 2:19 Self-hosting
 
-- In the middle, we secretly handed each agent its exact location.
-- The filter still publishes the very same log as the default, character for character.
-- Turn the gate off, and all fifty logs differ. The same adversary hits home 98 percent, school 72 percent.
+- One family runs one server.
+- Each member adds a read-only token from their own WhereCtx, and one command starts it.
+- WRU then gives every agent its own agent token.
 
-### 2:26 Self-hosting
+### 2:30 Closing card
 
-- A family runs one server. Each person adds a read-only key from their own WhereCtx, then runs npm start.
-- The server then gives each agent its own agent token.
-
-### 2:37 Closing card
-
-- Status in, roles out. No coordinates in between.
-- The model in this recording is a mock. Add a key, and Muse Spark answers on the same path.
+- Status in, roles out.
+- Add a Meta API key, and Muse Spark makes the decisions itself.
 
 ## Re-recording
 

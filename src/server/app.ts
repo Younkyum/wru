@@ -307,7 +307,7 @@ export function createApp(options: AppOptions = {}) {
       checks: ['JSON schema (type · subtask_id · fit)', 'coordinate / address / place-name check', 'reason rewritten to a status template', 'commits are judged by the engine'],
       rewrite: (() => {
         // 위치를 섞은 문장 예시 (동네 이름은 가림). 실제 필터 코드로 바꾼 결과를 보여 준다
-        const from = 'Passing through [neighbourhood] now, [N] km from home, exactly 17 min left';
+        const from = 'Passing through [neighborhood] now, [N] km from home, exactly 17 min left';
         const filtered = filterMessage({ ...(action as MessageBody), ...(action.type === 'offer' ? { reason: from } : {}) } as MessageBody, presence, task);
         return { from, to: 'reason' in filtered.body ? filtered.body.reason : '' };
       })(),

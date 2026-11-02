@@ -636,3 +636,40 @@ footer { color: var(--faint); font-size: 12px; text-align: center; }
 /* mock 배너 대비 */
 .mock-note { color: #6b4a00; background: #fff4d6; }
 .bound-label span { font-weight: 500; color: var(--muted); }
+
+/* ── 라운드 8 반영 ─────────────────────────── */
+/* 흐림 강도 하나로 통일 */
+.hl-dim, .cell.hl-dim, .leak-card.hl-dim, .split.hl-dim, .rewrite.hl-dim { opacity: 0.45; }
+.phone.hl-dim .phone-screen { opacity: 0.45; }
+/* 강조 링: 한 겹 */
+.hl-on { outline-width: 2.5px; box-shadow: none; }
+/* 작은 글자 최소 14px (영상) */
+.video-on .side-head span, .video-on .chain, .video-on .matrix .mask, .video-on .io-label span,
+.video-on .leak-desc, .video-on .actual-label, .video-on .split > div, .video-on .rewrite { font-size: 14px; }
+.video-on .msg-detail { font-size: 14px; }
+.hub-muse { color: #555; }
+/* 자가 호스팅 카드: 세로 가운데, 진한 글자 */
+.scene-host { justify-content: center; padding-bottom: 160px; }
+.host-steps li { font-size: 25px; }
+.host-steps li span { color: #111; }
+.scene-host .scene-kicker { font-size: 20px; color: var(--ink); opacity: 1; font-weight: 700; }
+/* 인트로 지도 대비 */
+.fake-map { background-color: #34342f; background-image: linear-gradient(#4a4a44 1px, transparent 1px), linear-gradient(90deg, #4a4a44 1px, transparent 1px); }
+/* 아웃트로 정렬 */
+.scene-points li { display: grid; grid-template-columns: 210px 1fr; }
+.scene-note { font-size: 18px; }
+
+/* ── 라운드 9 반영 ─────────────────────────── */
+.chain { white-space: nowrap; }
+.cell.hl-dim { opacity: 0.55; }
+.matrix .mask { color: #6b6863; }
+.scene .scene-line { color: #cfcfcf; }
+.contrast { transform: scale(1.12); margin-top: 34px; }
+.video-on .subtitle { width: 880px; min-height: 92px; }
+.video-on.focus-muse .side { zoom: 1.0; width: 1060px; }
+.video-on.focus-muse .code { font-size: 14px; }
+.scene-note { font-size: 19px; }
+.scene-points { column-gap: 48px; }
+/* 누수 카드 세 장: 여유 있게 */
+.video-on.focus-report .leak { gap: 14px; }
+.video-on.focus-report .leak-card { padding: 14px 16px; }

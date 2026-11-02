@@ -76,14 +76,14 @@ describe('품질 게이트', () => {
     for (const token of ['망원', '합정', '테헤란', '대치', '3.2']) expect(all).not.toContain(token);
   });
 
-  it('데모 모드 8컷 렌더 (캡션 · 토큰 경계표 · 영상 자막 포함)', async () => {
+  it('데모 모드 7컷 렌더 (캡션 · 토큰 경계표 · 영상 자막 포함)', async () => {
     const app = makeApp();
     await req(app, 'POST', '/api/tasks/hero');
     await req(app, 'POST', '/api/tasks/t_pickup_milk_001/negotiate');
     await req(app, 'POST', '/api/negotiations/n_001/approve');
     const state = (await req(app, 'GET', '/api/state')).json;
     const report = (await req(app, 'GET', '/api/leak-report')).json;
-    expect(DEMO_STEPS).toHaveLength(8);
+    expect(DEMO_STEPS).toHaveLength(7);
     const boundary = (await req(app, 'GET', '/api/demo/boundary')).json;
     const museTurn = (await req(app, 'GET', '/api/demo/muse-turn')).json;
     DEMO_STEPS.forEach((step, i) => {

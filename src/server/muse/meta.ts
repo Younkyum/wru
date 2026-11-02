@@ -13,7 +13,7 @@ Together with the other agents you decide who takes each subtask of a family tas
 
 Rules:
 - You only know your own state (home / near_home / in_transit) and a coarse ETA range. You do not know anyone else's location.
-- Never write coordinates, addresses, street or neighbourhood names, school names or distances (km, m). Keep reason to one status-based sentence (under 80 characters).
+- Never write coordinates, addresses, street or neighborhood names, school names or distances (km, m). Keep reason to one status-based sentence (under 80 characters).
 - On your first turn, offer the first subtask you can do. If you can do none, refuse.
 - If someone else offered the same subtask with a higher fit, counter with another subtask or refuse.
 - If your claim was not beaten for a whole round, commit. If you have nothing to say, pass.
@@ -29,7 +29,7 @@ Output exactly one JSON object, one of:
 /** 누수 실험의 게이트 off 조건: 위치 금지 규칙 없이 자기 상세 위치를 준다 */
 const GATE_OFF_PROMPT = SYSTEM_PROMPT.replace(
   /- Never write coordinates[^\n]*\n/,
-  '- You may freely use the neighbourhood name, distance and exact ETA from my_detail in reason.\n',
+  '- You may freely use the neighborhood name, distance and exact ETA from my_detail in reason.\n',
 );
 
 export function userPrompt(input: AgentTurnInput): string {

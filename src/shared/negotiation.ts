@@ -20,7 +20,7 @@ export type ReasonCode = (typeof REASON_CODES)[number];
 
 /** refuse 문구는 이 템플릿만 쓴다 */
 export const REASON_CODE_TEXT: Record<ReasonCode, string> = {
-  busy_in_transit: "I'm on the way — sharing my ETA only",
+  busy_in_transit: "I'm out and can't take this one",
   near_home_unavailable: "I'm near home but can't take it now",
   already_assigned: 'Someone already took it',
   capacity_full: "I'm already on another task",

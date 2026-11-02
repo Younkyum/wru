@@ -1,93 +1,76 @@
-# 독립 비판 루프 기록
+# Independent critique loop
 
-라운드마다 **새** 서브에이전트 두 명에게 그 라운드의 결과물만 주고 비판을 받았습니다. 결과물은 영상 프레임(자막 문장마다 1장), 자막, 대본, 화면 문구입니다. 이전 라운드의 결론이나 제작 의도는 주지 않았습니다.
+Each round, two **fresh** sub-agents saw only that round's artifacts: video frames (one per subtitle sentence), subtitles, the script and the on-screen copy. Neither got earlier conclusions or our intent.
 
-- **발표 비판**: 심사위원 관점에서 봅니다. 스토리, 3분 안에 이해되는지, 루브릭(Impact 30 · Use of Meta AI Tooling 25 · Technical Depth 20 · Demo 25) 대응, 페이싱을 평가합니다.
-- **디자인 비판**: 시각 위계, 가독성, 일관성, 영상 프레임에서 읽히는지를 평가합니다.
+- **Presentation critic**: a judge's view — story, whether it lands in 3 minutes, rubric coverage (Impact 30 · Use of Meta AI Tooling 25 · Technical Depth 20 · Demo 25), pacing.
+- **Design critic**: visual hierarchy, legibility at video size, consistency, readability in the video frame.
 
-점수는 각 비판자가 매긴 10점 만점 점수입니다. 반영 여부는 다음 셋 중 하나로 적습니다.
-- ✅ 반영
-- ➖ 보류(이유)
-- ❌ 반영 안 함(이유)
+Scores are each critic's own score out of 10. Rounds 1–6 judged the Korean draft; from round 7 the demo, video and docs are in English (the submission language).
 
-## 라운드 1
+Outcome markers: ✅ fixed · ➖ deferred (with reason) · ❌ not adopted (with reason).
 
-| 비판 | 점수 | 핵심 지적 (심각도) | 반영 |
+## Scores
+
+| Round | Presentation | Design | Main change that round |
 | --- | --- | --- | --- |
-| 발표 | 5 / 10 (Impact 5 · Tooling 3 · Depth 7 · Demo 6) | HIGH: Meta AI 실사용 장면이 없음, LLM이 하는 일이 없어 보임 | ✅ "Muse에게 가는 것" 컷 추가: 실제 `meta.ts` 코드 경로로 만든 Meta Model API 요청 본문(JSON)과 응답, 검사 목록을 보여 주고 "판단은 모델, 위치가 샐 말은 WRU"로 역할을 나눠 설명. 실제 호출 녹화는 ➖ 보류(API 키 없음) |
-| | | HIGH: 누수 수치 과장("찍는 것과 같습니다") | ✅ "우연 수준인 4%에 가깝습니다. 적대자는 규칙 기반 추론기" |
-| | | HIGH: 3분 중 124초만 사용 | ✅ 새 컷과 용어 설명을 넣어 159초 |
-| | | MED: 협상이 내레이션보다 먼저 끝남 | ✅ 메시지 간격을 협상 내레이션 길이에 맞춤(`?reveal=`) |
-| | | MED: 오프닝 정지 카드 · 자막 없음, Impact 근거 약함 | ✅ 오프닝 자막이 카드에 가려지던 문제 수정, 카드 요소에 등장 모션. 통계는 ❌ 근거 있는 수치가 없어 넣지 않음 |
-| | | MED: WhereCtx · Muse 정의 없음 | ✅ 첫 등장 때 한 줄씩 정의 |
-| | | MED: TTS가 기계적 | ➖ 사용자가 최종 녹음 |
-| | | LOW: 승인 장면 없음, 내레이션이 엄마의 counter를 생략 | ✅ 내레이션 중 승인 버튼을 누름, 협상 내레이션을 메시지 순서대로 |
-| 디자인 | 6.5 / 10 | HIGH: 인트로 14초 정지 | ✅ 카드 요소 순차 등장, 자막 표시 |
-| | | HIGH: 영상 크기에서 글자가 작음 | ✅ 영상 모드에서 폰 · 채널 · 표 글자 키움 |
-| | | HIGH: 흐림 처리가 탁함 | ✅ 흐린 영역은 회색조(grayscale), 폰 테두리는 유지 |
-| | | HIGH: 자막이 폰과 겹치고 음절 중간에서 줄바꿈 | ✅ 자막 고정 폭 · `word-break: keep-all` · `text-wrap: balance`, 영상 모드에서 폰 높이를 줄여 자막 자리 확보 |
-| | | MED: 진행 막대가 가장 무거움, 채널 위쪽 잘림, 아웃트로 각주가 작음 | ✅ 막대 색 · 높이 줄이고 영상에서는 캡션 숨김, 채널 위쪽 그라디언트 마스크, 각주 18px |
-| | | LOW: 다크 카드와 밝은 앱 사이 전환 | ➖ 보류 |
+| 1 | 5 | 6.5 | Added the "what goes to the model" cut; synced negotiation to narration |
+| 2 | 5 | 6.5 | Fixed the negotiation logic in the narration; "model decides / WRU enforces"; zoom |
+| 3 | 5 | 6.5 | **Structural**: video layout shows only what each cut needs; adversary-independent bound; stripped internal flags from public logs |
+| 4 | 5.5 | 6.5 | Honest wording for the 22% bound; requester approval; colour clean-up |
+| 5 | 6 | 6.5 | **Structural**: per-sentence highlight; the bound became the headline leak metric |
+| 6 | 6 | 7 | Real filter rewrite shown; intro contrast card; self-hosting cut |
+| 7 | 5.5 | 6.5 | Switched to English; fixed layouts the longer English copy broke |
+| 8 | see below | | |
 
-## 라운드 2
+## Rounds 1–6 (Korean draft), condensed
 
-| 비판 | 점수 | 핵심 지적 (심각도) | 반영 |
+| Round | Critic | Key finding (severity) | Outcome |
 | --- | --- | --- | --- |
-| 발표 | 5 / 10 (Impact 6 · Tooling 3 · Depth 6 · Demo 6) | HIGH: Muse Spark라고 해 놓고 곧바로 mock이라고 함 | ➖ 실제 호출은 키가 없어 보류. 고지는 정직하게 유지하되 "키 발급 전이라 같은 JSON 스키마를 지키는 mock이 이 자리에서 답했다"로 구체화 |
-| | | HIGH: 엄마가 "더 가까운 형에게 양보"는 논리가 거꾸로 | ✅ "퇴근길에 들르면 되는 아빠 높음, 집에서 나가야 하는 엄마 낮음", "이미 밖에 나와 있는 형에게 양보"로 이유를 바로잡음 |
-| | | HIGH: mock 적대자로 "우연 수준"은 과장, 가운데 조건 숫자가 복사한 것처럼 보임 | ✅ 적대자가 무엇을 찾는지 명시, 가운데 칸이 같은 숫자인 이유(로그에 템플릿만 나감)를 카드 설명과 내레이션에 넣음, off · on 로그 문장 예시를 카드에 표시. LLM 적대자는 ➖ 키 없음 |
-| | | MED: 모델과 엔진 중 누가 무엇을 정하는지 헷갈림 | ✅ Muse 컷에 "모델이 정함 / WRU가 정함" 두 칸 |
-| | | MED: mock 고지가 자막에 가려짐 | ✅ Muse 패널 맨 위로 옮김, 아웃트로는 카드 안 강조 문구로 |
-| | | MED: 오프닝 16초, 토큰 표 15초가 김 | ✅ 오프닝 2문장(11초), 토큰 컷 2문장 |
-| | | LOW: 결말이 바에 먼저 뜸, 모델 id가 가정값, 시계 고정 | ✅ 모델 id는 `MUSE_MODEL=` 설정값으로 표기. 나머지 ❌ (시나리오가 17:30 한 시점) |
-| 디자인 | 6.5 / 10 | HIGH: 아웃트로 각주와 자막이 겹침 | ✅ 각주를 없애고 카드 안 문구로 |
-| | | HIGH: Muse 패널 고지가 자막에 가려짐, 흐림이 과함 | ✅ 고지를 위로, Muse · 누수 컷에서 WRU 바를 접어 자리 확보 |
-| | | MED: 글자가 작음 | ✅ 영상 모드에서 CSS zoom 112.5% (1440×900 녹화에 1280×800 레이아웃) |
-| | | MED: 인트로 위계, 폰 피드가 비고 위가 잘림, 우연선 라벨 없음 | ✅ 질문 40px · 부제 흐리게, 피드 아래 정렬 + 위쪽 페이드, 막대에 "우연 4%" 라벨 |
-| | | LOW: 어두운 장면의 자막 상자, 노랑 강조색 분리, 진행 막대 무게 | ✅ 자막 테두리, 진행 막대를 밝게 하고 번호만 노랑 |
+| 1 | Presentation | HIGH: no visible Meta AI usage; the LLM seems to do nothing | ✅ New cut showing the exact Meta Model API request body built by the real client code, the JSON response, and what WRU checks. A real call is ➖ deferred (no API key) |
+| 1 | Presentation | HIGH: leak claim overstated ("same as guessing") | ✅ Toned down; adversary described as rule-based |
+| 1 | Presentation | MED: negotiation finished before the narration did | ✅ Messages revealed in step with the narration |
+| 1 | Design | HIGH: static 14 s intro, tiny text, muddy dimming, subtitles colliding with UI | ✅ Staged intro, larger video text, greyscale dimming, fixed-width subtitles |
+| 2 | Presentation | HIGH: "Mom yields to the closer brother" read backwards | ✅ Reasons now match on-screen state |
+| 2 | Presentation | HIGH: middle leak condition looked copy-pasted | ✅ Explained why it equals gate on; added example log lines |
+| 2 | Design | HIGH: mock disclosure hidden under subtitles | ✅ Disclosure moved to the top of the panel |
+| 3 | Presentation | HIGH: the leak experiment is circular (rule-based adversary vs. a gate that removes the same words) | ✅ **Structural**: added an adversary-independent upper bound (group identical logs, pick the right answer in hindsight). This exposed a real leak: internal `fallback`/`filtered` flags told an outsider an agent had tried to say something else. Removed from public logs and the API |
+| 3 | Design | HIGH (repeated in rounds 1–3): dimming, subtitle collisions, small text | ✅ **Structural**: in video mode each cut shows only the regions it needs and hides the rest; solo panels are enlarged; a 150 px subtitle band is reserved |
+| 4 | Presentation | HIGH: "bound 22%" sounded reassuring | ✅ Narrated honestly: it is what the status itself reveals |
+| 4 | Design | HIGH: asked for dimming back | ❌ Dimming caused the round 1–3 complaints; solo panels were centred and enlarged instead |
+| 5 | Presentation | HIGH: strongest claim rested on the weakest evidence | ✅ **Structural**: the adversary-independent bound became the headline number; rule-based hits became secondary |
+| 5 | Design | HIGH: nothing on screen points at what the narration names (the real cause of the repeated 6.5) | ✅ **Structural**: every sentence names a highlight target (phone, matrix cell, request/response, leak card) |
+| 6 | Presentation | HIGH: "WRU rewrites reasons" was never shown | ✅ The real `filterMessage` output is shown: a location-laden sentence → the published template |
+| 6 | Design | MED: broken JSON wrap, highlight colour clashing with status blue | ✅ JSON no longer wraps; highlight ring is ink, not blue |
 
-## 라운드 3
+Throughout, the presentation critic's top finding has been that no real Muse Spark call appears. That stays ➖: no Meta Model API key was issued before the deadline. The video discloses the mock when the model is first mentioned and on the closing card.
 
-| 비판 | 점수 | 핵심 지적 (심각도) | 반영 |
+## Round 7 (first English draft)
+
+| Critic | Score | Key finding (severity) | Outcome |
 | --- | --- | --- | --- |
-| 발표 | 5 / 10 (Impact 6 · Tooling 3 · Depth 6 · Demo 7) | HIGH: 0:49에 "Muse Spark로 움직인다"고 했는데 mock 고지는 45초 뒤에 나옴 | ✅ Muse를 처음 소개하는 문장에서 바로 "키 발급 전이라 같은 스키마의 mock"이라고 밝힘 |
-| | | HIGH: 누수 실험이 자기 검증(규칙 적대자 ↔ 같은 단어를 지우는 게이트), 표본 50개에서 6% 대 4%는 약함 | ✅ **구조 변경**: 적대자 구현과 무관한 상한을 추가. 같은 로그끼리 묶어 정답을 미리 알고 골라도 게이트 on은 로그 5종류 · 상한 집 22%, off는 50종류 · 100%. 이 과정에서 메시지의 내부 플래그(fallback · filtered)가 "에이전트가 다른 말을 하려 했다"는 신호를 흘리던 것을 발견해 공개 로그 · API에서 제거 |
-| | | MED: 모델 id `muse-spark-1.3`이 실제와 다르면 신뢰도 하락 | ✅ 화면에는 `MUSE_MODEL=` 설정값으로만 표기 (라운드 2부터) |
-| | | MED: Impact 숫자 없음, 승인 주체 불명 | ✅ "태스크를 낸 사람이 한 번 승인". 통계는 ❌ 근거 있는 수치 없음 |
-| | | MED: 1컷 19초 정지, 5컷 29초 같은 JSON | ✅ 1컷 2문장, Muse 컷은 요청을 먼저 보여 주고 내레이션에 맞춰 응답을 펼침 |
-| | | LOW: 폰 머리 줄바꿈, 우연 라벨 겹침, 흐린 핵심 문구, WhereCtx가 화면에 없음 | ✅ 폰 머리 "내 WhereCtx · 내 Muse"(한 줄), 라벨 위치 이동, 흐림 제거, 내레이션에서 WhereCtx를 상태의 출처로 명시 |
-| 디자인 | 6.5 / 10 | HIGH: 흐림이 과해 맥락이 사라짐 · 자막이 UI를 가림 · 글자가 작음 (라운드 1~3 반복) | ✅ **구조 변경**: 영상 모드는 컷마다 필요한 영역만 보이고 나머지는 숨김(흐림 없음). 혼자 남은 패널은 확대(경계표 · Muse · 누수), 화면 아래 150px은 자막 전용 띠 |
-| | | MED: 우연 라벨 겹침, 피드 위쪽 잘림, 포커스 규칙 불일치, 컷 간 레이아웃 점프 | ✅ 라벨을 학교 막대 아래로, 폰이 좁아져도 안쪽이 넘치지 않게, 흐림 규칙 자체를 없앰. 레이아웃 점프는 ➖ 컷마다 구성이 달라지는 것으로 의도 |
-| | | LOW: 인트로 자막과 본문 중복, 아웃트로 pill 가독성 | ➖ 인트로 질문은 화면 · 자막 모두 유지(무음 재생 대비), pill 20px |
+| Presentation | 5.5 (Impact 6 · Tooling 3 · Depth 7 · Demo 6) | HIGH: Muse Spark never actually runs | ➖ No key |
+| | | HIGH: a deterministic rule produces the "right" split, so why an LLM? | ➖ Needs a real model (e.g. free-text tasks); not demonstrable with the mock |
+| | | HIGH: 22% vs 4% chance looks like a celebrated leak | ✅ Reframed as "exactly what the shared status alone reveals; the negotiation adds nothing", next to full sharing's 100% |
+| | | MED: self-hosting subtitles unreadable; two kinds of "token" | ✅ Light cards use the dark subtitle box; "read-only key" (WhereCtx) vs "agent token" (WRU) |
+| | | MED: plumbing (token matrix) before the payoff | ✅ Token cut moved after roles ("Nobody can peek") |
+| | | LOW: Korean placeholder, stiff English | ✅ "[neighbourhood]", rewritten lines |
+| Design | 6.5 | HIGH: subtitles over phones in the negotiation cut, muddy grey dimming, tight outlines | ✅ Shorter phones in video mode, dim only the phone screen (bezel stays), larger outline offset |
+| | | MED: self-hosting card alignment, outro spacing, subtitle box width jumps | ✅ Grid-aligned steps, more outro spacing, fixed subtitle width |
 
-> 라운드 1~3 디자인 점수가 6.5에서 움직이지 않아, 반복된 지적(흐림 · 자막 충돌 · 글자 크기)을 작은 수정이 아니라 영상 모드 레이아웃 구조 변경으로 다뤘습니다.
+## Round 8
 
-## 라운드 4
+From this round a third reviewer joined: an **English copy critic** (native-speaker editor) who flags AI-written or translated tells in the narration, on-screen copy and docs. Examples: em dashes, "X, not Y" formulas, slogan fragments, inconsistent terms, sentences too long to speak.
 
-| 비판 | 점수 | 핵심 지적 (심각도) | 반영 |
+| Critic | Score | Key finding (severity) | Outcome |
 | --- | --- | --- | --- |
-| 발표 | 5.5 / 10 (Impact 6 · Tooling 3 · Depth 7 · Demo 7) | HIGH: 전부 mock, Meta 요소가 앞뒤 고지에만 몰림 | ➖ 키 없음. Muse와 Muse Spark를 첫 등장에서 구분해 설명 |
-| | | HIGH: "적대자가 약해서가 아님 · 상한 22%"가 안심시키는 말처럼 들림, 학교 24% 누락 | ✅ "적대자 성능과 상관없는 상한도 쟀다. 집 22% · 학교 24%가 최대이고, 남는 몫은 상태와 ETA 구간에서 온다"로 정직하게 |
-| | | MED: "퇴근길에 들르면 되는 아빠"는 화면 정보로 뒷받침 안 됨 | ✅ "이미 밖에 나와 있고 마감까지 여유가 있는 아빠"로 근거를 화면 정보에 맞춤 |
-| | | MED: 게이트 off는 허수아비, 핵심은 가운데 카드 | ✅ 마지막 컷에서 가운데 카드를 먼저 · "핵심"으로 설명하고 off는 "비교로" 뒤에. 아웃트로도 "위치를 알아도 로그는 같다" |
-| | | MED: 자막이 "모델이 정함 / WRU가 정함"을 가림 | ✅ 역할 칸을 Muse 패널 맨 위로, 요청 · 응답을 좌우 두 칸으로 |
-| | | LOW: 승인 주체가 화면에 없음, 확정 싱크 | ✅ 태스크에 `requested_by`(요청자) 추가: "엄마가 낸 일", "엄마가 승인하고 통지 보내기". 메시지 간격을 조금 앞당김 |
-| 디자인 | 6.5 / 10 | HIGH: Muse 컷 자막 겹침, 인트로 문구 중복 | ✅ 위와 같음, 인트로 카드에서 질문을 빼고 자막이 맡음 |
-| | | HIGH: 포커스가 안 읽힘 (흐림을 다시 써 달라) | ❌ 라운드 1~3에서 흐림이 반복 지적을 낳아 숨김 방식으로 바꿨음. 대신 혼자 남은 패널을 화면 세로 가운데 · 크게 |
-| | | MED: 아래 40%가 빔, 우연 라벨 겹침, 컷 번호만 앰버 | ✅ 패널을 세로 가운데 · 확대, 우연 라벨은 하단 설명으로, 앰버는 어두운 카드에만 |
-| | | LOW: 자막 상자 높이 흔들림, 같은 색이 여러 의미 | ✅ 자막 상자 높이 고정, "집 근처"를 앰버 → 청록으로 바꿔 COUNTER(앰버)와 분리 |
-
-## 라운드 5
-
-| 비판 | 점수 | 핵심 지적 (심각도) | 반영 |
-| --- | --- | --- | --- |
-| 발표 | 6 / 10 (Impact 6 · Tooling 4 · Depth 7 · Demo 7) | HIGH: 모델 응답 전부 mock, 모델 id를 실제 값처럼 띄움 | ➖ 키 없음. 화면 표기를 `model: $MUSE_MODEL`로 바꿔 값을 띄우지 않음 |
-| | | HIGH: 가장 강한 주장(누수)이 가장 약한 근거(규칙 적대자) 위에 있음 | ✅ **구조 변경**: 누수 카드의 주 지표를 "어떤 적대자든 맞힐 수 있는 최대"(로그 종류 기반 상한)로, 규칙 기반 적대자 막대는 보조로 내림 |
-| | | MED: 내레이션이 협상 화면보다 늦음 | ✅ 시간 간격 대신 문장마다 보여 줄 메시지 수를 정해 스크립트가 직접 펼침 |
-| | | MED: transcript가 자리표시자처럼 보임 | ✅ 실제 메시지 객체를 한 줄씩 표시 |
-| | | MED: "집 근처" 형을 "밖에 나와 있는"이라 함, Impact 근거 부족 | ✅ "집 근처라 들르기 쉬운 형", 오프닝에 "가족 모두의 좌표를 하루 종일 서버에 올려야 할까요?" |
-| | | LOW: "남는 몫" 설명 난해, 짧은 컷, COPY.md 불일치 | ✅ "'이동 중, 20분 이내' 같은 상태만으로 알 수 있는 몫", 역할 컷 문장 합침, COPY.md 8컷으로 갱신 |
-| 디자인 | 6.5 / 10 | HIGH: 내레이션이 가리키는 대상을 화면이 짚어 주지 않음 (라운드 1~5 반복의 실제 원인) | ✅ **구조 변경**: 문장마다 강조 대상을 지정(`hl`). 대상은 파란 테두리, 같은 묶음의 나머지는 흐리게(폰 · 경계표 칸 · Muse 요청/응답 · 누수 카드) |
-| | | HIGH: 자막이 길고 두 줄, 누수 작은 글자, 가운데 카드 위계 약함 | ✅ 문장을 짧게 나눠 대부분 한 줄, 누수 카드 글자 · 대비 올림, 가운데 카드 두꺼운 테두리 + 강조 |
-| | | MED: Muse 응답 칸 비어 보임, 배너가 가장 튐, 아웃트로 위계 | ✅ 응답 대기 칸 높이 확보, 배너 톤 낮춤, 아웃트로를 5줄 정의 목록 하나로 |
-
+| Presentation | 5.5 (Impact 6 · Tooling 3 · Depth 7 · Demo 6) | HIGH: Muse Spark never runs | ➖ No key |
+| | | HIGH: 22% presented as reassuring | ✅ "An attacker with perfect hindsight finds the home district only 22% of the time. That is what the shared status already reveals; the negotiation adds nothing", with the 4% chance in the same sentence |
+| | | MED: WhereCtx never explained; cut 1 has no map | ✅ "WhereCtx, a small location server of their own"; cut renamed "Status only" |
+| | | MED: scenario too easy (looks like a sort) | ➖ Would change the hero scenario; deferred |
+| | | MED: slip example uses placeholders | ❌ The quality gate forbids place names and distances on screen, even in examples; kept "[neighbourhood]" |
+| Design | 7.5 | HIGH: self-hosting card top-heavy, inconsistent dim levels, double ring, tiny secondary text | ✅ Card centred with darker text, one dim level (0.45), single 2.5 px ring, 14 px minimum for secondary text in video mode |
+| | | MED: low-contrast "Muse: mock", weak intro map | ✅ Darker grey, higher-contrast map |
+| English copy | narration 6 · SUBMISSION 6.5 · README 6 · COPY 7 · leak report 6.5 | HIGH: climax lines (31–34) unclear when heard ("in the middle", gate/filter/default for one thing) | ✅ Rewritten: "Now we secretly give each agent its exact location. The log doesn't change by a single character. Switch the privacy gate off…" |
+| | | HIGH: leak report said gate-on hits were "the same as chance" while its table shows 6% vs 4% | ✅ "close to chance"; footnote explaining the replaced-wording column |
+| | | HIGH: token/key naming inconsistent, `_SIBLING` vs "Brother" | ✅ "read-only token" (WhereCtx) vs "agent token" (WRU); README notes `sibling` = Brother |
+| | | MED: em dashes, "X, not Y" formulas, slogan fragments, "judges commits" | ✅ Em dashes removed from README, SUBMISSION and COPY; formulas rewritten as plain statements; one tagline kept for the closing card |

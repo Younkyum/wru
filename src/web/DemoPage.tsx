@@ -309,11 +309,11 @@ function Channel({ messages, task, total, log }: ChannelProps) {
     <>
       <div className="side-head">
         <h2>Muse channel</h2>
-        <div className="chain">agent Muse → Meta Model API → model Muse Spark</div>
+        <div className="chain">Muse agent → Meta Model API → Muse Spark</div>
         <span>{total ? `message ${messages.length}/${total}` : 'Every message WRU relays'}</span>
       </div>
       {messages.length === 0 ? (
-        <p className="side-empty">No messages yet. Only messages pass through here — never locations.</p>
+        <p className="side-empty">No messages yet. Only messages pass through here. Locations never do.</p>
       ) : (
         <ol className="channel" ref={list} aria-label="Negotiation timeline">
           {messages.map((m, i) => (
@@ -444,9 +444,8 @@ function MusePanel({ turn, shown }: { turn: MuseTurnView | null | undefined; sho
     <>
       <div className="side-head">
         <h2>What goes to the model</h2>
-        <span>One turn of Dad's agent · Meta Model API request body (the real code path)</span>
+        <span>One turn of Dad's agent · the real Meta Model API request body{turn?.muse === 'mock' ? ' · a same-schema mock answers in this recording' : ''}</span>
       </div>
-      {turn?.muse === 'mock' && <p className="mock-note">Response: a mock with the same JSON schema (API key not issued yet)</p>}
       {!turn ? (
         <p className="side-empty">Run a negotiation first.</p>
       ) : (
@@ -496,7 +495,7 @@ function VideoScene({ scene }: { scene: VideoOverlay['scene'] & string }) {
       <div className="scene" role="presentation">
         <div className="scene-kicker">Meta Global AI Developer Hackathon</div>
         <div className="scene-title">WRU</div>
-        <div className="scene-line">Family errands, split by AI agents — no coordinates</div>
+        <div className="scene-line">AI agents split family errands. No coordinates shared.</div>
         <div className="contrast">
           <div className="contrast-card">
             <div className="contrast-head">Typical location sharing</div>
@@ -556,14 +555,14 @@ function VideoScene({ scene }: { scene: VideoOverlay['scene'] & string }) {
 }
 
 const CONDITION_LABEL: Record<Condition, { title: string; desc: string }> = {
-  off: { title: 'Gate off', desc: 'Agents say neighbourhood, distance and exact ETA as-is' },
-  filter_only: { title: 'Gate on · agent knows its location', desc: 'Location slipped to the agent, yet only templates reach the log' },
-  on: { title: 'Gate on (WRU default)', desc: 'Detail refused · status templates · ETA ranges' },
+  off: { title: 'Privacy gate off', desc: 'Agents say neighborhood, distance and exact ETA as-is' },
+  filter_only: { title: 'Gate on · agent secretly knows', desc: 'Exact location given to the agent; the log stays the same' },
+  on: { title: 'Privacy gate on (default)', desc: 'Detail refused · status templates · ETA ranges' },
 };
 
 /** 조건마다 로그에 남는 문장 꼴 (동네 이름 · 숫자는 가림) */
 const EXAMPLE: Partial<Record<Condition, string>> = {
-  off: '"Passing through [neighbourhood] now, [N] km from home, [N] min left"',
+  off: '"Passing through [neighborhood] now, [N] km from home, [N] min left"',
   on: '"I\'m already out and can stop by on the way (home within 20 min)"',
 };
 
@@ -604,7 +603,7 @@ function LeakCard({ k, report }: { k: Condition; report: LeakReport }) {
         {g.trials} scenarios → <b>{g.distinct_logs}</b> distinct logs
       </div>
       <div className={`bound-big${hlBound}`}>
-        <div className="bound-label">Best any adversary could do <span>= what the shared status alone reveals</span></div>
+        <div className="bound-label">Best possible guess <span>· even knowing every answer</span></div>
         <div className="bound-nums">
           <span>
             home <b>{pct(g.bound_home_rate)}</b>
@@ -615,7 +614,7 @@ function LeakCard({ k, report }: { k: Condition; report: LeakReport }) {
         </div>
       </div>
       <div className={`actual${hlActual}`}>
-        <div className="actual-label">What the rule-based adversary actually hit</div>
+        <div className="actual-label">What a rule-based attacker actually found</div>
         <Metric label="home" rate={g.home_rate} chance={report.chance} />
         <Metric label="school" rate={g.school_rate} chance={report.chance} />
       </div>
@@ -629,7 +628,7 @@ function LeakPanel({ report, conditions, onShowReport }: LeakPanelProps) {
     <>
       <div className="side-head">
         <h2>Leak test</h2>
-        <span>From the negotiation log alone, guess which of Seoul's 25 districts the home and school are in (chance {report ? pct(report.chance) : '4%'})</span>
+        <span>From the negotiation logs alone, which of Seoul's 25 districts are the home and school in? Chance: {report ? pct(report.chance) : '4%'}</span>
       </div>
       {!report ? (
         <button className="btn" onClick={onShowReport}>
@@ -643,7 +642,7 @@ function LeakPanel({ report, conditions, onShowReport }: LeakPanelProps) {
             ))}
           </div>
           <p className="leak-note">
-            Best possible: group identical logs and pick the right answer in hindsight, so it holds for any adversary, LLMs included · bar tick = chance {pct(report.chance)}
+            Perfect hindsight: group identical logs and pick the right answer, so no attacker (LLMs included) can do better · bar tick = chance {pct(report.chance)}
           </p>
         </>
       )}
@@ -706,7 +705,7 @@ export function DemoPage(props: DemoPageProps) {
       <header className="top">
         <div className="brand">
           <strong>WRU</strong>
-          <span>Family errands, split by AI agents — no coordinates</span>
+          <span>AI agents split family errands. No coordinates shared.</span>
         </div>
         <div className="controls">
           <span className="clock" aria-label="Sim clock">

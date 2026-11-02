@@ -1,10 +1,10 @@
 # WRU
 
-**Family errands, split by AI agents — no coordinates.**
+**Family errands, split by AI agents without sharing coordinates.**
 
-WRU is a negotiation layer on top of WhereCtx, a personal location server. Family members never share coordinates. Each person's agent (a *Muse*, built to call Meta's Muse Spark model) reads only that person's coarse status from their own WhereCtx — `home`, `near_home` or `in_transit`, plus an ETA — and the agents split a family task with offer → counter → commit messages. What comes out is roles, never locations.
+WRU (short for "where are you") is a negotiation layer on top of WhereCtx, a personal location server. Family members never share coordinates. Each person's agent (a *Muse*, built to call Meta's Muse Spark model) reads only that person's coarse status from their own WhereCtx (`home`, `near_home` or `in_transit`, plus an ETA), and the agents split a family task with offer → counter → commit messages. The output is a set of roles, never a location.
 
-Submitted to the Meta Global AI Developer Hackathon (2026-10-26 – 11-04).
+Submitted to the Meta Global AI Developer Hackathon (2026-10-26 to 11-04).
 
 | Doc | What's in it |
 | --- | --- |
@@ -17,18 +17,17 @@ Submitted to the Meta Global AI Developer Hackathon (2026-10-26 – 11-04).
 
 ![Leak test: gate off vs gate on](docs/screens/08-gate.jpg)
 
-## Demo (8 cuts)
+## Demo (7 cuts)
 
 Open `/demo` and press **▶ Demo mode**. It resets, then each **Next ▶** moves one cut. On-screen copy is in [docs/COPY.md](docs/COPY.md) and screenshots in [docs/screens/](docs/screens/).
 
-1. **A map without coordinates** — three phones, each showing only its own status (Mom home, Dad on the way ~20 min, Brother near home).
-2. **My token reads only me** — a 5×3 matrix of real requests: each agent token reads only its owner (200); someone else's gets 403; no token or a forged one gets 401.
-3. **A task comes in** — Mom posts "Pick up Mina + buy milk by 6 pm"; one task per person.
-4. **Three Muses negotiate** — offer → counter → commit, round by round.
-5. **What goes to the model** — the exact Meta Model API request body one agent sends, the JSON it gets back, and what WRU enforces.
-6. **Roles, not locations** — Mom approves once; Dad's phone says pickup, Brother's says milk.
-7. **Can the log reveal home?** — across 50 scenarios the gate-on logs come in only 5 distinct forms, so even in hindsight no adversary can beat home 22% · school 24%. A rule-based adversary hits home 6% · school 0% (chance 4%).
-8. **Same log, even if it knows** — an agent secretly handed its exact location still produces the same log. With the gate off, all 50 logs differ and the same adversary hits home 98% · school 72%.
+1. **Status only**: three phones, each showing only its own status (Mom home, Dad on the way about 20 min out, Brother near home).
+2. **A task comes in**: Mom posts "Pick up Mina + buy milk by 6 pm". The rule: one task per person.
+3. **Three Muses negotiate**: offer, counter and commit, round by round.
+4. **What goes to the model**: the exact Meta Model API request body one agent sends, the JSON it gets back, and what WRU checks.
+5. **Only roles come out**: Mom approves once; Dad's phone says pickup, Brother's says milk.
+6. **Nobody can peek**: a 5×3 matrix of real requests. Each agent token reads only its owner (200); someone else's gets 403; no token or a forged one gets 401.
+7. **Can the log reveal home?**: with the privacy gate off, all 50 logs differ and a simple attacker finds the home district 98% of the time (school 72%). With it on, 50 families produce 5 distinct logs, so even an attacker who knows every answer tops out at 22% (school 24%); that is what the status alone reveals, against 4% chance. The same attacker finds 6%. An agent that secretly knows its exact location produces the very same logs.
 
 ## Run it
 
@@ -65,7 +64,7 @@ Copy `.env.example` to `.env`.
 | `WRU_API_PORT` | API port, default 8787 |
 | `WRU_FAMILY_CONFIG` | Family config path, default `family.config.json`; if missing, all three members are simulated |
 | `WRU_WHERECTX_TOKEN_*` | Each member's WhereCtx agent token; the name must match `token_env` in the family config |
-| `WRU_AGENT_TOKEN_MOM` · `_DAD` · `_SIBLING` | Fixed WRU agent tokens (start with `wru_ag_`, 32+ chars). Empty → new ones at every start |
+| `WRU_AGENT_TOKEN_MOM` · `_DAD` · `_SIBLING` | Fixed WRU agent tokens (`sibling` is Brother in the UI; tokens start with `wru_ag_`, 32+ chars). Empty → new ones at every start |
 | `WRU_ADMIN_TOKEN` | Protects the family dashboard API. Required once a real WhereCtx is connected |
 
 ## Host your own
@@ -119,7 +118,7 @@ Set `WRU_ADMIN_TOKEN` in `.env` and the family dashboard API requires it. In the
    ```
 4. Restart. The startup log shows `mom=location.example.com`.
 
-From WhereCtx, WRU reads only `status`, `freshness`, `stale` and `updatedAgoSec` from `GET /v1/presence`, and `durationMin` from `GET /v1/geo/eta?to=home` (rounded to 5 minutes for agent tokens). Neighbourhood names or coordinates in a response are never read. Mapping: `home` → home, `near_home` → near_home, any other status (away, work, …) → in_transit, offline or stale → unknown. Once a real WhereCtx is connected, WRU uses the real clock instead of the sim clock.
+From WhereCtx, WRU reads only `status`, `freshness`, `stale` and `updatedAgoSec` from `GET /v1/presence`, and `durationMin` from `GET /v1/geo/eta?to=home` (rounded to 5 minutes for agent tokens). Neighborhood names or coordinates in a response are never read. Mapping: `home` → home, `near_home` → near_home, any other status (away, work, …) → in_transit, offline or stale → unknown. Once a real WhereCtx is connected, WRU uses the real clock instead of the sim clock.
 
 ### 4. Agent tokens
 
@@ -134,7 +133,7 @@ curl -H "Authorization: Bearer $WRU_AGENT_TOKEN_DAD" https://<server>/api/agent/
 
 - Members are fixed to three seats: `mom`, `dad`, `sibling`.
 - State is in memory; a restart clears tasks and negotiations.
-- There is one `MODEL_API_KEY` per server. What is split per agent is location access (tokens), not the model key.
+- There is one `MODEL_API_KEY` per server. Agent tokens split location access per agent; the model key is shared.
 
 ## Built during the hackathon vs. before
 
@@ -143,7 +142,7 @@ The hackathon only counts new work, so here is the split.
 | | What | Evidence |
 | --- | --- | --- |
 | **Built during the hackathon** | All of WRU: simulator, negotiation engine (offer · counter · commit · refuse), Muse clients (mock · Meta Model API), privacy gate, leak test, demo UI, **agent token boundary**, **HttpWhereCtx adapter**, family config, self-hosting setup, video pipeline | This repo's first commit is 2026-10-26; every commit is after that |
-| **Existed before** | [WhereCtx](https://github.com/Younkyum/WhereCtx): a server where one person hosts their location and hands out coarse status to agent tokens | Developed 2026-06-06 – 2026-10-19, no commits during the hackathon. WRU does not reuse its code; it only calls its public REST API (`/v1/presence`, `/v1/geo/eta`) |
+| **Existed before** | [WhereCtx](https://github.com/Younkyum/WhereCtx): a server where one person hosts their location and hands out coarse status to agent tokens | Developed 2026-06-06 to 2026-10-19, no commits during the hackathon. WRU does not reuse its code; it only calls its public REST API (`/v1/presence`, `/v1/geo/eta`) |
 
 ## Layout
 
@@ -166,7 +165,7 @@ tests/                              Contract, negotiation, boundary, privacy and
 
 ### Negotiation rules (mock Muse)
 
-Each agent looks only at its own presence and the minutes left before the deadline, and decides for each subtask whether it is feasible and how good a fit it is (high / medium / low). It never sees anyone else's location — only the fits that others publish in their messages.
+Each agent looks only at its own presence and the minutes left before the deadline, and decides for each subtask whether it is feasible and how good a fit it is (high / medium / low). It never sees anyone else's location, only the fits that others publish in their messages.
 
 1. On its first turn, an agent offers the first subtask it can do; if none, it refuses.
 2. If someone has a better fit on the same subtask (ties go Mom → Dad → Brother), it counters with another subtask, or refuses if it cannot win one.
@@ -181,21 +180,21 @@ The gate has four layers:
 
 1. **WhereCtx adapter** refuses coordinate and detail requests; inside the home zone it answers `home_zone_refused`.
 2. **Output validation** checks the real Muse's JSON for schema and location patterns and falls back to the template decision if it fails.
-3. **No free text leaves.** With the gate on, the agent's own wording is never published: every offer/counter reason is rewritten from a status template, and ETAs leave only as ranges ("within 10 min"). The model decides *what* to do; WRU controls *what is said*. Because this does not rely on a word list, spacing tricks, zero-width characters or romanised names do not reach the log either.
-4. **Label check.** Task labels are the user's own text and appear in notifications and the event log, so the inbox rejects labels with place names, neighbourhood stems, "○○-dong / station / road" forms, landmarks, school names or distances. Negotiation messages never include labels.
+3. **Agents' own words are never published.** Every offer/counter reason is replaced with a stock status phrase, and ETAs are only ever shown as ranges ("within 10 min"). The model decides what to do, and WRU controls what gets said. This does not rely on a word list, so spacing tricks, zero-width characters or romanized names do not reach the log either.
+4. **Label check.** Task labels are the user's own text and appear in notifications and the event log, so the inbox rejects labels with place names, neighborhood stems, "○○-dong / station / road" forms, landmarks, school names or distances. Negotiation messages never include labels.
 
 The family screen shows exact ETA minutes per the Presence contract; negotiation logs and agent messages carry only ranges.
 
-`npm run leak` builds 50 seeded scenarios with different homes, schools and routes, gives an adversary only the negotiation log, and asks which of Seoul's 25 districts the home and school are in. Results are in [leak-report.md](leak-report.md) and the demo's leak panel.
+`npm run leak` builds 50 seeded scenarios with different homes, schools and routes, gives an attacker only the negotiation log, and asks which of Seoul's 25 districts the home and school are in. Results are in [leak-report.md](leak-report.md) and the demo's leak panel.
 
-| Condition | Distinct logs | Best any adversary could do (home · school) | Rule-based adversary (home · school) |
+| Condition | Distinct logs | Hindsight bound (home · school) | Rule-based attacker (home · school) |
 | --- | --- | --- | --- |
-| Gate off (neighbourhood, distance, exact ETA as-is) | 50 | 100% · 100% | 98% · 72% |
+| Gate off (neighborhood, distance, exact ETA as-is) | 50 | 100% · 100% | 98% · 72% |
 | Gate on, agent secretly knows its location | 5 | 22% · 24% | 6% · 0% |
 | Gate on (WRU default) | 5 | 22% · 24% | 6% · 0% |
 | Chance (1/25) | | 4% | 4% |
 
-"Best any adversary could do" groups identical logs and picks the right answer in hindsight, so it holds for any adversary, LLMs included. The 22% that remains comes from the coarse status itself, which the family chose to share. Without a key, the rule-based adversary scores districts from neighbourhood names, "N km from home" and "N min left" in the log; it never sees scenario answers. With `MODEL_API_KEY` set, both the agents and the adversary use Muse.
+The hindsight bound groups identical logs and picks the right answer in hindsight, so no attacker (LLMs included) can beat it on these scenarios, at district level. The 22% that remains comes from the coarse status itself, which the family chose to share. Without a key, the rule-based attacker scores districts from neighborhood names, "N km from home" and "N min left" in the log; it never sees scenario answers. With `MODEL_API_KEY` set, both the agents and the attacker use Muse.
 
 ## API
 
@@ -219,11 +218,11 @@ The family screen shows exact ETA minutes per the Presence contract; negotiation
 
 ## Privacy principles
 
-No coordinates, exact addresses or school names appear in API responses, logs or the UI. `tests/quality-gate.test.tsx` checks API responses, the event log, every demo-mode render, `samples/`, the leak report and the docs for coordinate keys, decimal coordinates, street addresses, school names and Seoul place names — zero hits. `tests/leak.test.tsx` runs the sim clock for 70 minutes and checks every API response and UI render. Tasks carrying location keys are rejected by the inbox.
+No coordinates, exact addresses or school names appear in API responses, logs or the UI. `tests/quality-gate.test.tsx` checks API responses, the event log, every demo-mode render, `samples/`, the leak report and the docs for coordinate keys, decimal coordinates, street addresses, school names and Seoul place names, with no hits. `tests/leak.test.tsx` runs the sim clock for 70 minutes and checks every API response and UI render. Tasks carrying location keys are rejected by the inbox.
 
 ## Limitations
 
 - No Meta Model API key was available before the deadline, so the demo runs on a deterministic mock Muse with the same JSON schema. The real client path is tested with a fake fetch.
 - The real WhereCtx integration was verified against a locally run WhereCtx; the demo video uses the simulator. With no maps key on that WhereCtx, ETA comes back empty (null).
-- Leak numbers use a rule-based adversary plus an adversary-independent bound; see [leak-report.md](leak-report.md).
+- Leak numbers use a rule-based attacker plus an attacker-independent ceiling; see [leak-report.md](leak-report.md).
 - State is in memory. Accounts and push notifications are out of scope.

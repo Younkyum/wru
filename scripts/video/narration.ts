@@ -38,22 +38,22 @@ export const SEGMENTS: Segment[] = [
     rubric: 'Impact',
     scene: 'intro',
     lines: [
-      L('"Who\'s picking up Mina?" To answer that,'),
-      L('should a family stream everyone\'s coordinates to a server all day?'),
-      L('WRU lets each family member\'s AI agent split the errands, with no coordinates.'),
+      L('"Who\'s picking up Mina?" Today, answering that means everyone shares their live location all day.'),
+      L('Or nobody answers the group chat until it is too late.'),
+      L('WRU, short for "where are you", lets each person\'s AI agent split the errands without anyone sharing a location.'),
     ],
     hold: 0.3,
   },
   {
     id: 'phones',
-    title: '1. A map without coordinates',
+    title: '1. Status only',
     screen: 'Three phones (Mom home · Dad on the way, 20 min · Brother near home)',
     rubric: 'Impact · Demo',
     step: 0,
     lines: [
-      L('Each person keeps their location on their own server, called WhereCtx.'),
-      L('WRU only receives a coarse status: home, near home, or on the way.'),
-      L('Mom is home, Dad is twenty minutes out, Brother is near home.', { hl: 'phones' }),
+      L('Each person runs WhereCtx, a small location server of their own.'),
+      L('WRU only gets a coarse status from it: home, near home, or on the way.'),
+      L('Mom is home, Dad is twenty minutes out, and Brother is near home.', { hl: 'phones' }),
     ],
   },
   {
@@ -62,7 +62,10 @@ export const SEGMENTS: Segment[] = [
     screen: 'WRU bar shows the task (requested by Mom); each phone gets a "Family task" note',
     rubric: 'Demo',
     step: 1,
-    lines: [L('Mom posts a task: pick up Mina and buy milk by six.', { hl: 'hub' }), L('One task per person.', { hl: 'hub' })],
+    lines: [
+      L('Mom posts a task: pick up Mina and buy milk by 6 pm.', { hl: 'hub' }),
+      L('The rule: one task per person.', { hl: 'hub' }),
+    ],
   },
   {
     id: 'negotiation',
@@ -71,12 +74,12 @@ export const SEGMENTS: Segment[] = [
     rubric: 'Use of Meta AI Tooling · Demo',
     step: 2,
     lines: [
-      L("Each agent, a Muse, is built to call Meta's Muse Spark model.", { reveal: 0 }),
-      L('In this recording, a mock with the same schema answers in its place.', { reveal: 0 }),
-      L('Round one: everyone who can make the deadline offers to do the pickup.', { reveal: 3 }),
-      L("Dad is already out with time to spare, so his fit is high.", { reveal: 3, hl: 'dad' }),
-      L('Mom and Brother switch to the milk, and Dad commits to the pickup.', { reveal: 6 }),
-      L("Brother is near home, so Mom yields the milk to him.", { reveal: 8, hl: 'sibling' }),
+      L("Each agent is a Muse, named after Meta's Muse Spark model, which it calls.", { reveal: 0 }),
+      L('In this recording, a mock with the same output format stands in for the model.', { reveal: 0 }),
+      L('In round one, everyone who can make it in time offers to do the pickup.', { reveal: 3 }),
+      L("Dad is already out with time to spare, so he's the best fit.", { reveal: 3, hl: 'dad' }),
+      L('Mom and Brother both offer to get the milk instead, and Dad commits to the pickup.', { reveal: 6 }),
+      L('Brother is near home, so Mom backs off.', { reveal: 8, hl: 'sibling' }),
     ],
   },
   {
@@ -88,19 +91,19 @@ export const SEGMENTS: Segment[] = [
     lines: [
       L("This is everything Dad's Muse sends to the model:", { hl: 'request' }),
       L('its own state, an ETA range, minutes to the deadline, and the messages so far.', { hl: 'request', after: 'museShow' }),
-      L('The model answers with one JSON object: which task, and how good a fit.', { hl: 'response' }),
-      L('WRU checks the token and the schema.', { hl: 'split' }),
-      L('Even if the model slips in a location, only a status template reaches the log.', { hl: 'rewrite' }),
+      L('The model replies with one JSON object: which task, and how good a fit.', { hl: 'response' }),
+      L('WRU checks that the reply is valid and comes from the right agent.', { hl: 'split' }),
+      L('If the model slips a location into its reason, the log still only shows a stock phrase.', { hl: 'rewrite' }),
     ],
   },
   {
     id: 'roles',
-    title: '5. Roles, not locations',
+    title: '5. Only roles come out',
     screen: 'WRU bar shows roles → Mom approves → each phone shows only its own role',
     rubric: 'Impact · Demo',
     step: 4,
     lines: [
-      L('What comes out is roles. Mom approves once,', { hl: 'hub', after: 'approve' }),
+      L('The only output is roles. Mom approves once,', { hl: 'hub', after: 'approve' }),
       L("and Dad's phone says pickup, Brother's says milk. Nothing else.", { hl: 'roles' }),
     ],
   },
@@ -111,38 +114,26 @@ export const SEGMENTS: Segment[] = [
     rubric: 'Technical Depth',
     step: 5,
     lines: [
-      L('Could one agent peek at another? Every agent reads its own status with its own token.', { hl: 'diag' }),
+      L('Could one agent peek at another? Each one holds its own token.', { hl: 'diag' }),
       L("Dad's token asking for Mom's status gets a 403.", { hl: 'dad-mom' }),
-      L('These are fifteen real requests just sent to the server.'),
+      L('These are fifteen real requests we just sent to the server.'),
     ],
   },
   {
     id: 'leak',
     title: '7. Can the log reveal home?',
-    screen: 'Gate-on card: 5 distinct logs · best any adversary could do: home 22% · school 24% (chance 4%); rule-based adversary 6% · 0%',
+    screen: 'Three cards in order: gate off (50 logs, home 98% · school 72%) → gate on (5 logs, ceiling 22% · 24%, rule-based attacker 6% · 0%, chance 4%) → agent secretly knows (same 5 logs)',
     rubric: 'Technical Depth',
     step: 6,
     lines: [
-      L('Can anyone find the home from this log?'),
-      L("We ran fifty scenarios with different homes and schools across Seoul's twenty-five districts."),
-      L('They produced only five distinct logs. Different homes, same log.', { hl: 'logs' }),
-      L('So even an ideal adversary tops out at home 22 percent, school 24 percent.', { hl: 'bound' }),
-      L('That is exactly what the shared status alone reveals. The negotiation adds nothing on top.', { hl: 'bound' }),
-      L('A rule-based adversary scanning the log hit home 6 percent, school 0 percent.', { hl: 'actual' }),
+      L("Could these logs reveal where the family lives? We tried fifty families across Seoul's twenty-five districts."),
+      L('With the privacy gate off, every log is different.', { hl: 'card-off' }),
+      L('A simple attacker finds the home district 98 percent of the time.', { hl: 'card-off' }),
+      L('With the gate on, those fifty families produce just five different logs.', { hl: 'card-on' }),
+      L('Even an attacker who knew every answer could only reach 22 percent.', { hl: 'card-on' }),
+      L('That much comes from the status alone. The negotiation adds nothing.', { hl: 'card-on' }),
+      L('And an agent that secretly knows its exact location produces the very same logs.', { hl: 'card-filter_only' }),
     ],
-  },
-  {
-    id: 'gate',
-    title: '8. Same log, even if it knows',
-    screen: 'Three cards: agent knows its location (center) · gate on · gate off 98% · 72%, bound 100%',
-    rubric: 'Technical Depth',
-    step: 7,
-    lines: [
-      L('In the middle, we secretly handed each agent its exact location.', { hl: 'card-filter_only' }),
-      L('The filter still publishes the very same log as the default, character for character.', { hl: 'card-filter_only' }),
-      L('Turn the gate off, and all fifty logs differ. The same adversary hits home 98 percent, school 72 percent.', { hl: 'card-off' }),
-    ],
-    hold: 0.5,
   },
   {
     id: 'host',
@@ -151,8 +142,9 @@ export const SEGMENTS: Segment[] = [
     rubric: 'Impact · Technical Depth',
     scene: 'host',
     lines: [
-      L('A family runs one server. Each person adds a read-only key from their own WhereCtx, then runs npm start.'),
-      L('The server then gives each agent its own agent token.'),
+      L('One family runs one server.'),
+      L('Each member adds a read-only token from their own WhereCtx, and one command starts it.'),
+      L('WRU then gives every agent its own agent token.'),
     ],
   },
   {
@@ -162,8 +154,8 @@ export const SEGMENTS: Segment[] = [
     rubric: 'Use of Meta AI Tooling · Impact',
     scene: 'outro',
     lines: [
-      L('Status in, roles out. No coordinates in between.'),
-      L('The model in this recording is a mock. Add a key, and Muse Spark answers on the same path.'),
+      L('Status in, roles out.'),
+      L('Add a Meta API key, and Muse Spark makes the decisions itself.'),
     ],
     hold: 1.2,
   },
@@ -177,7 +169,11 @@ export function captionText(line: string): string {
     .replace('fifteen', '15')
     .replace('fifty scenarios', '50 scenarios')
     .replace('all fifty logs', 'all 50 logs')
+    .replace('fifty scenarios', '50 scenarios')
+    .replace('five distinct logs', '5 distinct logs')
     .replace("twenty-five districts", '25 districts')
     .replace('twenty minutes out', '20 minutes out')
+    .replace('fifty families', '50 families')
+    .replace('five different logs', '5 different logs')
     .replace('read-only', 'read\u2011only');
 }
