@@ -49,7 +49,15 @@ describe('에이전트 토큰', () => {
     const b = AgentTokens.issue().issued;
     expect(new Set([...Object.values(a), ...Object.values(b)]).size).toBe(6);
     expect(AgentTokens.issue(TOKENS).issued).toEqual(TOKEN_OF);
-    expect(maskToken(TOKEN_OF.mom)).toBe('wru_ag_mom-…');
+    // 지문에는 원문 글자가 없다
+    expect(maskToken(TOKEN_OF.mom)).toMatch(/^wru_ag_…[0-9a-f]{6}$/);
+    expect(maskToken(TOKEN_OF.mom)).not.toContain('mom');
+  });
+
+  it('env 토큰: 접두어 · 길이 검사, 두 구성원이 같은 토큰이면 거부', () => {
+    expect(() => AgentTokens.issue({ WRU_AGENT_TOKEN_MOM: 'mom-token-aaaaaaaaaaaaaaaaaaaaaaaaaaaa' })).toThrow();
+    expect(() => AgentTokens.issue({ WRU_AGENT_TOKEN_MOM: 'wru_ag_short' })).toThrow();
+    expect(() => AgentTokens.issue({ ...TOKENS, WRU_AGENT_TOKEN_DAD: TOKENS.WRU_AGENT_TOKEN_MOM })).toThrow(/같아요/);
   });
 });
 
@@ -90,6 +98,14 @@ describe('에이전트 API (토큰 경계)', () => {
     expect(leaks(r.text)).toEqual([]);
   });
 
+  it('경계표를 만드는 내부 요청은 이벤트 로그에 남지 않는다', async () => {
+    const app = makeApp({ env: TOKENS });
+    await get(app, '/api/demo/boundary');
+    await get(app, '/api/demo/boundary');
+    const state = await req(app, 'GET', '/api/state');
+    expect(state.json.log.filter((e: { kind: string }) => e.kind === 'refusal')).toEqual([]);
+  });
+
   it('남의 토큰 요청은 이벤트 로그에 남는다 (토큰 값 없이)', async () => {
     const app = makeApp({ env: TOKENS });
     await get(app, '/api/agent/presence/mom', TOKEN_OF.dad);
@@ -106,6 +122,11 @@ describe('에이전트 API (토큰 경계)', () => {
     expect((await get(app, '/api/agent/presence/mom', TOKEN_OF.mom)).status).toBe(200);
     // 관리자 토큰으로 에이전트 API를 부를 수는 없다
     expect((await get(app, '/api/agent/presence/mom', 'admin-secret-value-123456')).status).toBe(401);
+    expect((await get(app, '/api/demo/boundary')).status).toBe(401);
+    expect((await app.request('/api/sim/reset', { method: 'POST' })).status).toBe(401);
+    // 관리자 토큰으로 열면 경계표는 그대로 동작한다
+    const matrix = JSON.parse((await get(app, '/api/demo/boundary', 'admin-secret-value-123456')).text);
+    expect(matrix.rows[0].cells.map((c: { status: number }) => c.status)).toEqual([200, 403, 403]);
   });
 });
 
@@ -228,6 +249,16 @@ describe('HttpWhereCtx', () => {
     expect(p).toMatchObject({ state: 'unknown', eta_minutes: null });
   });
 
+  it('리다이렉트를 따라가지 않는다 (토큰이 다른 곳으로 실려 가지 않게)', async () => {
+    const seen: (RequestRedirect | undefined)[] = [];
+    const f = (async (_u: string, init?: RequestInit) => {
+      seen.push(init?.redirect);
+      return new Response('{}', { status: 404 });
+    }) as unknown as typeof fetch;
+    await new HttpWhereCtx({ person_id: 'mom', baseUrl: 'https://wherectx.test', token: 't', fetchImpl: f }).get_presence('mom');
+    expect(seen).toEqual(['error']);
+  });
+
   it('status 매핑', () => {
     expect(mapStatus({ status: 'home', freshness: 'stationary' })).toBe('home');
     expect(mapStatus({ status: 'near_home', freshness: 'live' })).toBe('near_home');
@@ -284,19 +315,27 @@ describe('가족 설정', () => {
     expect(() => loadFamilyConfig({ WRU_FAMILY_CONFIG: 'nope.json' })).toThrow();
   });
 
+  it('실제 WhereCtx가 붙었는데 관리자 토큰이 없으면 대시보드 API는 닫힌다 (fail closed)', async () => {
+    const app = makeApp({ family: parseFamilyConfig(ok, env), env: { ...env, ...TOKENS }, fetchImpl: fakeWhereCtx({}) });
+    expect((await get(app, '/api/state')).status).toBe(401);
+    expect((await get(app, '/api/demo/boundary')).status).toBe(401);
+    expect((await get(app, '/api/agent/presence/mom', TOKEN_OF.mom)).status).toBe(200);
+  });
+
   it('앱에 붙이면: 엄마는 실제 WhereCtx 상태, 실제 시계, 시계 돌리기는 409, 출력에 좌표 없음', async () => {
+    const ADMIN = 'admin-secret-value-123456';
     const app = makeApp({
       family: parseFamilyConfig(ok, env),
-      env: { ...env, ...TOKENS },
+      env: { ...env, ...TOKENS, WRU_ADMIN_TOKEN: ADMIN },
       fetchImpl: fakeWhereCtx({
         '/v1/presence': { status: 200, body: { ...NOISY, status: 'away' } },
         '/v1/geo/eta': { status: 200, body: { eta: { durationMin: 15 } } },
       }),
     });
-    const state = await req(app, 'GET', '/api/state');
+    const state = { text: (await get(app, '/api/state', ADMIN)).text, json: JSON.parse((await get(app, '/api/state', ADMIN)).text) };
     expect(state.json.live).toBe(true);
     expect(state.json.presence[0]).toMatchObject({ person_id: 'mom', state: 'in_transit', eta_minutes: 15 });
-    expect((await req(app, 'POST', '/api/sim/advance', { minutes: 5 })).status).toBe(409);
+    expect((await app.request('/api/sim/advance', { method: 'POST', headers: { authorization: `Bearer ${ADMIN}`, 'content-type': 'application/json' }, body: '{"minutes":5}' })).status).toBe(409);
     expect((await get(app, '/api/agent/presence/mom', TOKEN_OF.mom)).status).toBe(200);
     expect((await get(app, '/api/agent/presence/mom', TOKEN_OF.dad)).status).toBe(403);
     expect(leaks(state.text)).toEqual([]);

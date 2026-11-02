@@ -23,9 +23,9 @@ export function newAgentToken(): string {
   return `${TOKEN_PREFIX}${randomBytes(24).toString('base64url')}`;
 }
 
-/** 화면 · 로그용: 앞 몇 글자만 */
+/** 화면 · 로그용 지문: 원문 글자는 하나도 내보내지 않고 해시 앞 6자리만 */
 export function maskToken(token: string): string {
-  return `${token.slice(0, TOKEN_PREFIX.length + 4)}…`;
+  return `${TOKEN_PREFIX}…${digest(token).toString('hex').slice(0, 6)}`;
 }
 
 export class AgentTokens {
@@ -36,9 +36,15 @@ export class AgentTokens {
     const tokens = new AgentTokens();
     const issued = {} as Record<PersonId, string>;
     for (const id of PERSON_IDS) {
-      const fromEnv = env[`WRU_AGENT_TOKEN_${id.toUpperCase()}`];
-      const token = fromEnv && fromEnv.length >= 24 ? fromEnv : newAgentToken();
-      tokens.hashes.set(id, digest(token));
+      const name = `WRU_AGENT_TOKEN_${id.toUpperCase()}`;
+      const fromEnv = env[name];
+      if (fromEnv && (!fromEnv.startsWith(TOKEN_PREFIX) || fromEnv.length < 32)) {
+        throw new Error(`${name}는 ${TOKEN_PREFIX}로 시작하는 32자 이상이어야 해요`);
+      }
+      const token = fromEnv || newAgentToken();
+      const d = digest(token);
+      if ([...tokens.hashes.values()].some((h) => h.equals(d))) throw new Error(`${name}가 다른 구성원의 토큰과 같아요`);
+      tokens.hashes.set(id, d);
       issued[id] = token;
     }
     return { tokens, issued };

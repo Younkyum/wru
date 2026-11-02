@@ -49,6 +49,8 @@ export class HttpWhereCtx implements WhereCtxAdapter {
     try {
       const res = await f(`${this.opts.baseUrl.replace(/\/+$/, '')}${path}`, {
         headers: { authorization: `Bearer ${this.opts.token}`, accept: 'application/json' },
+        // 리다이렉트로 토큰이 다른 경로 · 호스트에 실려 가지 않게
+        redirect: 'error',
         signal: AbortSignal.timeout(this.opts.timeoutMs ?? 8_000),
       });
       const body = (await res.json().catch(() => null)) as Record<string, unknown> | null;

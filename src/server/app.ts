@@ -17,7 +17,7 @@ import { FamilyWhereCtx } from './wherectx/family.js';
 import { DEFAULT_FAMILY, isLive, type FamilyConfig } from './family-config.js';
 import { AuthError, bearer, maskToken } from './auth/agent-tokens.js';
 import { makeFamilyAgents } from './auth/gateway.js';
-import { timingSafeEqual } from 'node:crypto';
+import { randomBytes, timingSafeEqual } from 'node:crypto';
 import type { MuseClient } from './muse/client.js';
 import { createMuseClient } from './muse/factory.js';
 import { runNegotiation } from './negotiation/engine.js';
@@ -104,6 +104,9 @@ export function createApp(options: AppOptions = {}) {
   const { agents, issued, gateway, tokens: agentTokens } = makeFamilyAgents(wherectx, muse, { env });
   const tokenMasks = Object.fromEntries(PERSON_IDS.map((id) => [id, maskToken(issued[id])])) as Record<PersonId, string>;
 
+  // 경계표를 만드는 내부 요청은 이벤트 로그에 남기지 않는다 (밖에서는 알 수 없는 값)
+  const probeNonce = randomBytes(16).toString('hex');
+
   const allPresence = () => Promise.all(PERSON_IDS.map((id) => wherectx.get_presence(id)));
 
   const snapshot = async (): Promise<DemoState> => ({
@@ -137,7 +140,7 @@ export function createApp(options: AppOptions = {}) {
       return c.json(kind === 'presence' ? await gateway.presence(token ?? '', id) : await gateway.eta(token ?? '', id));
     } catch (e) {
       if (!(e instanceof AuthError)) throw e;
-      if (e.status === 403) log.add('refusal', `다른 구성원의 토큰으로 ${PERSON_LABEL_KO[id]}의 위치를 요청해서 거절했어요`);
+      if (e.status === 403 && c.req.header('x-wru-probe') !== probeNonce) log.add('refusal', `다른 구성원의 토큰으로 ${PERSON_LABEL_KO[id]}의 위치를 요청해서 거절했어요`);
       return c.json({ error: e.code }, e.status);
     }
   };
@@ -150,9 +153,11 @@ export function createApp(options: AppOptions = {}) {
   app.get('/agent/eta/:id', agentRead('eta'));
 
   // ── 이 아래는 가족 대시보드(관리자) API. WRU_ADMIN_TOKEN이 있으면 Bearer로 그 값을 요구한다 ──
+  // 실제 WhereCtx가 붙어 있으면(live) 관리자 토큰 없이는 열지 않는다 (fail closed). 시뮬레이터만이면 공개 데모로 연다.
   app.use('*', async (c, next) => {
     const admin = env.WRU_ADMIN_TOKEN;
-    if (!admin || c.req.path.startsWith('/api/agent/')) return next();
+    if (c.req.path.startsWith('/api/agent/')) return next();
+    if (!admin) return live ? c.json({ error: 'admin_token_required' }, 401) : next();
     const token = bearer(c.req.header('authorization'));
     if (!token || !sameSecret(token, admin)) return c.json({ error: 'admin_token_required' }, 401);
     return next();
@@ -199,7 +204,9 @@ export function createApp(options: AppOptions = {}) {
         const token = holder === 'none' ? null : holder === 'forged' ? 'wru_ag_forged-token-for-demo-000000' : issued[holder];
         const cells = await Promise.all(
           PERSON_IDS.map(async (target) => {
-            const res = await app.request(`/api/agent/presence/${target}`, token ? { headers: { authorization: `Bearer ${token}` } } : {});
+            const headers: Record<string, string> = { 'x-wru-probe': probeNonce };
+            if (token) headers.authorization = `Bearer ${token}`;
+            const res = await app.request(`/api/agent/presence/${target}`, { headers });
             return { target, status: res.status };
           }),
         );

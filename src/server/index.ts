@@ -2,10 +2,14 @@ import { serve } from '@hono/node-server';
 import { serveStatic } from '@hono/node-server/serve-static';
 import { Hono } from 'hono';
 import { createApp } from './app.js';
-import { loadFamilyConfig } from './family-config.js';
+import { isLive, loadFamilyConfig } from './family-config.js';
 
 const port = Number(process.env.WRU_API_PORT ?? 8787);
 const family = loadFamilyConfig(process.env);
+if (isLive(family) && !process.env.WRU_ADMIN_TOKEN) {
+  console.error('[wru] 실제 WhereCtx를 붙일 때는 WRU_ADMIN_TOKEN이 필요해요 (가족 대시보드 API 보호). .env.example 참고');
+  process.exit(1);
+}
 const server = new Hono();
 server.route('/', createApp({ family, env: process.env }));
 
