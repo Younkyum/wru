@@ -20,7 +20,7 @@ export interface Segment {
   screen: string;
   rubric: string;
   /** 인트로 · 아웃트로 카드. 없으면 데모 화면 */
-  scene?: 'intro' | 'outro';
+  scene?: 'intro' | 'host' | 'outro';
   /** 이 구간에서 들어갈 데모 모드 컷 (0부터). 없으면 컷을 넘기지 않는다 */
   step?: number;
   lines: Line[];
@@ -34,7 +34,7 @@ export const SEGMENTS: Segment[] = [
   {
     id: 'intro',
     title: '오프닝 카드',
-    screen: '검은 카드: WRU · 좌표 없이, 가족의 Muse들이 할 일을 나눠요',
+    screen: '검은 카드: WRU · 보통의 위치 공유(지도에 핀) ↔ WRU(상태 칩)',
     rubric: 'Impact',
     scene: 'intro',
     lines: [
@@ -85,7 +85,7 @@ export const SEGMENTS: Segment[] = [
     lines: [
       L('에이전트 Muse는 Meta의 Muse Spark 모델을 부르도록 만들었고,', { reveal: 0 }),
       L('이 녹화에서는 같은 스키마의 mock이 모델 자리에서 답합니다.', { reveal: 0 }),
-      L('먼저 셋 다 픽업에 손을 듭니다.', { reveal: 3 }),
+      L('첫 라운드엔 마감이 급한 픽업부터, 할 수 있는 사람이 모두 손을 듭니다.', { reveal: 3 }),
       L('밖에 있고 시간 여유가 있는 아빠가 적합도 높음.', { reveal: 3, hl: 'dad' }),
       L('엄마와 형은 우유로 바꾸고, 아빠가 픽업을 확정합니다.', { reveal: 6 }),
       L('집 근처라 들르기 쉬운 형에게 엄마가 양보합니다.', { reveal: 8, hl: 'sibling' }),
@@ -101,7 +101,8 @@ export const SEGMENTS: Segment[] = [
       L('아빠의 Muse가 모델에 보내는 건 이게 전부입니다.', { hl: 'request' }),
       L('내 상태, ETA 구간, 마감까지 남은 분, 오간 메시지.', { hl: 'request', after: 'museShow' }),
       L('모델은 어느 일에 나설지와 적합도를 JSON으로 답하고,', { hl: 'response' }),
-      L('WRU는 토큰 · 스키마를 검사하고 이유 문장을 템플릿으로 바꿉니다.', { hl: 'split' }),
+      L('WRU는 토큰과 스키마를 검사합니다.', { hl: 'split' }),
+      L('모델이 위치를 섞어 써도, 로그에는 상태 템플릿만 나갑니다.', { hl: 'rewrite' }),
     ],
   },
   {
@@ -126,7 +127,8 @@ export const SEGMENTS: Segment[] = [
       L('집과 학교가 다른 시나리오 50개로, 서울 25개 구 중 어디인지 재 봤습니다.'),
       L('로그는 다섯 종류뿐이었습니다. 집이 달라도 로그가 같다는 뜻입니다.', { hl: 'logs' }),
       L('그래서 정답을 미리 알고 골라도 최대 집 22퍼센트, 학교 24퍼센트.', { hl: 'bound' }),
-      L('"이동 중, 20분 이내" 같은 상태만으로 알 수 있는 몫입니다.', { hl: 'bound' }),
+      L('"이동 중, 20분 이내" 같은 상태 자체가 주는 몫이라, 상태를 나누는 한 줄일 수 없습니다.', { hl: 'bound' }),
+      L('로그에서 단서를 찾는 규칙 기반 적대자는 실제로 집 6퍼센트, 학교 0퍼센트를 맞혔습니다.', { hl: 'actual' }),
     ],
   },
   {
@@ -138,9 +140,20 @@ export const SEGMENTS: Segment[] = [
     lines: [
       L('가운데는 에이전트에게 위치를 몰래 쥐여 준 경우입니다.', { hl: 'card-filter_only' }),
       L('그래도 로그는 게이트 on과 글자 하나 다르지 않습니다.', { hl: 'card-filter_only' }),
-      L('게이트를 끄면 로그 50개가 다 달라지고, 규칙 적대자도 집 98퍼센트를 맞힙니다.', { hl: 'card-off' }),
+      L('게이트를 끄면 로그 50개가 다 달라지고, 같은 적대자가 집 98퍼센트, 학교 72퍼센트를 맞힙니다.', { hl: 'card-off' }),
     ],
     hold: 0.5,
+  },
+  {
+    id: 'host',
+    title: '자가 호스팅',
+    screen: '밝은 카드: 각자 WhereCtx 토큰 → 가족 서버 .env · family.config.json → npm start / Docker',
+    rubric: 'Impact · Technical Depth',
+    scene: 'host',
+    lines: [
+      L('가족은 서버 하나를 띄웁니다. 각자 자기 WhereCtx 토큰을 등록하고, npm start.'),
+      L('에이전트 토큰은 그 서버가 구성원마다 발급합니다.'),
+    ],
   },
   {
     id: 'outro',
@@ -150,7 +163,7 @@ export const SEGMENTS: Segment[] = [
     scene: 'outro',
     lines: [
       L('WhereCtx는 상태만, 토큰은 내 것만, Muse는 역할만.'),
-      L('누구나 자기 서버에 띄울 수 있고, 키를 넣으면 Muse Spark가 답합니다.'),
+      L('이 녹화의 모델 자리는 mock이고, 키를 넣으면 같은 경로로 Muse Spark가 답합니다.'),
     ],
     hold: 1.2,
   },

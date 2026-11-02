@@ -524,3 +524,72 @@ footer { color: var(--faint); font-size: 12px; text-align: center; }
 .scene { justify-content: center; padding-bottom: 140px; }
 .scene-kicker { font-size: 16px; letter-spacing: 0.14em; }
 .subtitle { background: rgba(28, 28, 26, 0.94); }
+
+/* ── 라운드 6 반영 ─────────────────────────── */
+/* 강조 테두리는 상태색과 겹치지 않게 먹색 */
+.hl-on { outline-color: var(--ink); }
+.phone.hl-on { outline-offset: 7px; }
+.video-on .wru { gap: 18px; }
+.io-col.hl-dim, .rewrite.hl-dim, .split.hl-dim { opacity: 0.55; }
+/* Muse 패널: 요청을 넓게, JSON은 줄바꿈하지 않음 */
+.video-on.focus-muse .io { grid-template-columns: 1.55fr 1fr; }
+.video-on.focus-muse .io > .rewrite { grid-column: 1 / -1; }
+.code { white-space: pre; overflow-x: hidden; word-break: normal; }
+.video-on.focus-muse .code { font-size: 12.5px; }
+.rewrite { display: grid; gap: 4px; border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; font-size: 13px; }
+.rewrite-label { font-weight: 800; }
+.rewrite-from { color: var(--refuse); text-decoration: line-through; text-decoration-thickness: 1.5px; }
+.rewrite-arrow { font-size: 11.5px; color: var(--muted); }
+.rewrite-to { color: var(--home); font-weight: 700; }
+.mock-note { font-size: 13.5px; }
+/* 채널 머리: 에이전트 → 모델 */
+.chain { font-size: 12px; font-weight: 700; color: var(--transit); margin: 2px 0; }
+/* 폰 머리 · 칩 · 라벨 글자 키우기 */
+.video-on .phone-sub { font-size: 12.5px; }
+.video-on .phone-head .key { font-size: 11.5px; }
+.video-on .note-title { font-size: 12.5px; }
+/* 메시지가 쌓이는 컷은 상태 카드를 줄여 피드 자리를 만든다 */
+.video-on.focus-task .self-ring, .video-on.focus-channel .self-ring, .video-on.focus-roles .self-ring { width: 76px; height: 76px; }
+.video-on.focus-task .me, .video-on.focus-channel .me, .video-on.focus-roles .me { padding: 8px 10px 10px; gap: 2px; }
+.video-on.focus-task .state, .video-on.focus-channel .state, .video-on.focus-roles .state { font-size: 22px; }
+/* 자막: 문장 길이에 맞춘 상자 */
+.subtitle { width: fit-content; max-width: min(1000px, 88vw); min-height: 0; padding: 12px 26px; font-size: 26px; background: rgba(20, 20, 19, 0.88); }
+.video-on .subtitle { min-height: 0; }
+.scene-on .subtitle { background: transparent; border-color: transparent; box-shadow: none; color: #f2efe8; }
+/* 인트로: 보통의 위치 공유 ↔ WRU */
+.scene-kicker { font-size: 18px; }
+.contrast { display: flex; align-items: center; gap: 26px; margin-top: 18px; }
+.contrast-card { width: 340px; background: #22221f; border: 1px solid #3a3a36; border-radius: 18px; padding: 16px; text-align: left; }
+.contrast-wru { border-color: #6c6455; }
+.contrast-head { font-size: 17px; font-weight: 800; margin-bottom: 10px; }
+.contrast-foot { font-size: 15px; margin-top: 10px; color: #cfcac2; }
+.contrast-arrow { font-size: 40px; color: #f2d48a; }
+.fake-map {
+  position: relative; height: 120px; border-radius: 12px; background-color: #2d2d29;
+  background-image: linear-gradient(#3a3a35 1px, transparent 1px), linear-gradient(90deg, #3a3a35 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+.pin { position: absolute; width: 16px; height: 16px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); background: #e05a47; box-shadow: 0 0 0 3px rgba(224, 90, 71, 0.25); }
+.pin.p1 { left: 22%; top: 30%; }
+.pin.p2 { left: 58%; top: 55%; background: #4f86e8; }
+.pin.p3 { left: 76%; top: 22%; background: #9a6ce0; }
+.chips { display: grid; gap: 8px; }
+.chip-state { display: inline-block; font-size: 17px; font-weight: 700; padding: 7px 12px; border-radius: 10px; background: #2d2d29; }
+.chip-state.state-home { color: #6fd0a0; }
+.chip-state.state-in_transit { color: #8fb2ff; }
+.chip-state.state-near_home { color: #5fd3cb; }
+/* 자가 호스팅 카드 (밝은) */
+.scene-light { background: var(--bg); color: var(--ink); }
+.scene-light .scene-kicker { opacity: 0.7; }
+.host-steps { margin: 6px 0 4px; padding: 0; list-style: none; counter-reset: step; display: grid; gap: 14px; text-align: left; }
+.host-steps li { counter-increment: step; font-size: 28px; display: flex; align-items: center; gap: 16px; background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 14px 20px; }
+.host-steps li::before { content: counter(step); display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: var(--ink); color: #fff; font-size: 20px; font-weight: 800; flex: none; }
+.scene-light .scene-line { color: var(--muted); }
+/* 아웃트로 위계 */
+.scene-points { font-size: 26px; }
+.scene-points b { font-size: 22px; }
+.scene-note { margin-top: 30px; }
+/* 누수 카드 보조 글자 */
+.actual-label { font-size: 13px; }
+.leak-desc { font-size: 13.5px; }
+.actual.hl-on { outline-offset: 4px; }

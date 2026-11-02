@@ -33,7 +33,7 @@ export interface DemoPageProps {
 
 export interface VideoOverlay {
   caption: string | null;
-  scene: 'intro' | 'outro' | null;
+  scene: 'intro' | 'host' | 'outro' | null;
   /** 내레이션이 지금 가리키는 대상 (강조) */
   hl: string | null;
 }
@@ -42,8 +42,8 @@ export interface VideoOverlay {
 const HL_GROUP: Record<string, string> = {
   phones: 'phones', mom: 'phones', dad: 'phones', sibling: 'phones', roles: 'phones',
   diag: 'matrix', 'dad-mom': 'matrix',
-  request: 'muse', response: 'muse', split: 'muse',
-  logs: 'leak-on', bound: 'leak-on',
+  request: 'muse', response: 'muse', split: 'muse', rewrite: 'muse',
+  logs: 'leak-on', bound: 'leak-on', actual: 'leak-on',
   'card-on': 'leak', 'card-off': 'leak', 'card-filter_only': 'leak',
   hub: 'hub',
 };
@@ -309,6 +309,7 @@ function Channel({ messages, task, total, log }: ChannelProps) {
     <>
       <div className="side-head">
         <h2>Muse 채널</h2>
+        <div className="chain">에이전트 Muse → Meta Model API → 모델 Muse Spark</div>
         <span>{total ? `메시지 ${messages.length}/${total}` : 'WRU가 중계하는 메시지 전부'}</span>
       </div>
       {messages.length === 0 ? (
@@ -438,6 +439,7 @@ function MusePanel({ turn, shown }: { turn: MuseTurnView | null | undefined; sho
   const hlSplit = useHl('muse', 'split');
   const hlReq = useHl('muse', 'request');
   const hlRes = useHl('muse', 'response');
+  const hlRewrite = useHl('muse', 'rewrite');
   return (
     <>
       <div className="side-head">
@@ -476,19 +478,65 @@ function MusePanel({ turn, shown }: { turn: MuseTurnView | null | undefined; sho
               <pre className="code code-wait">모델이 답하는 중…</pre>
             )}
           </div>
+          <div className={`rewrite${hlRewrite}`}>
+            <div className="rewrite-label">모델이 위치를 섞어 써도 (실제 필터 코드)</div>
+            <div className="rewrite-from">{turn.rewrite.from}</div>
+            <div className="rewrite-arrow">↓ 로그에 나가는 문장</div>
+            <div className="rewrite-to">{turn.rewrite.to}</div>
+          </div>
         </div>
       )}
     </>
   );
 }
 
-function VideoScene({ scene }: { scene: 'intro' | 'outro' }) {
+function VideoScene({ scene }: { scene: VideoOverlay['scene'] & string }) {
   if (scene === 'intro') {
     return (
       <div className="scene" role="presentation">
         <div className="scene-kicker">Meta Global AI Developer Hackathon</div>
         <div className="scene-title">WRU</div>
         <div className="scene-line">좌표 없이, 가족의 Muse들이 할 일을 나눠요</div>
+        <div className="contrast">
+          <div className="contrast-card">
+            <div className="contrast-head">보통의 위치 공유</div>
+            <div className="fake-map" aria-hidden>
+              {['p1', 'p2', 'p3'].map((p) => (
+                <span key={p} className={`pin ${p}`} />
+              ))}
+            </div>
+            <div className="contrast-foot">가족 모두의 좌표가 늘 서버에</div>
+          </div>
+          <div className="contrast-arrow">→</div>
+          <div className="contrast-card contrast-wru">
+            <div className="contrast-head">WRU</div>
+            <div className="chips">
+              <span className="chip-state state-home">엄마 · 집</span>
+              <span className="chip-state state-in_transit">아빠 · 이동 중 20분</span>
+              <span className="chip-state state-near_home">형 · 집 근처</span>
+            </div>
+            <div className="contrast-foot">상태만 오가고, 결과는 역할만</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  if (scene === 'host') {
+    return (
+      <div className="scene scene-light" role="presentation">
+        <div className="scene-kicker">Host your own</div>
+        <ol className="host-steps">
+          <li>
+            <b>각자</b> 자기 WhereCtx에서 agent 토큰 발급
+          </li>
+          <li>
+            <b>가족 서버</b>의 .env에 토큰, family.config.json에 주소
+          </li>
+          <li>
+            <b>npm start</b> 또는 Docker 한 번 · 에이전트 토큰은 서버가 발급
+          </li>
+        </ol>
+        <div className="scene-line">위치는 각자의 서버에, WRU는 상태만 읽어요</div>
       </div>
     );
   }
@@ -547,6 +595,7 @@ function LeakCard({ k, report }: { k: Condition; report: LeakReport }) {
   const hlCard = useHl('leak', `card-${k}`);
   const hlLogs = useHl('leak-on', 'logs');
   const hlBound = useHl('leak-on', 'bound');
+  const hlActual = useHl('leak-on', 'actual');
   return (
     <section className={`leak-card leak-${k}${hlCard}`}>
       <div className="leak-title">{CONDITION_LABEL[k].title}</div>
@@ -565,7 +614,7 @@ function LeakCard({ k, report }: { k: Condition; report: LeakReport }) {
           </span>
         </div>
       </div>
-      <div className="actual">
+      <div className={`actual${hlActual}`}>
         <div className="actual-label">규칙 기반 적대자가 실제로 맞힌 비율</div>
         <Metric label="집" rate={g.home_rate} chance={report.chance} />
         <Metric label="학교" rate={g.school_rate} chance={report.chance} />
@@ -651,7 +700,9 @@ export function DemoPage(props: DemoPageProps) {
 
   return (
     <HighlightContext.Provider value={video?.hl ?? null}>
-    <div className={`wru${demo ? ` demo-on focus-${demo.focus}` : ''}${video ? ' video-on' : ''}${video?.hl ? ' has-hl' : ''}`}>
+    <div
+      className={`wru${demo ? ` demo-on focus-${demo.focus}` : ''}${video ? ' video-on' : ''}${video?.hl ? ' has-hl' : ''}${video?.scene ? ' scene-on' : ''}`}
+    >
       <header className="top">
         <div className="brand">
           <strong>WRU</strong>

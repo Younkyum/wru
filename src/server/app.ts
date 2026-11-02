@@ -25,6 +25,8 @@ import { publicMessages, type NegotiationRecord } from '../shared/negotiation.js
 import type { LeakReport } from '../shared/leak-report.js';
 import { runLeakExperiment } from './privacy/experiment.js';
 import { userPrompt } from './muse/meta.js';
+import { filterMessage } from './privacy/filter.js';
+import type { MessageBody } from '../shared/negotiation.js';
 import { DEFAULT_MODEL } from './muse/client.js';
 import type { MuseTurnView } from '../shared/muse-turn.js';
 import { readFile } from 'node:fs/promises';
@@ -303,6 +305,12 @@ export function createApp(options: AppOptions = {}) {
       action,
       muse: muse.kind,
       checks: ['JSON 스키마 (type · subtask_id · fit)', '좌표 · 주소 · 지명 검사', 'reason을 상태 템플릿으로 재작성', 'commit은 엔진이 판정'],
+      rewrite: (() => {
+        // 위치를 섞은 문장 예시 (동네 이름은 가림). 실제 필터 코드로 바꾼 결과를 보여 준다
+        const from = '지금 ○○동 지나는 중이라 집까지 N km, 정확히 17분 남았어요';
+        const filtered = filterMessage({ ...(action as MessageBody), ...(action.type === 'offer' ? { reason: from } : {}) } as MessageBody, presence, task);
+        return { from, to: 'reason' in filtered.body ? filtered.body.reason : '' };
+      })(),
     };
     return c.json(view);
   });

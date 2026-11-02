@@ -28,7 +28,7 @@ export function App() {
   const [video, setVideo] = useState<VideoOverlay>({ caption: null, scene: null, hl: null });
   // 영상 모드: 1440×900 녹화에서 1280×800 레이아웃으로 보이게 키운다
   useEffect(() => {
-    if (videoMode) document.documentElement.style.setProperty('zoom', '1.125');
+    if (videoMode) document.documentElement.style.setProperty('zoom', '1.15');
   }, [videoMode]);
 
   const run = useCallback(async (action: () => Promise<unknown>) => {

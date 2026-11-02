@@ -15,4 +15,6 @@ export interface MuseTurnView {
   /** 이 시연의 Muse가 mock인지 */
   muse: 'mock' | 'meta';
   checks: string[];
+  /** 실제 filterMessage로 돌린 예: 모델이 위치를 섞어 쓴 이유 문장 → 로그에 나가는 문장 */
+  rewrite: { from: string; to: string };
 }
