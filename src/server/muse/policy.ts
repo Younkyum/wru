@@ -60,7 +60,7 @@ const OFFER_TEXT: Record<SubtaskKind, Record<Exclude<PresenceState, 'unknown'>, 
   errand: {
     near_home: () => "I'm near home, easy to drop by",
     in_transit: (eta) => `I can pick it up on my way home (home ${eta})`,
-    home: () => 'I can pop out from home',
+    home: () => 'I can run out from home',
   },
 };
 

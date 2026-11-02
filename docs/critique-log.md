@@ -114,3 +114,22 @@ From this round a third reviewer joined: an **English copy critic** (native-spea
 | English copy | narration 7 · SUBMISSION 7 · README 7.5 · COPY 8 · leak report 6.5 | HIGH: "floor" vs "ceiling"; "15 requests"; "What comes out is roles" | ✅ All three fixed |
 | | | HIGH: attacker vs adversary in the docs | ✅ "attacker" throughout the docs (code identifiers keep `adversary`) |
 | | | MED: "runs on" overclaims; "tried 50 families"; formula sentences; "So we also…"; colon formula; "location detail" | ✅ "built for"; "simulated 50 families"; formulas and "So" openers rewritten; "location details" |
+
+## Round 12 (final)
+
+| Critic | Score | Key finding (severity) | Outcome |
+| --- | --- | --- | --- |
+| Presentation | 6 (Impact 6 · Tooling 4 · Depth 7 · Demo 7) | HIGH: no real Muse Spark call; the model's job looks like something a rule could do | ➖ **Blocked on the API key.** Both need a real model (a live turn, or free-text task parsing). Faking either with the mock would misrepresent the system |
+| | | MED: "only 22%" reads as spin; "secretly knows" is weak with a mock; 8 s of empty channel; gate-off looks like a strawman | ✅ "right only 22% of the time, against 4% for random guessing. All of that comes from the coarse status"; "in our test"; round 1 starts under the mock disclosure; gate-off card labelled "naive agent chat" |
+| Design | 7 | Re-tunes the same knobs as earlier rounds (dim strength, ring colour, code size), often in the opposite direction | ➖ Kept the round-10 settings; the remaining requests conflict with earlier rounds |
+| English copy | narration 7 · SUBMISSION 7 · README 7.5 · COPY 6.5 · leak report 7 | HIGH: verbless list for the 15 requests; "made in hindsight"; "leaks nothing extra" overclaims; middle-dot separators; three names for the bound | ✅ Rewritten lines; middle dots in the docs' prose and tables replaced with commas; one name everywhere: **best-case attacker** |
+
+## Where it ended
+
+- Presentation rose from 5 to 6, and Meta tooling from 3 to 4. The remaining gap is a real Muse Spark call, which is blocked until the Meta Model API key arrives.
+- Design rose from 6.5 to 7–7.5 after three structural changes: the per-cut layout, the per-sentence highlight, and the leak story told in order.
+- English copy rose from 6 to 7–7.5 for the narration and docs.
+- Several real defects were found and fixed along the way:
+  - Internal flags leaked "the agent tried to say something else" into public logs.
+  - The bound was mislabelled as a "floor".
+  - The leak report's text contradicted its own table.

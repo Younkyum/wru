@@ -21,7 +21,7 @@ The screen is three family phones (Mom · Dad · Brother), a WRU bar on top, and
 | Muse channel | Muse agent → Meta Model API → Muse Spark | 〃 |
 | Token boundary | Real GET /api/agent/presence/:id requests with each agent token · 200 allowed / 403 denied / 401 denied | 〃 |
 | What goes to the model | The model decides / WRU enforces · Request POST /v1/chat/completions · Response (one JSON object) · Even if the model slips in a location (real filter code) | 〃 |
-| Leak test | Best possible guess · even knowing every answer · What a rule-based attacker actually found · Log line | 〃 |
+| Leak test | Best-case attacker (knows every answer) · What a rule-based attacker actually found · Log line | 〃 |
 | Footer | No coordinates, addresses or school names are collected or shown. From WhereCtx we only take status and ETA. | 〃 |
 
 ## Agent message templates (gate on)
@@ -33,7 +33,7 @@ The screen is three family phones (Mom · Dad · Brother), a WRU bar on top, and
 | Pickup · home | I can make it if I leave home now | 〃 |
 | Errand · near home | I'm near home, easy to drop by | 〃 |
 | Errand · on the way | I can pick it up on my way home (home within 20 min) | 〃 |
-| Errand · home | I can pop out from home | 〃 |
+| Errand · home | I can run out from home | 〃 |
 | Counter | Someone fits better, so I'll switch. (+ one of the above) | 〃 |
 | Refuse | I'm out and can't take this one / I'm near home but can't take it now / Someone already took it / I'm already on another task / I can't make the deadline / Someone else is a better fit | `src/shared/negotiation.ts` |
 | Location request refused | Location details are not shared. Only status and ETA are available. / Inside the home zone, location details are not shared. Only status is available. | `src/server/wherectx/adapter.ts` |
@@ -59,6 +59,6 @@ The source is `scripts/video/narration.ts`. Start times, every sentence and what
 ## Checklist
 
 - [ ] "Mina" is a made-up child's name. Do not replace it with a real one.
-- [ ] Current leak numbers. Gate on: 5 distinct logs, hindsight bound home 22% · school 24%, rule-based attacker home 6% · school 0%. Gate off: home 98% · school 72%. Chance 4%.
+- [ ] Current leak numbers. Gate on: 5 distinct logs, best-case attacker home 22% · school 24%, rule-based attacker home 6% · school 0%. Gate off: home 98% · school 72%. Chance 4%.
 - [ ] Leak numbers come from the rule-based attacker and the attacker-independent ceiling. If you re-run `npm run leak` with a Meta Model API key, on-screen captions update automatically; video narration does not.
 - [ ] The model id is set with `MUSE_MODEL` and is not shown on screen.

@@ -2,7 +2,7 @@
 
 **Family errands, split by AI agents without sharing coordinates.**
 
-WRU (short for "where are you") is a negotiation layer on top of WhereCtx, a personal location server. Family members never share coordinates. Each person's agent (a *Muse*, built to call Meta's Muse Spark model) reads only that person's coarse status from their own WhereCtx (`home`, `near_home` or `in_transit`, plus an ETA), and the agents split a family task with offer → counter → commit messages. It outputs roles only.
+WRU (short for "where are you") is a negotiation layer on top of WhereCtx, a personal location server. Family members never share coordinates. Each person's agent (a *Muse*, built to call Meta's Muse Spark model) reads only that person's coarse status from their own WhereCtx (`home`, `near_home` or `in_transit`, plus an ETA), and the agents split a family task with offer → counter → commit messages. WRU outputs only who does what.
 
 Submitted to the Meta Global AI Developer Hackathon (2026-10-26 to 11-04).
 
@@ -27,7 +27,7 @@ Open `/demo` and press **▶ Demo mode**. It resets, then each **Next ▶** move
 4. **What goes to the model**: the exact Meta Model API request body one agent sends, the JSON it gets back, and what WRU checks.
 5. **Only roles come out**: Mom approves once; Dad's phone says pickup, Brother's says milk.
 6. **Nobody can peek**: a 5×3 matrix of real requests. Each agent token reads only its owner (200); someone else's gets 403; no token or a forged one gets 401.
-7. **Can the log reveal home?**: Without the privacy gate, all 50 logs differ and a simple attacker finds the home district 98% of the time (school 72%). With the gate on, 50 families produce only 5 distinct logs. Even the best possible guess, made in hindsight, is right 22% of the time (school 24%), against 4% chance; that floor comes from the status itself. An agent that secretly knows its exact location produces the very same logs.
+7. **Can the log reveal home?**: Without the privacy gate, all 50 logs differ and a simple attacker finds the home district 98% of the time (school 72%). With the gate on, 50 families produce only 5 distinct logs. Even the best possible guess, made in hindsight, is right 22% of the time (school 24%), against 4% chance; that floor comes from the status itself. An agent that secretly knows its exact location produces the same logs.
 
 ## Run it
 
@@ -141,7 +141,7 @@ The hackathon only counts new work, so here is the split.
 
 | | What | Evidence |
 | --- | --- | --- |
-| **Built during the hackathon** | All of WRU: simulator, negotiation engine (offer · counter · commit · refuse), Muse clients (mock · Meta Model API), privacy gate, leak test, demo UI, **agent token boundary**, **HttpWhereCtx adapter**, family config, self-hosting setup, video pipeline | This repo's first commit is 2026-10-26; every commit is after that |
+| **Built during the hackathon** | All of WRU: simulator, negotiation engine (offer, counter, commit, refuse), Muse clients (mock · Meta Model API), privacy gate, leak test, demo UI, **agent token boundary**, **HttpWhereCtx adapter**, family config, self-hosting setup, video pipeline | This repo's first commit is 2026-10-26; every commit is after that |
 | **Existed before** | [WhereCtx](https://github.com/Younkyum/WhereCtx): a self-hosted server for one person's location that hands out coarse status to agent tokens | Developed 2026-06-06 to 2026-10-19, no commits during the hackathon. WRU does not reuse its code; it only calls its public REST API (`/v1/presence`, `/v1/geo/eta`) |
 
 ## Layout
@@ -187,14 +187,14 @@ The family screen shows exact ETA minutes per the Presence contract; negotiation
 
 `npm run leak` builds 50 seeded scenarios with different homes, schools and routes, gives an attacker only the negotiation log, and asks which of Seoul's 25 districts the home and school are in. Results are in [leak-report.md](leak-report.md) and the demo's leak panel.
 
-| Condition | Distinct logs | Hindsight bound (home · school) | Rule-based attacker (home · school) |
+| Condition | Distinct logs | Best-case attacker (home, school) | Rule-based attacker (home, school) |
 | --- | --- | --- | --- |
-| Gate off (neighborhood, distance, exact ETA as-is) | 50 | 100% · 100% | 98% · 72% |
-| Gate on, agent secretly knows its location | 5 | 22% · 24% | 6% · 0% |
-| Gate on (WRU default) | 5 | 22% · 24% | 6% · 0% |
+| Gate off (neighborhood, distance, exact ETA as-is) | 50 | 100%, 100% | 98%, 72% |
+| Gate on, agent secretly knows its location | 5 | 22%, 24% | 6%, 0% |
+| Gate on (WRU default) | 5 | 22%, 24% | 6%, 0% |
 | Chance (1/25) | | 4% | 4% |
 
-The hindsight bound groups identical logs and picks the right answer in hindsight, so no attacker can beat it on these scenarios at district level. The 22% that remains comes from the coarse status itself, which the family chose to share. Without a key, the rule-based attacker scores districts from neighborhood names, "N km from home" and "N min left" in the log; it never sees scenario answers. With `MODEL_API_KEY` set, both the agents and the attacker use Muse.
+The best-case attacker groups identical logs and picks the right answer in hindsight, so no attacker can beat it on these scenarios at district level. The 22% that remains comes from the coarse status itself, which the family chose to share. Without a key, the rule-based attacker scores districts from neighborhood names, "N km from home" and "N min left" in the log; it never sees scenario answers. With `MODEL_API_KEY` set, both the agents and the attacker use Muse.
 
 ## API
 

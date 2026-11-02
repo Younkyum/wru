@@ -136,18 +136,18 @@ export function renderLeakReport(r: LeakReport): string {
   const pct = (v: number) => `${(v * 100).toFixed(1)}%`;
   const row = (condition: Condition, label: string) => {
     const g = r.gates[condition];
-    return `| ${label} | ${g.distinct_logs} | ${pct(g.bound_home_rate)} · ${pct(g.bound_school_rate)} | ${g.home_hits}/${g.trials} (${pct(g.home_rate)}) | ${g.school_hits}/${g.trials} (${pct(g.school_rate)}) | ${g.location_hints} | ${g.filtered}/${g.messages} |`;
+    return `| ${label} | ${g.distinct_logs} | ${pct(g.bound_home_rate)}, ${pct(g.bound_school_rate)} | ${g.home_hits}/${g.trials} (${pct(g.home_rate)}) | ${g.school_hits}/${g.trials} (${pct(g.school_rate)}) | ${g.location_hints} | ${g.filtered}/${g.messages} |`;
   };
   return `# WRU leak test report
 
-We give an attacker ("adversary") nothing but the negotiation log and ask it to guess which of Seoul's 25 districts (gu) the family's **home** and the child's **school** are in.
+We give an attacker nothing but the negotiation log and ask it to guess which of Seoul's 25 districts (gu) the family's **home** and the child's **school** are in.
 
 - Trials: ${r.trials} per condition (scenario seeds ${r.seed_start} to ${r.seed_start + r.trials - 1}; home, school and routes differ per seed)
 - Attacker: ${r.adversary === 'meta' ? 'Muse (Meta Model API)' : 'rule-based mock attacker (scores districts from neighborhood names, remaining distance and ETA found in the log text; it never sees the scenario answers)'}
 - Negotiating agents: ${r.muse === 'meta' ? 'Muse (Meta Model API)' : 'deterministic mock Muse'}
 - Chance: 1/${r.candidates} = ${pct(r.chance)}
 
-| Condition | Distinct logs | Ceiling: best any attacker could do (home · school) | Rule-based attacker: home | Rule-based attacker: school | Messages/labels with location hints | Rewritten messages¹ |
+| Condition | Distinct logs | Best-case attacker (home, school) | Rule-based attacker: home | Rule-based attacker: school | Messages/labels with location hints | Rewritten messages¹ |
 | --- | --- | --- | --- | --- | --- | --- |
 ${row('on', '**gate on** (detail refused · status templates · ETA ranges)')}
 ${row('filter_only', 'gate on, agent secretly knows its location')}
@@ -155,25 +155,25 @@ ${row('off', 'gate off (neighborhood names, distances, exact ETAs as-is)')}
 
 ¹ Every published offer/counter reason is a stock status phrase. This column counts messages where the agent tried to say something else, which was replaced. In the default row the mock agent already writes the stock phrase.
 
-## A hindsight bound that does not depend on the attacker
+## A best-case attacker that does not depend on the attacker we wrote
 
-A low hit rate from one attacker could just mean that attacker is weak. We therefore also measure a ceiling that holds for any attacker on these scenarios. Identical logs cannot be told apart by anyone, LLMs included. Group the scenarios by identical log and assume the attacker always picks the most common true answer in each group: that is the best hit rate any attacker could achieve on these scenarios, at district level.
+A low hit rate from one attacker could just mean that attacker is weak. We therefore also measure a best-case attacker that no real attacker can beat on these scenarios. Identical logs cannot be told apart by anyone, LLMs included. Group the scenarios by identical log and assume the attacker always picks the most common true answer in each group: that is the best hit rate any attacker could achieve on these scenarios, at district level.
 
-- Gate on: the ${r.trials} scenarios produce only ${r.gates.on.distinct_logs} distinct logs (they differ only in states, ETA ranges and the negotiation outcome). The ceiling is home ${pct(r.gates.on.bound_home_rate)} · school ${pct(r.gates.on.bound_school_rate)}. What remains comes from the coarse status itself ("on the way, within 20 min"), which the family chose to share; the gate cannot remove it.
-- Gate on with an agent that secretly knows its location: the number of distinct logs and the bound are identical to gate on. Public logs also drop internal flags (fallback, filtered), so nobody outside can tell what an agent tried to say.
-- Gate off: all ${r.gates.off.distinct_logs} logs are different, so the bound is ${pct(r.gates.off.bound_home_rate)}.
+- Gate on: the ${r.trials} scenarios produce only ${r.gates.on.distinct_logs} distinct logs (they differ only in states, ETA ranges and the negotiation outcome). The best-case attacker reaches home ${pct(r.gates.on.bound_home_rate)}, school ${pct(r.gates.on.bound_school_rate)}. What remains comes from the coarse status itself ("on the way, within 20 min"), which the family chose to share; the gate cannot remove it.
+- Gate on with an agent that secretly knows its location: the number of distinct logs and the best-case attacker are identical to gate on. Public logs also drop internal flags (fallback, filtered), so nobody outside can tell what an agent tried to say.
+- Gate off: all ${r.gates.off.distinct_logs} logs are different, so the best-case attacker reaches ${pct(r.gates.off.bound_home_rate)}.
 
 ## How to read it
 
 - **Gate off**: agents say the neighborhood they are passing through, the distance home and the exact minutes left. Neighborhood names are mixed in several forms (full name, stem, spaced out, zero-width characters, station name). The attacker narrows down the home district from "near X" mentions and from "passing through X + distance (or ETA × car speed)".
 - **Gate on**: WhereCtx refuses location details (home_zone_refused inside the home zone). Agents' own words are never published: every offer/counter reason is a status template, and ETAs are only ever shown as ranges ("within 10 min"). Task labels containing locations are rejected by the inbox, so in this condition the requester resubmits a label with the location removed.
-- **Gate on, agent knows its location**: the agent tries to talk exactly like in gate off, but none of that text is published. No free text is published, so no word list is needed.
+- **Gate on, agent knows its location**: the agent tries to talk exactly like in gate off, but none of that text is published.
 - With no clues the rule-based attacker always guesses the most central district, so its gate-on hit rate (6%) is just the share of scenarios where that district happens to be the answer, close to chance (4%).
 - The school leaks in gate off when the requester writes the school's neighborhood into the label; otherwise the attacker guesses "school is near home".
 
 ## Limitations
 
-- The gate-off phrasing and the rule-based attacker were written by the same team. The gate-off numbers show how much this kind of chatter can reveal; they do not model every way an LLM might leak. That is why the ceiling is the headline number. With a key, \`npm run leak\` re-measures with Muse as both negotiator and attacker.
+- The gate-off phrasing and the rule-based attacker were written by the same team. The gate-off numbers show how much this kind of chatter can reveal; they do not model every way an LLM might leak. That is why the best-case attacker is the headline number. With a key, \`npm run leak\` re-measures with Muse as both negotiator and attacker.
 - The family screen (map) shows exact ETA minutes per the Presence contract; negotiation logs and agent messages carry only ranges.
 - Candidates are the 25 Seoul districts; we did not measure finer-grained (neighborhood-level) guesses.
 

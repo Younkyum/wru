@@ -555,7 +555,7 @@ function VideoScene({ scene }: { scene: VideoOverlay['scene'] & string }) {
 }
 
 const CONDITION_LABEL: Record<Condition, { title: string; desc: string }> = {
-  off: { title: 'Privacy gate off', desc: 'Agents say neighborhood, distance and exact ETA as-is' },
+  off: { title: 'Privacy gate off', desc: 'Naive agent chat: neighborhood, distance and exact ETA as-is' },
   filter_only: { title: 'Gate on · agent secretly knows', desc: 'Exact location given to the agent; the log stays the same' },
   on: { title: 'Privacy gate on (default)', desc: 'Detail refused · status templates · ETA ranges' },
 };
@@ -603,7 +603,7 @@ function LeakCard({ k, report }: { k: Condition; report: LeakReport }) {
         {g.trials} scenarios → <b>{g.distinct_logs}</b> distinct logs
       </div>
       <div className={`bound-big${hlBound}`}>
-        <div className="bound-label">Best possible guess <span>(with hindsight)</span></div>
+        <div className="bound-label">Best-case attacker <span>(knows every answer)</span></div>
         <div className="bound-nums">
           <span>
             home <b>{pct(g.bound_home_rate)}</b>
@@ -642,7 +642,7 @@ function LeakPanel({ report, conditions, onShowReport }: LeakPanelProps) {
             ))}
           </div>
           <p className="leak-note">
-            Perfect hindsight: group identical logs and pick the right answer, so no attacker (LLMs included) can do better · bar tick = chance {pct(report.chance)}
+            Best-case attacker: group identical logs and pick the right answer, so no attacker (LLMs included) can do better. Bar tick: chance, {pct(report.chance)}
           </p>
         </>
       )}

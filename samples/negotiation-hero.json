@@ -81,7 +81,7 @@
         "subtask_id": "pickup",
         "alternative": "milk",
         "fit": "low",
-        "reason": "Someone fits better, so I'll switch. I can pop out from home",
+        "reason": "Someone fits better, so I'll switch. I can run out from home",
         "id": 4,
         "round": 2,
         "at": "2026-10-26T17:30:00+09:00",

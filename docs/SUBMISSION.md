@@ -4,7 +4,7 @@ Meta Global AI Developer Hackathon (2026-10-26 to 11-04)
 
 ## Problem
 
-To decide "who's picking up the kid?", a family has to know where everyone is right now. Many families turn on always-on location sharing. The only thing they actually needed was one answer: who can make it in time.
+To decide "who's picking up the kid?", a family has to know where everyone is right now. Many families turn on always-on location sharing. All they need to know is who can make it in time.
 
 ## Solution
 
@@ -24,7 +24,7 @@ WRU assigns roles without any person, agent or log seeing coordinates.
 | refuse | from, subtask_id, reason_code | I can't (busy_in_transit, deadline_unreachable, …; templates only) |
 
 - Each agent sends the model only its own state, an ETA range, minutes to the deadline and the messages so far. The model answers with one JSON object (`response_format: json_object`) that says which subtask to go for, how good a fit, and which message type.
-- **WRU validates every move the model makes.** It checks the token, validates the schema, publishes every reason as a status template, and decides which commits stand. A commit stands only if the agent's claim has gone a full round unbeaten, and only within capacity (one task per person). Anything still open after the maximum rounds is unassigned.
+- WRU checks every model reply. It checks the token, validates the schema, publishes every reason as a status template, and decides which commits stand. A commit stands only if the agent's claim has gone a full round unbeaten, and only within capacity (one task per person). Anything still open after the maximum rounds is unassigned.
 - The outcome follows from status. At 17:30 Dad gets the pickup and Brother gets the milk; at 17:52 nobody can make the deadline and both stay unassigned.
 - With a real Meta Model API key, any output that fails schema validation or the location check falls back to the template decision for the same input.
 
@@ -43,14 +43,14 @@ WRU issues every family member an agent token. The server stores only SHA-256 ha
 
 We give an attacker only the negotiation log and ask which of Seoul's 25 districts the family's home and the child's school are in. There are 50 seeded scenarios, with different homes, schools and routes.
 
-| Condition | Distinct logs | Hindsight bound (home · school) | Rule-based attacker (home · school) |
+| Condition | Distinct logs | Best-case attacker (home, school) | Rule-based attacker (home, school) |
 | --- | --- | --- | --- |
-| Gate off (neighborhood, distance, exact ETA as-is) | 50 | **100% · 100%** | 98% · 72% |
-| Gate on, agent secretly knows its location | 5 | 22% · 24% | 6% · 0% |
-| Gate on (WRU default) | 5 | **22% · 24%** | 6% · 0% |
+| Gate off (neighborhood, distance, exact ETA as-is) | 50 | **100%, 100%** | 98%, 72% |
+| Gate on, agent secretly knows its location | 5 | 22%, 24% | 6%, 0% |
+| Gate on (WRU default) | 5 | **22%, 24%** | 6%, 0% |
 | Chance (1/25) | | 4% | 4% |
 
-The hindsight bound groups identical logs and picks the right answer in hindsight, so no attacker can beat it on our 50 scenarios at district level. With the gate on, 50 different families produce only 5 distinct logs. The remaining 22% comes from the coarse status itself ("on the way, within 20 min"). The family chose to share that status, and no gate can remove it. Internal flags (fallback, filtered) are stripped from public logs, so an agent that secretly knows its location produces exactly the same logs as one that does not.
+The best-case attacker groups identical logs and picks the right answer in hindsight, so no attacker can beat it on our 50 scenarios at district level. With the gate on, 50 different families produce only 5 distinct logs. The remaining 22% comes from the coarse status itself ("on the way, within 20 min"). The family chose to share that status, and no gate can remove it. Internal flags (fallback, filtered) are stripped from public logs, so an agent that secretly knows its location produces exactly the same logs as one that does not.
 
 Quality-gate tests check API responses, the event log, every demo render, samples, the leak report and the docs for coordinate keys, decimal coordinates, street addresses, school names and Seoul place names: zero hits. The full suite has over 130 tests.
 
@@ -62,7 +62,7 @@ Quality-gate tests check API responses, the event log, every demo render, sample
 ## Limitations
 
 - No Meta Model API key was available before the deadline, so the demo runs on a deterministic mock Muse with the same JSON schema. The real client path is tested with a fake fetch, and the model id is set with `MUSE_MODEL`.
-- The rule-based attacker and the gate-off phrasing were written by the same team, which is why the hindsight bound is the headline number. With a key, `npm run leak` re-measures with Muse as both agent and attacker.
+- The rule-based attacker and the gate-off phrasing were written by the same team, which is why the best-case attacker is the headline number. With a key, `npm run leak` re-measures with Muse as both agent and attacker.
 - The real WhereCtx integration was verified against a locally run WhereCtx; the video uses the simulator.
 - The family screen shows exact ETA minutes per the Presence contract; negotiation logs carry only ranges.
 - Task labels are free text. Shop names outside the word lists can get through, and some everyday words are rejected by mistake.
