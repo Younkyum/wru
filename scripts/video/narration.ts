@@ -75,14 +75,14 @@ export const SEGMENTS: Segment[] = [
     id: 'negotiation',
     chapter: 'Three Muses negotiate',
     title: '3. Three Muses negotiate',
-    screen: 'Phones + Muse channel; messages appear round by round in step with the narration',
+    screen: 'Phones + Muse channel; a recorded live Muse Spark run (samples/negotiation-hero-muse.json) appears message by message in step with the narration',
     rubric: 'Use of Meta AI Tooling · Demo',
     lines: [
-      L("Mom hands it to the family's agents. Each agent is called a Muse, and it's built to run on Meta's Muse Spark model.", { click: 'negotiate', reveal: 0 }),
-      L('In round one, all three offer to do the pickup.', { reveal: 3 }),
-      L("Each Muse judges only from its own status. Dad is already out and heading home, so the pickup fits him best.", { reveal: 3, hl: 'dad' }),
-      L('Mom and Brother switch their offers to the milk.', { reveal: 6 }),
-      L('Brother is near home and can drop by the store, so Mom steps back.', { reveal: 8, hl: 'mom+sibling' }),
+      L("Mom hands it to the family's agents. Each one is a Muse running on Meta's Muse Spark, and this is a real run.", { click: 'negotiate', reveal: 0 }),
+      L('Each Muse reads only its own status, through a tool call.', { reveal: 1 }),
+      L("Dad is already out and heading home, so he offers the pickup.", { reveal: 2, hl: 'dad' }),
+      L('Mom and Brother both offer the milk.', { reveal: 3, hl: 'mom+sibling' }),
+      L('Brother is near home, a better fit, so Mom steps back. Dad and Brother commit.', { reveal: 6, hl: 'sibling' }),
     ],
   },
   {
@@ -100,13 +100,13 @@ export const SEGMENTS: Segment[] = [
     id: 'muse',
     chapter: 'What the model sees',
     title: '5. What the model sees',
-    screen: 'Phones fade; the panel shows the Meta Model API request body (JSON) → response JSON, "The model decides / WRU enforces", a real filter rewrite',
+    screen: 'Phones fade; the panel shows the request body (no status), the tool calls with Dad\'s token (own 200, Mom 403), the response JSON, "The model decides / WRU enforces", a real filter rewrite',
     rubric: 'Use of Meta AI Tooling · Technical Depth',
     camera: 'panel',
     lines: [
-      L("Here is what Dad's Muse sends the model: its own status, an ETA range, minutes to the deadline, and the messages so far.", { click: 'tab-model', hl: 'request', after: 'museShow' }),
+      L("Here is what Dad's Muse sends the model: no status at all, just the deadline and the messages so far.", { click: 'tab-model', hl: 'request', after: 'museShow' }),
+      L("It calls get presence with Dad's own token. Asking for Mom's status returns 403.", { hl: 'tools' }),
       L('The model replies with one JSON object: which task, and how good a fit.', { hl: 'response' }),
-      L('In this recording, a mock that returns the same JSON format stands in for Muse Spark.', { hl: 'response' }),
       L('WRU checks that the reply is valid and comes from the right agent.', { hl: 'split' }),
       L('If the model slips a location into its reason, WRU swaps it for a fixed template before logging.', { hl: 'rewrite' }),
     ],
@@ -128,18 +128,17 @@ export const SEGMENTS: Segment[] = [
     id: 'leak',
     chapter: 'Can the log reveal home?',
     title: '7. Can the log reveal home?',
-    screen: 'Three cards in order: gate off (50 logs, home 98% · school 72%) → gate on (5 logs, ceiling 22% · 24%, rule-based attacker 6% · 0%, chance 4%) → agent knows its location (same 5 logs)',
+    screen: 'Real Muse Spark run, Muse attacker. Three cards in order: gate off (50 logs, home 100% · school 70%) → gate on (9 logs, ceiling 28% · 32%, Muse attacker 4% · 4%, chance 4%) → agent knows its location (10 logs, ceiling 32% · 34%)',
     rubric: 'Technical Depth',
     camera: 'panel',
     lines: [
-      L("Could these logs reveal where the family lives? We simulated fifty families across Seoul's twenty-five districts.", { click: 'tab-leak' }),
+      L("Could these logs reveal where the family lives? We ran fifty families across Seoul's twenty-five districts, with Muse as both the agents and the attacker.", { click: 'tab-leak' }),
       L("The privacy gate lets through only status and a rough ETA. Without it, agents chat freely and every family's log is unique.", { hl: 'card-off' }),
-      L('A rule-based attacker then finds the home district 98 percent of the time.', { hl: 'off-actual' }),
-      L('With the gate on, those fifty families produce just five different logs.', { hl: 'on-logs' }),
-      L("Families that share a log look identical, so even the best-case attacker gets the home district right only 22 percent of the time.", { hl: 'on-bound' }),
-      L('Our rule-based attacker got 6 percent, and random guessing gets 4 percent.', { hl: 'on-actual' }),
-      L('Status alone is what gives away that 22 percent.', { hl: 'on-bound' }),
-      L('Even an agent that knows its exact location produces the same logs.', { hl: 'card-filter_only' }),
+      L('The Muse attacker then finds the home district 100 percent of the time.', { hl: 'off-actual' }),
+      L('With the gate on, those fifty families produce just nine different logs.', { hl: 'on-logs' }),
+      L("Families that share a log look identical, so even the best-case attacker gets the home district right only 28 percent of the time.", { hl: 'on-bound' }),
+      L('The Muse attacker got 4 percent, the same as random guessing.', { hl: 'on-actual' }),
+      L("An agent that knows its exact location never gets it into the log, though its choices nudge the ceiling to 32 percent.", { hl: 'card-filter_only' }),
     ],
   },
   {
@@ -157,11 +156,11 @@ export const SEGMENTS: Segment[] = [
   {
     id: 'outro',
     title: 'Closing card',
-    screen: 'Dark card: five-line summary + mock disclosure',
+    screen: 'Dark card: five-line summary + how the run was made',
     rubric: 'Use of Meta AI Tooling · Impact',
     scene: 'outro',
     lines: [
-      L('Add a Meta Model API key, and the same code calls Muse Spark.'),
+      L('WRU runs on Muse Spark through the Meta Model API.'),
     ],
     hold: 0.8,
   },
@@ -185,5 +184,6 @@ export function captionText(line: string): string {
     .replace('fifteen-minute', '15-minute')
     .replace('fifteen real requests', '15 real requests')
     .replace('five different logs', '5 different logs')
+    .replace('nine different logs', '9 different logs')
     .replace('read-only', 'read\u2011only');
 }

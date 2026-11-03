@@ -16,6 +16,7 @@ import { renderScriptDoc } from './script-doc.js';
 const OUT = resolve('video-out');
 const TMP = join(OUT, 'tmp');
 const PORT = Number(process.env.WRU_VIDEO_PORT ?? 8790);
+const HERO_REPLAY = 'samples/negotiation-hero-muse.json';
 const VOICE = process.env.WRU_VIDEO_VOICE ?? 'Samantha';
 const RATE = process.env.WRU_VIDEO_RATE ?? '182';
 const MAX_SECONDS = 180;
@@ -80,7 +81,9 @@ async function main() {
   console.log('2/4 앱 빌드 · 서버 시작');
   execFileSync('npx', ['vite', 'build', '--logLevel', 'error'], { stdio: 'inherit' });
   const server = spawn('npx', ['tsx', 'src/server/index.ts'], {
-    env: { ...process.env, NODE_ENV: 'production', WRU_API_PORT: String(PORT), WRU_FAMILY_CONFIG: '' , MODEL_API_KEY: '' },
+    env: { ...process.env, NODE_ENV: 'production', WRU_API_PORT: String(PORT), WRU_FAMILY_CONFIG: '' , MODEL_API_KEY: '',
+      // 협상 컷은 실제 Muse 실행 기록을 재생한다 (npm run muse:hero로 만든 파일이 있을 때)
+      WRU_NEGOTIATION_REPLAY: existsSync(HERO_REPLAY) ? HERO_REPLAY : '' },
     stdio: 'ignore',
   });
   try {

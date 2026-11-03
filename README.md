@@ -27,7 +27,7 @@ Open `/demo` and press **▶ Demo mode**. It resets, then each **Next ▶** move
 4. **What the model sees**: the exact Meta Model API request body one agent sends, the JSON it gets back, and what WRU checks.
 5. **Only roles come out**: Mom approves once; Dad's phone says pickup, Brother's says milk.
 6. **Nobody can peek**: a 5×3 matrix of real requests. Each agent token reads only its owner (200); someone else's gets 403; no token or a forged one gets 401.
-7. **Can the log reveal home?**: Without the privacy gate, all 50 logs differ and a rule-based attacker finds the home district 98% of the time (school 72%). With the gate on, 50 families produce only 5 distinct logs, so even the best-case attacker is right only 22% of the time (school 24%); our rule-based attacker got 6%, against 4% chance. That ceiling comes from the status itself. An agent that knows its exact location produces the same logs.
+7. **Can the log reveal home?** (real Muse Spark run, Muse as the attacker): Without the privacy gate, all 50 logs differ and the Muse attacker finds the home district 100% of the time (school 70%). With the gate on, 50 families produce only 9 distinct logs, so even the best-case attacker is right only 28% of the time (school 32%). The Muse attacker got 4%, the same as chance. An agent that secretly knows its exact location never gets that text into the log, but its choices still shift a little (10 logs, 32% ceiling).
 
 ## Run it
 
@@ -189,14 +189,14 @@ The family screen shows exact ETA minutes per the Presence contract; negotiation
 
 `npm run leak` builds 50 seeded scenarios with different homes, schools and routes, gives an attacker only the negotiation log, and asks which of Seoul's 25 districts the home and school are in. Results are in [leak-report.md](leak-report.md) and the demo's leak panel.
 
-| Condition | Distinct logs | Best-case attacker (home, school) | Rule-based attacker (home, school) |
+| Condition | Distinct logs | Best-case attacker (home, school) | Muse attacker (home, school) |
 | --- | --- | --- | --- |
-| Gate off (neighborhood, distance, exact ETA as-is) | 50 | 100%, 100% | 98%, 72% |
-| Gate on, agent secretly knows its location | 5 | 22%, 24% | 6%, 0% |
-| Gate on (WRU default) | 5 | 22%, 24% | 6%, 0% |
+| Gate off (neighborhood, distance, exact ETA as-is) | 50 | 100%, 100% | 100%, 70% |
+| Gate on, agent secretly knows its location | 10 | 32%, 34% | 6%, 10% |
+| Gate on (WRU default) | 9 | 28%, 32% | 4%, 4% |
 | Chance (1/25) | | 4% | 4% |
 
-The best-case attacker groups identical logs and picks the right answer in hindsight, so no attacker can beat it on these scenarios at district level. The 22% that remains comes from the coarse status itself, which the family chose to share. Without a key, the rule-based attacker scores districts from neighborhood names, "N km from home" and "N min left" in the log; it never sees scenario answers. With `MODEL_API_KEY` set, both the agents and the attacker use Muse.
+These are numbers from a real run. Muse Spark (`muse-spark-1.3`, Meta Model API) played every negotiating agent in all 150 scenario runs and also played the attacker, which had to name a district through a `json_schema` enum: 1,530 calls, about $6. The best-case attacker groups identical logs and picks the right answer in hindsight, so no attacker can beat it on these scenarios at district level. With the gate on, what remains comes mostly from the coarse status the family chose to share. Real Muse also varies its choices (which subtask, fit, refusals) more than the mock did, so there are 9 distinct logs instead of the mock's 5, and a 28% ceiling instead of 22%. When the agent secretly knows its location, none of that text is published, but its choices can still change with what it knows: 10 logs and a 32% ceiling. Real Muse is not deterministic, and with 50 scenarios a few points are within noise. The deterministic mock run is kept in `samples/leak-report-mock.json`: 5 logs, a 22% ceiling, and a rule-based attacker at 6%.
 
 ## API
 
@@ -224,7 +224,7 @@ No coordinates, exact addresses or school names appear in API responses, logs or
 
 ## Limitations
 
-- The demo video and the leak numbers above come from the deterministic mock Muse. The real path uses `muse-spark-1.3` on Chat Completions with tool calling and a strict `json_schema`. It is covered by fake-fetch tests and passed a live `npm run muse:smoke`: tool call 200, cross-member read 403, and the hero negotiation ended Dad = pickup, Brother = milk with no fallbacks. `npm run muse:real` reruns the leak test on real Muse ([docs/REAL_MUSE.md](docs/REAL_MUSE.md)). Sources: [models](https://dev.meta.ai/docs/models), [tool calling](https://dev.meta.ai/docs/tool-calling), [structured output](https://dev.meta.ai/docs/structured-output), [pricing](https://dev.meta.ai/docs/pricing-rate-limits).
+- The leak numbers above are a real Muse Spark run. The video replays one recorded live hero negotiation (`npm run muse:hero` → `samples/negotiation-hero-muse.json`), because a live negotiation takes 30 to 40 seconds and its wording changes on every run. Other demo scenes use the deterministic mock when no key is set. The real path uses `muse-spark-1.3` on Chat Completions with tool calling and a strict `json_schema`. It is covered by fake-fetch tests and passed a live `npm run muse:smoke`: tool call 200, cross-member read 403, and the hero negotiation ended Dad = pickup, Brother = milk with no fallbacks. `npm run muse:real` reruns the whole sequence ([docs/REAL_MUSE.md](docs/REAL_MUSE.md)). Sources: [models](https://dev.meta.ai/docs/models), [tool calling](https://dev.meta.ai/docs/tool-calling), [structured output](https://dev.meta.ai/docs/structured-output), [pricing](https://dev.meta.ai/docs/pricing-rate-limits).
 - The real WhereCtx integration was verified against a locally run WhereCtx; the demo video uses the simulator. With no maps key on that WhereCtx, ETA comes back empty (null).
-- Leak numbers use a rule-based attacker plus an attacker-independent ceiling; see [leak-report.md](leak-report.md).
+- Leak numbers come from one real Muse run, with Muse as the attacker, plus an attacker-independent ceiling. A rerun moves them by a few points; see [leak-report.md](leak-report.md).
 - State is in memory. Accounts and push notifications are out of scope.

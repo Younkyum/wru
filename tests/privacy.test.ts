@@ -261,11 +261,19 @@ describe('누수 실험', () => {
     expect(r.gates.off.school_rate).toBeGreaterThanOrEqual(0.5);
   });
 
-  it('커밋된 리포트(samples/leak-report.json, leak-report.md)는 지금 실행 결과와 같다', async () => {
+  it('mock 리포트(samples/leak-report-mock.json)는 지금 mock 실행 결과와 같다', async () => {
+    const committed = JSON.parse(readFileSync('samples/leak-report-mock.json', 'utf8'));
+    expect(committed).toEqual(await runLeakExperiment({ trials: committed.trials, muse: new MockMuse() }));
+  });
+
+  it('제출 리포트(samples/leak-report.json)는 실제 Muse 실행이고, leak-report.md는 그 JSON을 그대로 그린 것이다', () => {
     const committed = JSON.parse(readFileSync('samples/leak-report.json', 'utf8'));
-    const fresh = await runLeakExperiment({ trials: committed.trials, muse: new MockMuse() });
-    expect(committed).toEqual(fresh);
-    expect(readFileSync('leak-report.md', 'utf8')).toBe(renderLeakReport(fresh));
+    expect(committed).toMatchObject({ muse: 'meta', adversary: 'meta', trials: 50 });
+    expect(readFileSync('leak-report.md', 'utf8')).toBe(renderLeakReport(committed));
+    for (const g of Object.values(committed.gates) as any[]) {
+      expect(g.bound_home_rate).toBeGreaterThanOrEqual(g.home_rate);
+      expect(g.bound_school_rate).toBeGreaterThanOrEqual(g.school_rate);
+    }
   });
 });
 

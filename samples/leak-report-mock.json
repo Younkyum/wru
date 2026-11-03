@@ -1,0 +1,49 @@
+{
+  "trials": 50,
+  "seed_start": 1,
+  "candidates": 25,
+  "chance": 0.04,
+  "adversary": "mock",
+  "muse": "mock",
+  "gates": {
+    "on": {
+      "trials": 50,
+      "home_hits": 3,
+      "school_hits": 0,
+      "home_rate": 0.06,
+      "school_rate": 0,
+      "location_hints": 0,
+      "messages": 386,
+      "filtered": 0,
+      "distinct_logs": 5,
+      "bound_home_rate": 0.22,
+      "bound_school_rate": 0.24
+    },
+    "filter_only": {
+      "trials": 50,
+      "home_hits": 3,
+      "school_hits": 0,
+      "home_rate": 0.06,
+      "school_rate": 0,
+      "location_hints": 0,
+      "messages": 386,
+      "filtered": 236,
+      "distinct_logs": 5,
+      "bound_home_rate": 0.22,
+      "bound_school_rate": 0.24
+    },
+    "off": {
+      "trials": 50,
+      "home_hits": 49,
+      "school_hits": 36,
+      "home_rate": 0.98,
+      "school_rate": 0.72,
+      "location_hints": 244,
+      "messages": 386,
+      "filtered": 0,
+      "distinct_logs": 50,
+      "bound_home_rate": 1,
+      "bound_school_rate": 1
+    }
+  }
+}

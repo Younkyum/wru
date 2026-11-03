@@ -73,7 +73,11 @@ export const DEMO_STEPS: DemoStep[] = [
     conditions: ['off', 'on', 'filter_only'],
     caption: ({ report }) =>
       report
-        ? `With the privacy gate off, all ${report.gates.off.distinct_logs} logs differ and a simple attacker finds the home ${pct(report.gates.off.home_rate)} of the time. With it on, ${report.trials} families produce ${report.gates.on.distinct_logs} distinct logs: even with every answer known, ${pct(report.gates.on.bound_home_rate)} is the ceiling, which is what the status alone reveals. An agent that secretly knows its location produces the very same logs.`
+        ? `With the privacy gate off, all ${report.gates.off.distinct_logs} logs differ and ${report.adversary === 'meta' ? 'a Muse attacker' : 'a simple attacker'} finds the home ${pct(report.gates.off.home_rate)} of the time. With it on, ${report.trials} families produce ${report.gates.on.distinct_logs} distinct logs: even with every answer known, ${pct(report.gates.on.bound_home_rate)} is the ceiling. ${
+            report.gates.filter_only.distinct_logs === report.gates.on.distinct_logs
+              ? 'An agent that secretly knows its location produces the very same logs.'
+              : `An agent that secretly knows its location never gets that text into the log, though its choices still shift the ceiling to ${pct(report.gates.filter_only.bound_home_rate)}.`
+          }`
         : 'Loading the leak test…',
   },
 ];

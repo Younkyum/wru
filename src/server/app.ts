@@ -21,7 +21,7 @@ import { makeFamilyAgents } from './auth/gateway.js';
 import { randomBytes, timingSafeEqual } from 'node:crypto';
 import type { MuseClient } from './muse/client.js';
 import { createMuseClient } from './muse/factory.js';
-import { runNegotiation } from './negotiation/engine.js';
+import { runNegotiation, type NegotiationResult } from './negotiation/engine.js';
 import { publicMessages, type NegotiationRecord } from '../shared/negotiation.js';
 import type { LeakReport } from '../shared/leak-report.js';
 import { runLeakExperiment } from './privacy/experiment.js';
@@ -46,6 +46,11 @@ export interface AppOptions {
   /** 토큰 env (WRU_AGENT_TOKEN_*, family의 token_env, WRU_ADMIN_TOKEN) */
   env?: Record<string, string | undefined>;
   fetchImpl?: typeof fetch;
+  /**
+   * 영상 녹화용: 히어로 태스크 협상을 실제 Muse 실행 기록(npm run muse:hero)으로 재생한다.
+   * 실제 Muse는 한 번에 수십 초가 걸리고 실행마다 문장이 달라서, 한 번 돌린 결과를 그대로 보여 준다.
+   */
+  replay?: { model: string; result: NegotiationResult };
 }
 
 /** 시뮬레이터 시계 또는 실제 시계(실제 WhereCtx가 하나라도 붙으면) */
@@ -106,6 +111,7 @@ export function createApp(options: AppOptions = {}) {
   const log = new EventLog(now);
   const inbox = new TaskInbox((m) => clock.isoAt(m), now);
   const muse = options.muse ?? createMuseClient();
+  const museKind = options.replay ? 'meta' : muse.kind;
   let negotiations: NegotiationRecord[] = [];
 
   // 구성원마다 에이전트 하나와 에이전트 토큰 하나. 에이전트는 자기 토큰으로만 게이트웨이를 부를 수 있다.
@@ -119,7 +125,7 @@ export function createApp(options: AppOptions = {}) {
 
   const snapshot = async (): Promise<DemoState> => ({
     clock: { now: clock.now(), label: clock.label() },
-    muse: muse.kind,
+    muse: museKind,
     live,
     presence: await allPresence(),
     tasks: inbox.list(),
@@ -311,13 +317,13 @@ export function createApp(options: AppOptions = {}) {
     const view: MuseTurnView = {
       person_id: person,
       round: message.round,
-      model: env.MUSE_MODEL ?? DEFAULT_MODEL,
+      model: options.replay?.model ?? env.MUSE_MODEL ?? DEFAULT_MODEL,
       response_format: { type: ACTION_FORMAT.type },
       tools: TOOL_DEFS.map((t) => t.function.name),
       user,
       tool_exchange,
       action,
-      muse: muse.kind,
+      muse: record.muse,
       checks: ['JSON schema (type · subtask_id · fit)', 'coordinate / address / place-name check', 'reason rewritten to a status template', 'commits are judged by the engine'],
       rewrite: (() => {
         // 위치를 섞은 문장 예시 (동네 이름은 가림). 실제 필터 코드로 바꾼 결과를 보여 준다
@@ -339,11 +345,12 @@ export function createApp(options: AppOptions = {}) {
   app.post('/tasks/:id/negotiate', async (c) => {
     const task = inbox.get(c.req.param('id'));
     if (!task) return c.json({ error: 'task not found' }, 404);
-    const result = await runNegotiation({ task, agents, now: clock.now() });
+    const replay = options.replay && task.task_id === HERO_TASK.task_id ? options.replay.result : null;
+    const result = replay ?? (await runNegotiation({ task, agents, now: clock.now() }));
     const record: NegotiationRecord = {
       negotiation_id: `n_${String(negotiations.length + 1).padStart(3, '0')}`,
       task_id: task.task_id,
-      muse: muse.kind,
+      muse: replay ? 'meta' : muse.kind,
       ...result,
       messages: publicMessages(result.messages),
       status: 'awaiting_approval',

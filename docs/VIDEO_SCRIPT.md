@@ -1,4 +1,4 @@
-# Demo video script (about 2:56)
+# Demo video script (about 2:53)
 
 `npm run video` builds the draft video from this script and rewrites this document. It works in three steps:
 
@@ -13,13 +13,13 @@ The outputs are not committed. The narration source is `scripts/video/narration.
 | 0:00 | Opening card | Dark card: WRU · typical location sharing (pins on a map) vs WRU (status chips) | Impact |
 | 0:06 | 1. Status only | Three phones (Mom home · Dad on the way, 20 min · Brother near home) | Impact · Demo |
 | 0:28 | 2. A task comes in | WRU bar shows the task (requested by Mom); each phone gets a "Family task" note | Demo |
-| 0:36 | 3. Three Muses negotiate | Phones + Muse channel; messages appear round by round in step with the narration | Use of Meta AI Tooling · Demo |
-| 1:01 | 4. Only roles come out | WRU bar shows roles → Mom approves → each phone shows only its own role | Impact · Demo |
-| 1:09 | 5. What the model sees | Phones fade; the panel shows the Meta Model API request body (JSON) → response JSON, "The model decides / WRU enforces", a real filter rewrite | Use of Meta AI Tooling · Technical Depth |
-| 1:39 | 6. Nobody can peek | Token boundary matrix 5×3 (only the diagonal is 200), the 403 cell highlighted | Technical Depth |
-| 1:53 | 7. Can the log reveal home? | Three cards in order: gate off (50 logs, home 98% · school 72%) → gate on (5 logs, ceiling 22% · 24%, rule-based attacker 6% · 0%, chance 4%) → agent knows its location (same 5 logs) | Technical Depth |
-| 2:37 | Self-hosting | Terminal: cat .env shows a masked, read-only WhereCtx token for Mom; npm start prints the family (mom=location.example.com, dad=sim, sibling=sim) | Impact · Technical Depth |
-| 2:51 | Closing card | Dark card: five-line summary + mock disclosure | Use of Meta AI Tooling · Impact |
+| 0:36 | 3. Three Muses negotiate | Phones + Muse channel; a recorded live Muse Spark run (samples/negotiation-hero-muse.json) appears message by message in step with the narration | Use of Meta AI Tooling · Demo |
+| 0:58 | 4. Only roles come out | WRU bar shows roles → Mom approves → each phone shows only its own role | Impact · Demo |
+| 1:07 | 5. What the model sees | Phones fade; the panel shows the request body (no status), the tool calls with Dad's token (own 200, Mom 403), the response JSON, "The model decides / WRU enforces", a real filter rewrite | Use of Meta AI Tooling · Technical Depth |
+| 1:35 | 6. Nobody can peek | Token boundary matrix 5×3 (only the diagonal is 200), the 403 cell highlighted | Technical Depth |
+| 1:50 | 7. Can the log reveal home? | Real Muse Spark run, Muse attacker. Three cards in order: gate off (50 logs, home 100% · school 70%) → gate on (9 logs, ceiling 28% · 32%, Muse attacker 4% · 4%, chance 4%) → agent knows its location (10 logs, ceiling 32% · 34%) | Technical Depth |
+| 2:34 | Self-hosting | Terminal: cat .env shows a masked, read-only WhereCtx token for Mom; npm start prints the family (mom=location.example.com, dad=sim, sibling=sim) | Impact · Technical Depth |
+| 2:48 | Closing card | Dark card: five-line summary + how the run was made | Use of Meta AI Tooling · Impact |
 
 ## Narration
 
@@ -42,51 +42,50 @@ The outputs are not committed. The narration source is `scripts/video/narration.
 
 ### 0:36 3. Three Muses negotiate
 
-- Mom hands it to the family's agents. Each agent is called a Muse, and it's built to run on Meta's Muse Spark model.
-- In round one, all three offer to do the pickup.
-- Each Muse judges only from its own status. Dad is already out and heading home, so the pickup fits him best.
-- Mom and Brother switch their offers to the milk.
-- Brother is near home and can drop by the store, so Mom steps back.
+- Mom hands it to the family's agents. Each one is a Muse running on Meta's Muse Spark, and this is a real run.
+- Each Muse reads only its own status, through a tool call.
+- Dad is already out and heading home, so he offers the pickup.
+- Mom and Brother both offer the milk.
+- Brother is near home, a better fit, so Mom steps back. Dad and Brother commit.
 
-### 1:01 4. Only roles come out
+### 0:58 4. Only roles come out
 
 - The result is just who does what, and Mom approves it once.
 - Each phone gets only its own task: pickup for Dad, milk for Brother.
 
-### 1:09 5. What the model sees
+### 1:07 5. What the model sees
 
-- Here is what Dad's Muse sends the model: its own status, an ETA range, minutes to the deadline, and the messages so far.
+- Here is what Dad's Muse sends the model: no status at all, just the deadline and the messages so far.
+- It calls get presence with Dad's own token. Asking for Mom's status returns 403.
 - The model replies with one JSON object: which task, and how good a fit.
-- In this recording, a mock that returns the same JSON format stands in for Muse Spark.
 - WRU checks that the reply is valid and comes from the right agent.
 - If the model slips a location into its reason, WRU swaps it for a fixed template before logging.
 
-### 1:39 6. Nobody can peek
+### 1:35 6. Nobody can peek
 
 - Could one agent peek at another? Each one holds its own token.
 - We send fifteen real requests: five callers, each asking about all three people.
 - A request with Dad's token for Mom's status gets 403 Forbidden.
 
-### 1:53 7. Can the log reveal home?
+### 1:50 7. Can the log reveal home?
 
-- Could these logs reveal where the family lives? We simulated fifty families across Seoul's twenty-five districts.
+- Could these logs reveal where the family lives? We ran fifty families across Seoul's twenty-five districts, with Muse as both the agents and the attacker.
 - The privacy gate lets through only status and a rough ETA. Without it, agents chat freely and every family's log is unique.
-- A rule-based attacker then finds the home district 98 percent of the time.
-- With the gate on, those fifty families produce just five different logs.
-- Families that share a log look identical, so even the best-case attacker gets the home district right only 22 percent of the time.
-- Our rule-based attacker got 6 percent, and random guessing gets 4 percent.
-- Status alone is what gives away that 22 percent.
-- Even an agent that knows its exact location produces the same logs.
+- The Muse attacker then finds the home district 100 percent of the time.
+- With the gate on, those fifty families produce just nine different logs.
+- Families that share a log look identical, so even the best-case attacker gets the home district right only 28 percent of the time.
+- The Muse attacker got 4 percent, the same as random guessing.
+- An agent that knows its exact location never gets it into the log, though its choices nudge the ceiling to 32 percent.
 
-### 2:37 Self-hosting
+### 2:34 Self-hosting
 
 - Each member adds a read-only token from their own WhereCtx. In this config, Mom's is real and the others are simulated.
 - One command starts the family server.
 - Exact locations never leave each person's own server.
 
-### 2:51 Closing card
+### 2:48 Closing card
 
-- Add a Meta Model API key, and the same code calls Muse Spark.
+- WRU runs on Muse Spark through the Meta Model API.
 
 ## Re-recording
 
