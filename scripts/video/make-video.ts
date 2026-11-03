@@ -4,7 +4,7 @@
 // 3) ffmpeg로 화면 + 내레이션을 합쳐 video-out/wru-demo.mp4, 자막 video-out/wru-demo.srt를 만든다
 // 결과물은 git에 넣지 않는다 (.gitignore: video-out/)
 
-import { execFileSync, spawn } from 'node:child_process';
+import { execFileSync, spawn, spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import ffmpegInstaller from '@ffmpeg-installer/ffmpeg';
@@ -46,12 +46,50 @@ function spoken(line: string): string {
   return line.replace(/WhereCtx/g, 'Where Context').replace(/\bWRU\b/g, 'W R U').replace(/\u2011/g, '-');
 }
 
-// 직접 녹음한 파일은 앞뒤 무음을 자르고, 문장 안의 긴 쉼을 0.2초로 줄이고, 음량을 맞춘다.
-// 사람이 읽으면 TTS보다 길어서 3분을 넘기 쉽다: WRU_VOICE_TEMPO(예: 1.2)로 말 속도만 올린다 (음높이는 그대로).
-const TRIM = 'silenceremove=start_periods=1:start_threshold=-45dB:start_silence=0.05';
-const PAUSES = 'silenceremove=stop_periods=-1:stop_threshold=-40dB:stop_duration=0.3:stop_silence=0.2';
+// 직접 녹음한 파일 다듬기. 처음에는 loudnorm(동적)과 silenceremove로 쉼을 잘랐는데, 잡음이 커지고
+// 자른 자리마다 파형이 끊겨 '찌직' 소리가 났다. 그래서:
+// 1) 잡음 제거 + 앞뒤 무음 자르기 + 페이드  2) 문장 안의 긴 쉼은 무음 구간 안에서만 자르고 조각마다 짧은 페이드
+// 3) 말 속도(WRU_VOICE_TEMPO, 음높이 유지)  4) 모든 문장을 같은 음량(-18 LUFS)으로 고정 이득 + 리미터
+const TRIM = 'silenceremove=start_periods=1:start_threshold=-50dB:start_silence=0.08';
+const FADE = 'afade=t=in:d=0.03';
+const CLEAN = `highpass=f=80,lowpass=f=12000,afftdn=nf=-30,${TRIM},areverse,${TRIM},${FADE},areverse,${FADE}`;
 const TEMPO = Number(process.env.WRU_VOICE_TEMPO ?? 1);
-const OWN_VOICE_FILTER = [TRIM, 'areverse', TRIM, 'areverse', PAUSES, ...(TEMPO !== 1 ? [`atempo=${TEMPO}`] : []), 'loudnorm=I=-16:TP=-1.5:LRA=11'].join(',');
+const PAUSE_KEEP = 0.1; // 긴 쉼의 앞뒤에 남기는 길이 (합쳐 0.2초)
+const TARGET_LUFS = -18;
+
+function ownVoice(rec: string, wav: string) {
+  const clean = `${wav}.clean.wav`;
+  execFileSync(ffmpeg, ['-y', '-loglevel', 'error', '-i', rec, '-af', CLEAN, '-ar', '48000', '-ac', '1', clean]);
+  // 0.3초 넘는 쉼을 찾아 그 안쪽만 잘라낸다
+  const det = spawnLog(['-i', clean, '-af', 'silencedetect=n=-45dB:d=0.3', '-f', 'null', '-']);
+  const starts = [...det.matchAll(/silence_start: ([\d.]+)/g)].map((m) => Number(m[1]));
+  const ends = [...det.matchAll(/silence_end: ([\d.]+)/g)].map((m) => Number(m[1]));
+  const len = duration(clean);
+  const keep: [number, number][] = [];
+  let from = 0;
+  starts.forEach((s, i) => {
+    const e = ends[i] ?? len;
+    keep.push([from, s + PAUSE_KEEP]);
+    from = e - PAUSE_KEEP;
+  });
+  keep.push([from, len]);
+  const f = 0.015;
+  const pieces = keep.filter(([a, b]) => b - a > 2 * f);
+  const chain = pieces.map(([a, b], i) => `[0:a]atrim=${a.toFixed(3)}:${b.toFixed(3)},asetpts=PTS-STARTPTS,afade=t=in:d=${f},afade=t=out:st=${(b - a - f).toFixed(3)}:d=${f}[p${i}]`);
+  const tempo = TEMPO !== 1 ? `,atempo=${TEMPO}` : '';
+  const shaped = `${wav}.shaped.wav`;
+  execFileSync(ffmpeg, ['-y', '-loglevel', 'error', '-i', clean, '-filter_complex',
+    [...chain, `${pieces.map((_, i) => `[p${i}]`).join('')}concat=n=${pieces.length}:v=0:a=1${tempo}[out]`].join(';'),
+    '-map', '[out]', shaped]);
+  const measured = Number(/"input_i" : "(-?[\d.]+)"/.exec(spawnLog(['-i', shaped, '-af', 'loudnorm=print_format=json', '-f', 'null', '-']))![1]);
+  execFileSync(ffmpeg, ['-y', '-loglevel', 'error', '-i', shaped, '-af', `volume=${(TARGET_LUFS - measured).toFixed(2)}dB,alimiter=limit=0.84:level=false`, '-ar', '48000', '-ac', '1', wav]);
+}
+
+/** ffmpeg 분석 필터의 로그(stderr)를 받는다 */
+function spawnLog(args: string[]): string {
+  const r = spawnSync(ffmpeg, args, { encoding: 'utf8' });
+  return r.stderr;
+}
 
 /**
  * 문장마다 따로 녹음해서 길이를 안다 (자막을 문장 단위로 맞추기 위해).
@@ -66,7 +104,7 @@ function narrate() {
       const rec = recordingFor(seg.id, i);
       if (rec) {
         own += 1;
-        execFileSync(ffmpeg, ['-y', '-loglevel', 'error', '-i', rec, '-af', OWN_VOICE_FILTER, '-ar', '48000', '-ac', '1', wav]);
+        ownVoice(rec, wav);
       } else {
         const aiff = join(TMP, `${seg.id}-${i}.aiff`);
         execFileSync('say', ['-v', VOICE, '-r', RATE, '-o', aiff, spoken(line)]);
