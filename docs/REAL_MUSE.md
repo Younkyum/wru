@@ -69,7 +69,7 @@ The video does not call Muse live, because one real negotiation takes 30 to 40 s
 
 - **Smoke:** passed. Tool call 200; Mom's status with Dad's token returned 403; the hero negotiation came out Dad = pickup, Brother = milk with 0 fallbacks.
 - **Hero recording:** 12 calls, 6 tool calls, 0 fallbacks.
-- **Leak test:** 1,530 calls, 1.64M input and 0.93M output tokens, about $6.00.
+- **Leak test:** 1,530 calls, 1,635,623 input and 929,605 output tokens, about $6.00.
 
 | Condition | Distinct logs | Best-case attacker (home, school) | Muse attacker (home, school) |
 | --- | --- | --- | --- |
