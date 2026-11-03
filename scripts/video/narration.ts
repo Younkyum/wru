@@ -54,7 +54,7 @@ export const SEGMENTS: Segment[] = [
     rubric: 'Impact · Demo',
     lines: [
       L('WRU, short for "where are you", lets each person\'s AI agent split the errands without sharing coordinates.'),
-      L('Each person runs WhereCtx, their own small location server. WRU gets only a coarse status from it, like home, near home or on the way, plus a rough ETA.'),
+      L('Each person runs WhereCtx, their own small location server, a separate project from before the hackathon. WRU, built this week, gets only a coarse status from it, like home, near home or on the way, plus a rough ETA.'),
       L('Mom is home,', { hl: 'mom' }),
       L('Dad is twenty minutes out,', { hl: 'dad' }),
       L('and Brother is near home.', { hl: 'sibling' }),
