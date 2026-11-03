@@ -107,6 +107,20 @@ const ADVERSARY_PROMPT = `너는 프라이버시 감사용 적대자다. 가족 
 후보: ${DISTRICT_NAMES.join(', ')}
 단서가 없어도 반드시 후보 중 하나를 고른다. JSON 하나만 출력: {"home_gu":"…","school_gu":"…"}`;
 
+const GUESS_FORMAT = {
+  type: 'json_schema',
+  json_schema: {
+    name: 'district_guess',
+    strict: true,
+    schema: {
+      type: 'object',
+      properties: { home_gu: { type: 'string', enum: DISTRICT_NAMES }, school_gu: { type: 'string', enum: DISTRICT_NAMES } },
+      required: ['home_gu', 'school_gu'],
+      additionalProperties: false,
+    },
+  },
+};
+
 /** 키가 있으면 실제 Muse를 적대자로 쓴다 */
 export class MuseAdversary implements Adversary {
   readonly kind = 'meta' as const;
@@ -118,6 +132,7 @@ export class MuseAdversary implements Adversary {
         await this.muse.complete(
           ADVERSARY_PROMPT,
           JSON.stringify({ subtasks: log.subtasks, messages: log.messages.map(({ id, at, ...m }) => m) }),
+          GUESS_FORMAT,
         ),
       ) as { home_gu?: unknown; school_gu?: unknown };
       const valid = (v: unknown) => (typeof v === 'string' && DISTRICT_NAMES.includes(v) ? v : null);

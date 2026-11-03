@@ -25,7 +25,9 @@ import { runNegotiation } from './negotiation/engine.js';
 import { publicMessages, type NegotiationRecord } from '../shared/negotiation.js';
 import type { LeakReport } from '../shared/leak-report.js';
 import { runLeakExperiment } from './privacy/experiment.js';
-import { userPrompt } from './muse/meta.js';
+import { toolUserPrompt } from './muse/meta.js';
+import { ACTION_FORMAT, TOOL_DEFS, runTool } from './muse/tools.js';
+import { agentTools } from './negotiation/engine.js';
 import { filterMessage } from './privacy/filter.js';
 import type { MessageBody } from '../shared/negotiation.js';
 import { DEFAULT_MODEL } from './muse/client.js';
@@ -285,24 +287,35 @@ export function createApp(options: AppOptions = {}) {
     if (index < 0) return c.json({ error: 'no message' }, 404);
     const message = record.messages[index]!;
     const presence = await wherectx.get_presence(person);
-    const user = JSON.parse(
-      userPrompt({
-        self: person,
-        presence,
-        now: message.at,
-        task,
-        round: message.round,
-        max_rounds: record.max_rounds,
-        transcript: record.messages.slice(0, index),
+    const turnInput = {
+      self: person,
+      presence,
+      now: message.at,
+      task,
+      round: message.round,
+      max_rounds: record.max_rounds,
+      transcript: record.messages.slice(0, index),
+    };
+    const user = JSON.parse(toolUserPrompt(turnInput)) as Record<string, unknown>;
+    // 이 에이전트의 토큰으로 실제 도구를 불러 본다: 자기 것은 200, 남의 것은 게이트웨이가 403
+    const agent = agents.find((a) => a.person_id === person)!;
+    const other = PERSON_IDS.find((p) => p !== person)!;
+    const tool_exchange = await Promise.all(
+      [person, other].map(async (pid, i) => {
+        const call = { id: `call_${i}`, function: { name: 'get_presence', arguments: JSON.stringify({ person_id: pid }) } };
+        const { content } = await runTool(agentTools(agent), call);
+        return { call: `get_presence({"person_id":"${pid}"})`, result: content };
       }),
-    ) as Record<string, unknown>;
+    );
     const { id: _id, at: _at, round: _round, fallback: _f, filtered: _fl, ...action } = message;
     const view: MuseTurnView = {
       person_id: person,
       round: message.round,
       model: env.MUSE_MODEL ?? DEFAULT_MODEL,
-      response_format: { type: 'json_object' },
+      response_format: { type: ACTION_FORMAT.type },
+      tools: TOOL_DEFS.map((t) => t.function.name),
       user,
+      tool_exchange,
       action,
       muse: muse.kind,
       checks: ['JSON schema (type · subtask_id · fit)', 'coordinate / address / place-name check', 'reason rewritten to a status template', 'commits are judged by the engine'],

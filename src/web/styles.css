@@ -866,3 +866,6 @@ footer { color: var(--faint); font-size: 12px; text-align: center; }
 .wru.video-on { padding-bottom: 124px; }
 .wru.video-on .phone { height: 512px !important; }
 .wru.video-on .side { height: 512px !important; max-height: 512px; }
+
+/* Muse 패널: 에이전트 토큰으로 부른 도구 (200 / 403) */
+.code.code-tools { white-space: pre-wrap; color: #f5d78e; }

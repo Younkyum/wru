@@ -59,8 +59,10 @@ Copy `.env.example` to `.env`.
 | Name | Meaning |
 | --- | --- |
 | `MODEL_API_KEY` | Meta Model API key. Empty → a deterministic mock Muse with the same JSON schema |
-| `MODEL_API_BASE_URL` | Default `https://api.meta.ai/v1` (OpenAI-compatible) |
-| `MUSE_MODEL` | Model id sent to the API (set it to the real Muse Spark id) |
+| `MODEL_API_BASE_URL` | Default `https://api.meta.ai/v1` (Chat Completions) |
+| `MUSE_MODEL` | Default `muse-spark-1.3` (Meta's current Muse Spark, "Recommended for new work") |
+| `MUSE_REASONING_EFFORT` | `reasoning_effort` sent to Muse, default `low` |
+| `MUSE_MAX_CALLS` · `MUSE_MAX_USD` | Per-process caps on Muse calls and estimated cost (defaults 300 calls / $5; `npm run leak` raises them to 3,000 / $15) |
 | `WRU_API_PORT` | API port, default 8787 |
 | `WRU_FAMILY_CONFIG` | Family config path, default `family.config.json`; if missing, all three members are simulated |
 | `WRU_WHERECTX_TOKEN_*` | Each member's WhereCtx agent token; the name must match `token_env` in the family config |
@@ -172,7 +174,7 @@ Each agent looks only at its own presence and the minutes left before the deadli
 3. A claim that goes a full round unbeaten is committed. The engine turns duplicate, over-capacity or unclaimed commits into refusals.
 4. After the maximum rounds (default 4), anything left is unassigned.
 
-At 17:30 this gives Dad = pickup, Brother = milk; at 17:45 Dad = pickup, Mom = milk; at 17:52 nobody can make the deadline and both stay unassigned. With `MODEL_API_KEY` set, the real Muse answers in JSON; anything that fails schema validation or the location check falls back to the template decision for the same input.
+At 17:30 this gives Dad = pickup, Brother = milk; at 17:45 Dad = pickup, Mom = milk; at 17:52 nobody can make the deadline and both stay unassigned. With `MODEL_API_KEY` set, the real Muse plays these rules itself. Its prompt does not include its status. It calls `get_presence` / `get_eta` through **Muse tool calling**, and those tools are bound to that agent's WRU token, so asking about anyone else returns `403 not_your_presence` as the tool result. It answers with one strict `json_schema` object. Anything that fails schema validation or the location check falls back to the template decision for the same input. See [docs/REAL_MUSE.md](docs/REAL_MUSE.md).
 
 ## Privacy gate and leak test
 
@@ -222,7 +224,7 @@ No coordinates, exact addresses or school names appear in API responses, logs or
 
 ## Limitations
 
-- No Meta Model API key was available before the deadline, so the demo runs on a deterministic mock Muse with the same JSON schema. The real client path is tested with a fake fetch.
+- The demo video and the leak numbers above come from the deterministic mock Muse. The real path uses `muse-spark-1.3` on Chat Completions with tool calling and a strict `json_schema`. It is covered by fake-fetch tests and passed a live `npm run muse:smoke`: tool call 200, cross-member read 403, and the hero negotiation ended Dad = pickup, Brother = milk with no fallbacks. `npm run muse:real` reruns the leak test on real Muse ([docs/REAL_MUSE.md](docs/REAL_MUSE.md)). Sources: [models](https://dev.meta.ai/docs/models), [tool calling](https://dev.meta.ai/docs/tool-calling), [structured output](https://dev.meta.ai/docs/structured-output), [pricing](https://dev.meta.ai/docs/pricing-rate-limits).
 - The real WhereCtx integration was verified against a locally run WhereCtx; the demo video uses the simulator. With no maps key on that WhereCtx, ETA comes back empty (null).
 - Leak numbers use a rule-based attacker plus an attacker-independent ceiling; see [leak-report.md](leak-report.md).
 - State is in memory. Accounts and push notifications are out of scope.
