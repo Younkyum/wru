@@ -11,6 +11,7 @@ import ffmpegInstaller from '@ffmpeg-installer/ffmpeg';
 import ffprobeInstaller from '@ffprobe-installer/ffprobe';
 import { chromium } from 'playwright';
 import { SEGMENTS, captionText } from './narration.js';
+import { VOICE_DIR, recordingFor } from './voice.js';
 import { renderScriptDoc } from './script-doc.js';
 
 const OUT = resolve('video-out');
@@ -45,17 +46,35 @@ function spoken(line: string): string {
   return line.replace(/WhereCtx/g, 'Where Context').replace(/\bWRU\b/g, 'W R U').replace(/\u2011/g, '-');
 }
 
-/** 문장마다 따로 녹음해서 길이를 안다 (자막을 문장 단위로 맞추기 위해) */
+// 직접 녹음한 파일은 앞뒤 무음을 자르고 음량을 맞춘다
+const TRIM = 'silenceremove=start_periods=1:start_threshold=-45dB:start_silence=0.05';
+const OWN_VOICE_FILTER = `${TRIM},areverse,${TRIM},areverse,loudnorm=I=-16:TP=-1.5:LRA=11`;
+
+/**
+ * 문장마다 따로 녹음해서 길이를 안다 (자막을 문장 단위로 맞추기 위해).
+ * video-out/voice/<구간>-<번호>.(m4a|wav|mp3|aiff)가 있으면 그 녹음을 쓰고, 없는 문장만 say로 만든다.
+ * 화면은 문장 길이만큼 기다리므로 직접 녹음해도 타이밍이 저절로 맞는다.
+ */
 function narrate() {
-  return SEGMENTS.map((seg) =>
+  let own = 0;
+  const voice = SEGMENTS.map((seg) =>
     seg.lines.map(({ text: line }, i) => {
-      const aiff = join(TMP, `${seg.id}-${i}.aiff`);
       const wav = join(TMP, `${seg.id}-${i}.wav`);
-      execFileSync('say', ['-v', VOICE, '-r', RATE, '-o', aiff, spoken(line)]);
-      execFileSync(ffmpeg, ['-y', '-loglevel', 'error', '-i', aiff, '-ar', '48000', '-ac', '1', wav]);
+      const rec = recordingFor(seg.id, i);
+      if (rec) {
+        own += 1;
+        execFileSync(ffmpeg, ['-y', '-loglevel', 'error', '-i', rec, '-af', OWN_VOICE_FILTER, '-ar', '48000', '-ac', '1', wav]);
+      } else {
+        const aiff = join(TMP, `${seg.id}-${i}.aiff`);
+        execFileSync('say', ['-v', VOICE, '-r', RATE, '-o', aiff, spoken(line)]);
+        execFileSync(ffmpeg, ['-y', '-loglevel', 'error', '-i', aiff, '-ar', '48000', '-ac', '1', wav]);
+      }
       return { line, wav, seconds: duration(wav) };
     }),
   );
+  const total = voice.reduce((n, v) => n + v.length, 0);
+  console.log(`   직접 녹음 ${own}/${total}문장 (${VOICE_DIR}), 나머지는 say ${VOICE}`);
+  return voice;
 }
 
 async function waitForServer(url: string) {
