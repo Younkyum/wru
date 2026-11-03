@@ -46,9 +46,12 @@ function spoken(line: string): string {
   return line.replace(/WhereCtx/g, 'Where Context').replace(/\bWRU\b/g, 'W R U').replace(/\u2011/g, '-');
 }
 
-// 직접 녹음한 파일은 앞뒤 무음을 자르고 음량을 맞춘다
+// 직접 녹음한 파일은 앞뒤 무음을 자르고, 문장 안의 긴 쉼을 0.2초로 줄이고, 음량을 맞춘다.
+// 사람이 읽으면 TTS보다 길어서 3분을 넘기 쉽다: WRU_VOICE_TEMPO(예: 1.2)로 말 속도만 올린다 (음높이는 그대로).
 const TRIM = 'silenceremove=start_periods=1:start_threshold=-45dB:start_silence=0.05';
-const OWN_VOICE_FILTER = `${TRIM},areverse,${TRIM},areverse,loudnorm=I=-16:TP=-1.5:LRA=11`;
+const PAUSES = 'silenceremove=stop_periods=-1:stop_threshold=-40dB:stop_duration=0.3:stop_silence=0.2';
+const TEMPO = Number(process.env.WRU_VOICE_TEMPO ?? 1);
+const OWN_VOICE_FILTER = [TRIM, 'areverse', TRIM, 'areverse', PAUSES, ...(TEMPO !== 1 ? [`atempo=${TEMPO}`] : []), 'loudnorm=I=-16:TP=-1.5:LRA=11'].join(',');
 
 /**
  * 문장마다 따로 녹음해서 길이를 안다 (자막을 문장 단위로 맞추기 위해).
@@ -95,7 +98,7 @@ async function main() {
 
   console.log('1/4 내레이션 만들기');
   const voice = narrate();
-  const GAP = 0.35; // 문장 사이 쉼
+  const GAP = Number(process.env.WRU_VOICE_GAP ?? 0.35); // 문장 사이 쉼
 
   console.log('2/4 앱 빌드 · 서버 시작');
   execFileSync('npx', ['vite', 'build', '--logLevel', 'error'], { stdio: 'inherit' });

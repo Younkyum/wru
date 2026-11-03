@@ -30,7 +30,7 @@ ${body.join('\n')}
 ## Re-recording
 
 - \`npm run video\` regenerates the draft in \`video-out/\` and refreshes the start times here. It fails if the video runs over 3 minutes.
-- For your own voice, run \`npm run video:cues\`. It writes \`video-out/voice/CUES.md\`, which lists one file name per line. Record each line into that folder and run \`npm run video\` again. The screen waits for each recording, so timing follows your pace. Lines you skip use the macOS voice (\`WRU_VIDEO_VOICE\` / \`WRU_VIDEO_RATE\`).
+- For your own voice, run \`npm run video:cues\`. It writes \`video-out/voice/CUES.md\`, which lists one file name per line. Record each line into that folder and run \`npm run video\` again. The screen waits for each recording, so timing follows your pace. Lines you skip use the macOS voice (\`WRU_VIDEO_VOICE\` / \`WRU_VIDEO_RATE\`). A human read usually runs longer than the TTS voice. Long pauses are shortened automatically, and \`WRU_VOICE_TEMPO=1.2 WRU_VOICE_GAP=0.25 npm run video\` speeds up only the voice, keeping its pitch (this is how the submitted cut was made).
 - If you re-run \`npm run leak\` with a Meta Model API key, update the leak numbers in \`scripts/video/narration.ts\`.
 - If you re-record with the real Muse, change the mock disclosure sentences (cut 4 and the closing card).
 `;
