@@ -626,7 +626,7 @@ function VideoScene({ scene }: { scene: VideoOverlay['scene'] & string }) {
     <div className="scene" role="presentation">
       <div className="scene-title">WRU</div>
       <ul className="scene-points">
-        <li><b>WhereCtx</b> status only, from each person's own server</li>
+        <li><b>WhereCtx</b> status only, from each person's own server (pre-existing project)</li>
         <li><b>Agent tokens</b> each token reads only its owner's status</li>
         <li><b>Muse</b> offer · counter · commit → roles only</li>
         <li><b>Privacy gate</b> no location text reaches the log, even if the agent knows it</li>

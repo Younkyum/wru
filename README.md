@@ -2,7 +2,7 @@
 
 **Family errands, split by AI agents without sharing coordinates.**
 
-WRU (short for "where are you") is a negotiation layer on top of WhereCtx, a personal location server. Family members never share coordinates. Each person's agent (a *Muse*, built to call Meta's Muse Spark model) reads only that person's coarse status from their own WhereCtx (`home`, `near_home` or `in_transit`, plus an ETA), and the agents split a family task with offer → counter → commit messages. WRU outputs only who does what.
+WRU (short for "where are you") is a negotiation layer on top of WhereCtx, a personal location server (a separate project that predates the hackathon; WRU itself was built during it). Family members never share coordinates. Each person's agent (a *Muse*, running on Meta's Muse Spark through the Meta Model API) reads only that person's coarse status from their own WhereCtx (`home`, `near_home` or `in_transit`, plus an ETA), and the agents split a family task with offer → counter → commit messages. WRU outputs only who does what.
 
 Submitted to the Meta Global AI Developer Hackathon (2026-10-26 to 11-04).
 
@@ -228,3 +228,7 @@ No coordinates, exact addresses or school names appear in API responses, logs or
 - The real WhereCtx integration was verified against a locally run WhereCtx; the demo video uses the simulator. With no maps key on that WhereCtx, ETA comes back empty (null).
 - Leak numbers come from one real Muse run, with Muse as the attacker, plus an attacker-independent ceiling. A rerun moves them by a few points; see [leak-report.md](leak-report.md).
 - State is in memory. Accounts and push notifications are out of scope.
+
+## License
+
+MIT. See [LICENSE](LICENSE).

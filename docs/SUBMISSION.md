@@ -10,7 +10,7 @@ To decide "who's picking up the kid?", a family has to know where everyone is ri
 
 WRU assigns roles without any person, agent or log seeing coordinates.
 
-- **WhereCtx** (our existing personal location server) gives each person's coarse status only: `home` / `near_home` / `in_transit` and minutes to home. Detail and coordinate requests are refused, with `home_zone_refused` inside the home zone. Every person hosts their own.
+- **WhereCtx** (our personal location server, a separate project that predates the hackathon and is not part of this entry) gives each person's coarse status only: `home` / `near_home` / `in_transit` and minutes to home. Detail and coordinate requests are refused, with `home_zone_refused` inside the home zone. Every person hosts their own.
 - **Muse agents**: one per family member, running on Meta's Muse Spark (`muse-spark-1.3`) through the Meta Model API. Each agent reads its own status with Muse tool calling and answers with a strict `json_schema` object. Each agent reads only **its own** WhereCtx, through a token check. It never sees anyone else's status; all it knows about the others is their negotiation messages.
 - **WRU** relays the negotiation. A task arrives in the inbox, the agents trade offer, counter, commit and refuse messages in rounds, and the result is an assignment. After one human approval, each person is notified of their own role only.
 
