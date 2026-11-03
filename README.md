@@ -50,7 +50,8 @@ npm run dev
 | `npm start` | Serve the built UI and the API on one port (8787) |
 | `npm run leak` | Leak test → `leak-report.md`, `samples/leak-report.json` |
 | `npm run samples` | Sample negotiation log → `samples/negotiation-hero.json` |
-| `npm run video` | Draft demo video → `video-out/wru-demo.mp4` + `.srt` (macOS `say` voice) |
+| `npm run video` | Demo video → `video-out/wru-demo.mp4` + `.srt` (your recordings from `video-out/voice/`, else macOS `say`) |
+| `npm run video:cues` | List of narration lines to record → `video-out/voice/CUES.md` |
 
 ## Environment
 

@@ -42,6 +42,7 @@ export const SEGMENTS: Segment[] = [
     rubric: 'Impact',
     scene: 'intro',
     lines: [
+      L("Hi, I'm Younkyum Jin. I built WRU this week."),
       L('"Who\'s picking up Mina?" Many families answer that by sharing their location all day.'),
     ],
     hold: 0.2,
@@ -54,7 +55,7 @@ export const SEGMENTS: Segment[] = [
     rubric: 'Impact · Demo',
     lines: [
       L('WRU, short for "where are you", lets each person\'s AI agent split the errands without sharing coordinates.'),
-      L('Each person runs WhereCtx, their own small location server, a separate project from before the hackathon. WRU, built this week, gets only a coarse status from it, like home, near home or on the way, plus a rough ETA.'),
+      L('Each person runs WhereCtx, their own location server from before the hackathon. WRU gets only a coarse status from it, like home or on the way, plus a rough ETA.'),
       L('Mom is home,', { hl: 'mom' }),
       L('Dad is twenty minutes out,', { hl: 'dad' }),
       L('and Brother is near home.', { hl: 'sibling' }),
@@ -132,11 +133,11 @@ export const SEGMENTS: Segment[] = [
     rubric: 'Technical Depth',
     camera: 'panel',
     lines: [
-      L("Could these logs reveal where the family lives? We ran fifty families across Seoul's twenty-five districts, with Muse as both the agents and the attacker.", { click: 'tab-leak' }),
+      L("Could these logs reveal home? We ran fifty families across Seoul's twenty-five districts, with Muse as agents and attacker.", { click: 'tab-leak' }),
       L("The privacy gate lets through only status and a rough ETA. Without it, agents chat freely and every family's log is unique.", { hl: 'card-off' }),
       L('The Muse attacker then finds the home district 100 percent of the time.', { hl: 'off-actual' }),
       L('With the gate on, those fifty families produce just nine different logs.', { hl: 'on-logs' }),
-      L("Families that share a log look identical, so even the best-case attacker gets the home district right only 28 percent of the time.", { hl: 'on-bound' }),
+      L("So even a best-case attacker finds the home district only 28 percent of the time.", { hl: 'on-bound' }),
       L('The Muse attacker got 4 percent, the same as random guessing.', { hl: 'on-actual' }),
       L("An agent that knows its exact location never gets it into the log, though its choices nudge the ceiling to 32 percent.", { hl: 'card-filter_only' }),
     ],
@@ -148,9 +149,8 @@ export const SEGMENTS: Segment[] = [
     rubric: 'Impact · Technical Depth',
     scene: 'host',
     lines: [
-      L("Each member adds a read-only token from their own WhereCtx. In this config, Mom's is real and the others are simulated."),
-      L('One command starts the family server.'),
-      L('Exact locations never leave each person\'s own server.'),
+      L("Each member adds a read-only token from their own WhereCtx. Here Mom's is real, the others simulated."),
+      L("One command starts the family server, and exact locations never leave each person's own server."),
     ],
   },
   {

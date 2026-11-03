@@ -16,7 +16,8 @@
     "muse:smoke": "tsx scripts/muse-smoke.ts",
     "muse:real": "tsx scripts/real-muse.ts",
     "muse:hero": "tsx scripts/record-hero.ts",
-    "video": "tsx scripts/video/make-video.ts"
+    "video": "tsx scripts/video/make-video.ts",
+    "video:cues": "tsx scripts/video/voice-cues.ts"
   },
   "dependencies": {
     "@hono/node-server": "^2.1.5",
