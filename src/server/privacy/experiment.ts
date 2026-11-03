@@ -62,6 +62,22 @@ export interface ExperimentOptions {
   seed_start?: number;
   muse?: MuseClient;
   adversary?: Adversary;
+  /** 동시에 돌릴 시나리오 수 (실제 Muse일 때 시간 단축용). 결과는 시드 순서로 모은다 */
+  concurrency?: number;
+}
+
+/** 0..n-1을 최대 limit개씩 동시에 돌리고, 결과를 인덱스 순서로 돌려준다 */
+async function pool<T>(n: number, limit: number, run: (i: number) => Promise<T>): Promise<T[]> {
+  const out = new Array<T>(n);
+  let next = 0;
+  const worker = async () => {
+    while (next < n) {
+      const i = next++;
+      out[i] = await run(i);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.max(1, Math.min(limit, n)) }, worker));
+  return out;
 }
 
 export async function runLeakExperiment(opts: ExperimentOptions = {}): Promise<LeakReport> {
@@ -87,7 +103,7 @@ export async function runLeakExperiment(opts: ExperimentOptions = {}): Promise<L
       bound_school_rate: 0,
     };
     const groups = new Map<string, { home: Map<string, number>; school: Map<string, number> }>();
-    for (let i = 0; i < trials; i += 1) {
+    const runs = await pool(trials, opts.concurrency ?? 1, async (i) => {
       const scenario = makeScenario(seedStart + i);
       const task = scenarioTask(scenario, gate);
       const result = await runNegotiation({ task, agents: scenarioAgents(scenario, condition, muse), now: NOW, gate });
@@ -97,6 +113,9 @@ export async function runLeakExperiment(opts: ExperimentOptions = {}): Promise<L
         messages: publicMessages(result.messages),
       };
       const guess = await adversary.guess(structuredClone(log));
+      return { scenario, result, log, guess };
+    });
+    for (const { scenario, result, log, guess } of runs) {
       // 상한 계산용: 적대자가 보는 그대로의 로그로 묶는다
       const key = JSON.stringify(log);
       const g = groups.get(key) ?? { home: new Map(), school: new Map() };

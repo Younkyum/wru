@@ -4,7 +4,7 @@
 import { PERSON_LABEL, localTime, type PersonId, type Task } from '../../shared/contracts.js';
 import type { Assignment, MessageBody, NegotiationMessage } from '../../shared/negotiation.js';
 import type { PresenceGateway } from '../auth/gateway.js';
-import type { MuseClient } from '../muse/client.js';
+import type { AgentTools, MuseClient, ToolCallRecord } from '../muse/client.js';
 import { filterMessage, type Gate } from '../privacy/filter.js';
 import { beats, decideMock, readTranscript } from '../muse/mock.js';
 import { validateAction } from './validate.js';
@@ -37,18 +37,32 @@ export interface NegotiationResult {
   max_rounds: number;
   outcome: 'complete' | 'partial' | 'unassigned';
   assignment: Assignment;
+  /** 실제 Muse가 부른 도구 (mock이면 없음). 위치 값 없이 누가 · 누구를 · 결과 상태만 */
+  tool_calls?: (ToolCallRecord & { round: number; from: PersonId })[];
+}
+
+/** 에이전트 토큰에 묶인 도구: 모델이 남의 presence를 물으면 게이트웨이가 403을 던진다 */
+export function agentTools(agent: Agent): AgentTools {
+  return {
+    get_presence: (person_id) => agent.gateway.presence(agent.token, person_id),
+    get_eta: (person_id) => agent.gateway.eta(agent.token, person_id),
+  };
 }
 
 export const DEFAULT_MAX_ROUNDS = 4;
 export const DEFAULT_BUDGET_MS = 45_000;
+/** 실제 Muse는 차례마다 도구 호출 + 응답으로 수 초가 걸려서 예산을 늘린다 */
+export const META_BUDGET_MS = 150_000;
 
 export async function runNegotiation(input: NegotiationInput): Promise<NegotiationResult> {
   const { task, agents, now } = input;
   const maxRounds = input.max_rounds ?? DEFAULT_MAX_ROUNDS;
   const gate = input.gate ?? 'on';
   const messages: NegotiationMessage[] = [];
+  const toolCalls: NonNullable<NegotiationResult['tool_calls']> = [];
   const capacity = task.constraints.max_subtasks_per_person ?? Infinity;
-  const deadline = Date.now() + (input.budget_ms ?? DEFAULT_BUDGET_MS);
+  const budget = input.budget_ms ?? (agents.some((a) => a.muse.kind === 'meta') ? META_BUDGET_MS : DEFAULT_BUDGET_MS);
+  const deadline = Date.now() + budget;
   const allCommitted = () => readTranscript(messages).committed.size === task.subtasks.length;
 
   let round = 0;
@@ -67,12 +81,16 @@ export async function runNegotiation(input: NegotiationInput): Promise<Negotiati
         round,
         max_rounds: maxRounds,
         transcript: [...messages],
+        tools: agentTools(agent),
         ...(detail ? { detail } : {}),
       };
       const decision =
         Date.now() > deadline
           ? { action: decideMock(turn), fallback: true }
           : await agent.muse.decide(turn).catch(() => ({ action: decideMock(turn), fallback: true }));
+      for (const call of ('tool_calls' in decision ? decision.tool_calls : undefined) ?? []) {
+        toolCalls.push({ ...call, round, from: agent.person_id });
+      }
 
       // 검증을 못 넘으면 같은 입력의 템플릿 판단으로 대체
       let fallback = decision.fallback ?? false;
@@ -104,7 +122,7 @@ export async function runNegotiation(input: NegotiationInput): Promise<Negotiati
   const assignment = buildAssignment(task, messages, agents.map((a) => a.person_id));
   const outcome =
     assignment.unassigned.length === 0 ? 'complete' : assignment.assignments.length === 0 ? 'unassigned' : 'partial';
-  return { messages, rounds: round, max_rounds: maxRounds, outcome, assignment };
+  return { messages, rounds: round, max_rounds: maxRounds, outcome, assignment, ...(toolCalls.length ? { tool_calls: toolCalls } : {}) };
 }
 
 /**

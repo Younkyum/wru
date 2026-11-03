@@ -489,7 +489,7 @@ function MusePanel({ turn, shown }: { turn: MuseTurnView | null | undefined; sho
     <>
       <div className="side-head">
         <h2>What the model sees</h2>
-        <span>One turn from Dad's agent: the real request body.{turn?.muse === 'mock' ? ' In this recording, a mock with the same JSON format replies.' : ''}</span>
+        <span>One turn from Dad's agent: it reads its own status through a tool, never from the prompt.{turn?.muse === 'mock' ? ' In this recording, a mock with the same JSON format replies.' : ''}</span>
       </div>
       {!turn ? (
         <p className="side-empty">Run a negotiation first.</p>
@@ -509,10 +509,14 @@ function MusePanel({ turn, shown }: { turn: MuseTurnView | null | undefined; sho
             <div className="io-label">
               Request <code>POST /v1/chat/completions</code>
               <span>
-                model: $MUSE_MODEL · response_format: {turn.response_format.type}
+                model: $MUSE_MODEL · tools: {turn.tools.join(', ')} · response_format: {turn.response_format.type}
               </span>
             </div>
             <pre className="code">{compact(turn.user)}</pre>
+            <div className="io-label">Tool calls with Dad's own token (real gateway)</div>
+            <pre className="code code-tools">
+              {turn.tool_exchange.map((t) => `${t.call} → ${t.result}`).join('\n')}
+            </pre>
           </div>
           <div className={`io-col${hlRes}`}>
             <div className="io-label">Response (one JSON object)</div>

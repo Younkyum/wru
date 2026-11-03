@@ -61,7 +61,7 @@ Quality-gate tests check API responses, the event log, every demo render, sample
 
 ## Limitations
 
-- No Meta Model API key was available before the deadline, so the demo runs on a deterministic mock Muse with the same JSON schema. The real client path is tested with a fake fetch, and the model id is set with `MUSE_MODEL`.
+- The demo video and leak numbers come from a deterministic mock Muse with the same JSON schema. The real path is `muse-spark-1.3` with tool calling (each agent reads only its own status; other members return 403) and a strict `json_schema`. It passed a live smoke run, and `npm run muse:real` reruns the leak test on real Muse.
 - The rule-based attacker and the gate-off phrasing were written by the same team, which is why the best-case attacker is the headline number. With a key, `npm run leak` re-measures with Muse as both agent and attacker.
 - The real WhereCtx integration was verified against a locally run WhereCtx; the video uses the simulator.
 - The family screen shows exact ETA minutes per the Presence contract; negotiation logs carry only ranges.

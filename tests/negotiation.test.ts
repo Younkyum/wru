@@ -96,18 +96,25 @@ describe('협상 엔진 (mock Muse)', () => {
 
   it('에이전트는 자기 presence만 받는다', async () => {
     const seen: AgentTurnInput[] = [];
+    const denied: unknown[] = [];
     const spy: MuseClient = {
       kind: 'mock',
       decide: async (input) => {
-        seen.push(structuredClone(input));
+        const { tools, ...rest } = input;
+        seen.push({ ...structuredClone(rest), tools });
+        // 도구는 자기 토큰에 묶여 있다: 자기 것은 읽히고 남의 것은 403
+        expect((await tools!.get_presence(input.self)).person_id).toBe(input.self);
+        const other = input.self === 'mom' ? 'dad' : 'mom';
+        denied.push(await tools!.get_presence(other).catch((e) => e.status));
         return { action: decideMock(input) };
       },
     };
     await runNegotiation({ task: heroTask(), agents: agentsFrom(HERO_PRESENCE, spy), now: NOW });
     expect(seen.length).toBeGreaterThan(3);
+    expect(new Set(denied)).toEqual(new Set([403]));
     for (const input of seen) {
       expect(input.presence.person_id).toBe(input.self);
-      expect(Object.keys(input).sort()).toEqual(['max_rounds', 'now', 'presence', 'round', 'self', 'task', 'transcript']);
+      expect(Object.keys(input).sort()).toEqual(['max_rounds', 'now', 'presence', 'round', 'self', 'task', 'tools', 'transcript']);
       // 협상 메시지에는 presence 필드가 없다
       for (const m of input.transcript) expect(m).not.toHaveProperty('state');
     }
@@ -201,7 +208,7 @@ describe('실제 Muse 경로 (가짜 fetch)', () => {
     expect(calls[0].init.headers.authorization).toBe('Bearer k_test');
     const body = JSON.parse(calls[0].init.body);
     expect(body.model).toBe('muse-x');
-    expect(body.response_format).toEqual({ type: 'json_object' });
+    expect(body.response_format).toMatchObject({ type: 'json_schema', json_schema: { name: 'agent_action' } });
     // 프롬프트에도 다른 사람 presence나 정확한 ETA가 없다
     expect(body.messages[1].content).not.toContain('"eta_minutes"');
   });
