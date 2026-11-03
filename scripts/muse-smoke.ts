@@ -5,7 +5,7 @@ import type { PersonId, Presence, Task } from '../src/shared/contracts.js';
 import { PERSON_LABEL } from '../src/shared/contracts.js';
 import { publicMessages } from '../src/shared/negotiation.js';
 import { HERO_TASK } from '../src/server/inbox.js';
-import { DEFAULT_BASE_URL, DEFAULT_MODEL, estimateUsd } from '../src/server/muse/client.js';
+import { DEFAULT_BASE_URL, DEFAULT_MODEL, estimateUsd, providerOf } from '../src/server/muse/client.js';
 import { MetaMuse, TOOL_SYSTEM_PROMPT } from '../src/server/muse/meta.js';
 import { TOOL_DEFS, runTool, type ToolCall } from '../src/server/muse/tools.js';
 import { makeFamilyAgents } from '../src/server/auth/gateway.js';
@@ -46,7 +46,7 @@ const dad = family.agents.find((a) => a.person_id === 'dad')!;
 const ok = (b: boolean) => (b ? 'OK  ' : 'FAIL');
 let failed = false;
 
-console.log(`[muse:smoke] model=${model} base=${new URL(baseUrl).host} · call cap ${maxCalls}`);
+console.log(`[muse:smoke] provider=${providerOf(baseUrl)} · model=${model} · call cap ${maxCalls}`);
 
 // 1. 모델 목록 (채팅 호출 수에 넣지 않는다)
 {

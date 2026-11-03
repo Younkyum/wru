@@ -11,7 +11,7 @@ To decide "who's picking up the kid?", a family has to know where everyone is ri
 WRU assigns roles without any person, agent or log seeing coordinates.
 
 - **WhereCtx** (our existing personal location server) gives each person's coarse status only: `home` / `near_home` / `in_transit` and minutes to home. Detail and coordinate requests are refused, with `home_zone_refused` inside the home zone. Every person hosts their own.
-- **Muse agents**: one per family member, built to call Meta's Muse Spark through the Meta Model API. Each agent reads only **its own** WhereCtx, through a token check. It never sees anyone else's status; all it knows about the others is their negotiation messages.
+- **Muse agents**: one per family member, running on Meta's Muse Spark (`muse-spark-1.3`) through the Meta Model API. Each agent reads its own status with Muse tool calling and answers with a strict `json_schema` object. Each agent reads only **its own** WhereCtx, through a token check. It never sees anyone else's status; all it knows about the others is their negotiation messages.
 - **WRU** relays the negotiation. A task arrives in the inbox, the agents trade offer, counter, commit and refuse messages in rounds, and the result is an assignment. After one human approval, each person is notified of their own role only.
 
 ## Protocol
@@ -41,16 +41,16 @@ WRU issues every family member an agent token. The server stores only SHA-256 ha
 
 ## Leak numbers
 
-We give an attacker only the negotiation log and ask which of Seoul's 25 districts the family's home and the child's school are in. There are 50 seeded scenarios, with different homes, schools and routes.
+We give an attacker only the negotiation log and ask which of Seoul's 25 districts the family's home and the child's school are in. There are 50 seeded scenarios, with different homes, schools and routes. These are numbers from a real run. Muse Spark (`muse-spark-1.3`, Meta Model API) played every negotiating agent in all 150 scenario runs and also played the attacker, which had to name a district through a `json_schema` enum: 1,530 calls, about $6.
 
-| Condition | Distinct logs | Best-case attacker (home, school) | Rule-based attacker (home, school) |
+| Condition | Distinct logs | Best-case attacker (home, school) | Muse attacker (home, school) |
 | --- | --- | --- | --- |
-| Gate off (neighborhood, distance, exact ETA as-is) | 50 | **100%, 100%** | 98%, 72% |
-| Gate on, agent secretly knows its location | 5 | 22%, 24% | 6%, 0% |
-| Gate on (WRU default) | 5 | **22%, 24%** | 6%, 0% |
+| Gate off (neighborhood, distance, exact ETA as-is) | 50 | **100%, 100%** | 100%, 70% |
+| Gate on, agent secretly knows its location | 10 | 32%, 34% | 6%, 10% |
+| Gate on (WRU default) | 9 | **28%, 32%** | 4%, 4% |
 | Chance (1/25) | | 4% | 4% |
 
-The best-case attacker groups identical logs and picks the right answer in hindsight, so no attacker can beat it on our 50 scenarios at district level. With the gate on, 50 different families produce only 5 distinct logs. The remaining 22% comes from the coarse status itself ("on the way, within 20 min"). The family chose to share that status, and no gate can remove it. Internal flags (fallback, filtered) are stripped from public logs, so an agent that secretly knows its location produces exactly the same logs as one that does not.
+The best-case attacker groups identical logs and picks the right answer in hindsight, so no attacker can beat it on our 50 scenarios at district level. With the gate on, 50 different families produce only 9 distinct logs. The Muse attacker lands at chance (4%), and the ceiling is 28%. Most of that comes from the coarse status ("on the way, within 20 min"), which the family chose to share. When an agent secretly knows its exact location, none of that text is published, but its choices can still shift with what it knows: 10 logs and a 32% ceiling. We report that as measured. Real Muse is not deterministic, and with 50 scenarios a few points are within noise. The deterministic mock run gave 5 logs and a 22% ceiling.
 
 Quality-gate tests check API responses, the event log, every demo render, samples, the leak report and the docs for coordinate keys, decimal coordinates, street addresses, school names and Seoul place names: zero hits. The full suite has over 130 tests.
 
@@ -61,8 +61,8 @@ Quality-gate tests check API responses, the event log, every demo render, sample
 
 ## Limitations
 
-- The demo video and leak numbers come from a deterministic mock Muse with the same JSON schema. The real path is `muse-spark-1.3` with tool calling (each agent reads only its own status; other members return 403) and a strict `json_schema`. It passed a live smoke run, and `npm run muse:real` reruns the leak test on real Muse.
-- The rule-based attacker and the gate-off phrasing were written by the same team, which is why the best-case attacker is the headline number. With a key, `npm run leak` re-measures with Muse as both agent and attacker.
+- The leak numbers are one real Muse Spark run. The video replays one recorded live hero negotiation, because a live negotiation takes 30 to 40 seconds and changes wording from run to run.
+- The gate-off phrasing was written by our team, which is why the attacker-independent best-case number is the headline.
 - The real WhereCtx integration was verified against a locally run WhereCtx; the video uses the simulator.
 - The family screen shows exact ETA minutes per the Presence contract; negotiation logs carry only ranges.
 - Task labels are free text. Shop names outside the word lists can get through, and some everyday words are rejected by mistake.

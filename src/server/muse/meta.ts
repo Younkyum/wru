@@ -8,6 +8,7 @@ import { validateAction } from '../negotiation/validate.js';
 import {
   DEFAULT_BASE_URL,
   DEFAULT_MAX_CALLS,
+  DEFAULT_MAX_COMPLETION_TOKENS,
   DEFAULT_MAX_USD,
   DEFAULT_MODEL,
   DEFAULT_REASONING_EFFORT,
@@ -108,11 +109,13 @@ export interface MetaMuseOptions {
   maxUsd?: number;
   /** Chat Completions reasoning_effort. Muse Spark는 none을 받지 않는다 (minimal · low · medium · high · xhigh) */
   reasoningEffort?: string;
+  /** 추론 토큰 + 출력 상한. 추론 모델이라 작게 잡으면 추론만 하다 length로 끝난다 */
+  maxCompletionTokens?: number;
 }
 
 type ChatMessage = Record<string, unknown>;
 interface ChatResponse {
-  choices?: { message?: { content?: string | null; tool_calls?: ToolCall[] } }[];
+  choices?: { finish_reason?: string; message?: { content?: string | null; tool_calls?: ToolCall[] } }[];
   usage?: { prompt_tokens?: number; completion_tokens?: number };
 }
 
@@ -193,13 +196,20 @@ export class MetaMuse implements MuseClient {
       method: 'POST',
       headers: { 'content-type': 'application/json', authorization: `Bearer ${this.opts.apiKey}` },
       // temperature는 기본값: 문서상 Muse Spark는 기본값에 맞춰져 있고, 0이면 strict 아닌 스키마에서 출력이 무너졌다
-      body: JSON.stringify({ model: this.model, reasoning_effort: this.opts.reasoningEffort ?? DEFAULT_REASONING_EFFORT, ...body }),
+      body: JSON.stringify({
+        model: this.model,
+        reasoning_effort: this.opts.reasoningEffort ?? DEFAULT_REASONING_EFFORT,
+        max_completion_tokens: this.opts.maxCompletionTokens ?? DEFAULT_MAX_COMPLETION_TOKENS,
+        ...body,
+      }),
       signal: AbortSignal.timeout(this.opts.timeoutMs ?? 30_000),
     });
     if (!res.ok) throw new Error(`Muse API ${res.status}`);
     const data = (await res.json()) as ChatResponse;
     this.usage.prompt_tokens += data.usage?.prompt_tokens ?? 0;
     this.usage.completion_tokens += data.usage?.completion_tokens ?? 0;
+    // 토큰 상한에 걸려 잘린 답은 쓰지 않는다 (템플릿 대체)
+    if (data.choices?.[0]?.finish_reason === 'length') throw new Error('Muse output cut off (finish_reason: length)');
     return data;
   }
 }

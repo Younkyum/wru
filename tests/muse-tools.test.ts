@@ -139,6 +139,19 @@ describe('Muse tool calling (가짜 fetch)', () => {
     expect(toolMsgs(bodies[1]!).map((m) => m.tool_call_id)).toEqual(['a', 'b', 'c']);
   });
 
+  it('finish_reason: length(추론하다 잘림)면 템플릿으로, 요청에는 토큰 상한과 reasoning_effort', async () => {
+    const bodies: any[] = [];
+    const cut = (async (_u: string, init: RequestInit) => {
+      bodies.push(JSON.parse(String(init.body)));
+      return new Response(JSON.stringify({ choices: [{ finish_reason: 'length', message: { content: '' } }] }), { status: 200 });
+    }) as unknown as typeof fetch;
+    const muse = new MetaMuse({ apiKey: 'k', fetchImpl: cut });
+    const d = await muse.decide(dadTurn());
+    expect(d.fallback).toBe(true);
+    expect(muse.lastError).toContain('length');
+    expect(bodies[0]).toMatchObject({ max_completion_tokens: 2000, reasoning_effort: 'low' });
+  });
+
   it(`도구만 계속 부르면 ${MAX_TOOL_STEPS}번에서 끊고 템플릿으로`, async () => {
     const bodies: Body[] = [];
     const muse = new MetaMuse({ apiKey: 'k', fetchImpl: fakeModel(() => callTool('dad'), bodies) });
@@ -214,5 +227,26 @@ describe('엔진 + 실제 Muse 경로 (가짜 모델)', () => {
     const guess = await createAdversary(muse).guess({ subtasks: [], messages: [] });
     expect(guess).toEqual({ home: '마포구', school: null });
     expect(bodies[0]!.response_format).toMatchObject({ type: 'json_schema', json_schema: { name: 'district_guess' } });
+  });
+});
+
+describe('실제 Muse 히어로 기록 재생 (영상용)', () => {
+  it('samples/negotiation-hero-muse.json: 템플릿 대체 0, 도구는 자기 것만, 재생하면 그대로 나오고 meta로 표시된다', async () => {
+    const { readFileSync } = await import('node:fs');
+    const { createApp } = await import('../src/server/app');
+    const rec = JSON.parse(readFileSync('samples/negotiation-hero-muse.json', 'utf8'));
+    expect(rec).toMatchObject({ provider: 'Meta Model API', model: 'muse-spark-1.3', fallbacks: 0 });
+    expect(rec.negotiation.outcome).toBe('complete');
+    for (const c of rec.negotiation.tool_calls) expect(c.status === 200).toBe(c.person_id === c.from);
+    expect(leaks(JSON.stringify(rec))).toEqual([]);
+
+    const app = createApp({ sim: { date: SIM_DATE }, replay: { model: rec.model, result: rec.negotiation } });
+    await app.request('/api/tasks/hero', { method: 'POST' });
+    const out = await (await app.request('/api/tasks/t_pickup_milk_001/negotiate', { method: 'POST' })).json();
+    expect(out.muse).toBe('meta');
+    expect(out.messages).toEqual(rec.negotiation.messages);
+    const turn = await (await app.request('/api/demo/muse-turn')).json();
+    expect(turn).toMatchObject({ muse: 'meta', model: 'muse-spark-1.3' });
+    expect(turn.tool_exchange.map((t: { result: string }) => JSON.parse(t.result).status ?? 200)).toEqual([200, 403]);
   });
 });

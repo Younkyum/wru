@@ -20,8 +20,8 @@ The screen is three family phones (Mom · Dad · Brother), a WRU bar on top, and
 | WRU bar (result) | Dad = Pick up Mina · Brother = Buy milk · [Approve as Mom & notify] → Approved by Mom · each person got only their own role | 〃 |
 | Muse channel | Muse agent → Meta Model API → Muse Spark | 〃 |
 | Token boundary | Real GET /api/agent/presence/:id requests with each agent token · 200 allowed / 403 denied / 401 denied | 〃 |
-| What the model sees | One turn from Dad's agent: the real request body. In this recording, a mock with the same JSON format replies. · The model decides / WRU enforces · Request POST /v1/chat/completions · Response (one JSON object) · Even if the model slips in a location (real filter code) | 〃 |
-| Leak test | Best-case attacker (knows which families share each log) · What a rule-based attacker actually found · Log line | 〃 |
+| What the model sees | One turn from Dad's agent: it reads its own status through a tool, never from the prompt. · The model decides / WRU enforces · Request POST /v1/chat/completions (tools: get_presence, get_eta · response_format: json_schema) · Tool calls with Dad's own token (real gateway): own → status, Mom → 403 · Response (one JSON object) · Even if the model slips in a location (real filter code) | 〃 |
+| Leak test | Best-case attacker (knows which families share each log) · What a Muse attacker actually found · Log line | 〃 |
 | Footer | No coordinates, addresses or school names are collected or shown. From WhereCtx we only take status and ETA. | 〃 |
 | Phone messages | I'll pick up Mina / I'll buy milk instead / Pick up Mina (under COMMIT) / "Dad's Muse is thinking" (video) | 〃 |
 | Video only | Browser tab "WRU · <chapter>", terminal: `cat .env` (masked) → `npm start` | `src/web/DemoPage.tsx` |
@@ -61,6 +61,6 @@ The source is `scripts/video/narration.ts`. Start times, every sentence and what
 ## Checklist
 
 - [ ] "Mina" is a made-up child's name. Do not replace it with a real one.
-- [ ] Current leak numbers. Gate on: 5 distinct logs, best-case attacker home 22% · school 24%, rule-based attacker home 6% · school 0%. Gate off: home 98% · school 72%. Chance 4%.
-- [ ] Leak numbers come from the rule-based attacker and the attacker-independent ceiling. If you re-run `npm run leak` with a Meta Model API key, on-screen captions update automatically; video narration does not.
+- [ ] Current leak numbers (real Muse Spark run, Muse attacker). Gate on: 9 distinct logs, best-case attacker home 28% · school 32%, Muse attacker home 4% · school 4%. Agent knows its location: 10 logs, 32% · 34%, Muse attacker 6% · 10%. Gate off: Muse attacker home 100% · school 70%. Chance 4%.
+- [ ] The negotiation in the video is a recorded live Muse Spark run (`npm run muse:hero` → `samples/negotiation-hero-muse.json`), replayed so the timing is fixed. Re-recording can change the messages, so check the narration still matches before re-rendering.
 - [ ] The model id is set with `MUSE_MODEL` and is not shown on screen.

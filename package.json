@@ -15,6 +15,7 @@
     "leak": "tsx scripts/leak.ts",
     "muse:smoke": "tsx scripts/muse-smoke.ts",
     "muse:real": "tsx scripts/real-muse.ts",
+    "muse:hero": "tsx scripts/record-hero.ts",
     "video": "tsx scripts/video/make-video.ts"
   },
   "dependencies": {

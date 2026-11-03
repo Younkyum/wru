@@ -1,0 +1,141 @@
+{
+  "recorded_at": "2026-11-03T06:41:30Z",
+  "provider": "Meta Model API",
+  "model": "muse-spark-1.3",
+  "fallbacks": 0,
+  "usage": {
+    "calls": 12,
+    "prompt_tokens": 17980,
+    "completion_tokens": 4011
+  },
+  "negotiation": {
+    "negotiation_id": "n_001",
+    "task_id": "t_pickup_milk_001",
+    "muse": "meta",
+    "messages": [
+      {
+        "type": "offer",
+        "subtask_id": "milk",
+        "fit": "low",
+        "reason": "I can run out from home",
+        "id": 1,
+        "round": 1,
+        "at": "2026-10-26T17:30:00+09:00",
+        "from": "mom"
+      },
+      {
+        "type": "offer",
+        "subtask_id": "pickup",
+        "fit": "high",
+        "reason": "I'm already out and can stop by on the way (home within 20 min)",
+        "id": 2,
+        "round": 1,
+        "at": "2026-10-26T17:30:00+09:00",
+        "from": "dad"
+      },
+      {
+        "type": "offer",
+        "subtask_id": "milk",
+        "fit": "high",
+        "reason": "I'm near home, easy to drop by",
+        "id": 3,
+        "round": 1,
+        "at": "2026-10-26T17:30:00+09:00",
+        "from": "sibling"
+      },
+      {
+        "type": "refuse",
+        "subtask_id": "milk",
+        "reason_code": "better_fit_available",
+        "id": 4,
+        "round": 2,
+        "at": "2026-10-26T17:30:00+09:00",
+        "from": "mom"
+      },
+      {
+        "type": "commit",
+        "subtask_id": "pickup",
+        "id": 5,
+        "round": 2,
+        "at": "2026-10-26T17:30:00+09:00",
+        "from": "dad"
+      },
+      {
+        "type": "commit",
+        "subtask_id": "milk",
+        "id": 6,
+        "round": 2,
+        "at": "2026-10-26T17:30:00+09:00",
+        "from": "sibling"
+      }
+    ],
+    "rounds": 2,
+    "max_rounds": 4,
+    "outcome": "complete",
+    "assignment": {
+      "task_id": "t_pickup_milk_001",
+      "assignments": [
+        {
+          "subtask": "pickup",
+          "person": "dad"
+        },
+        {
+          "subtask": "milk",
+          "person": "sibling"
+        }
+      ],
+      "unassigned": [],
+      "notify": {
+        "mom": "Mom, nothing for you this time",
+        "dad": "Dad, you're on: Pick up Mina (by 6 PM)",
+        "sibling": "Brother, you're on: Buy milk (by 6 PM)"
+      }
+    },
+    "tool_calls": [
+      {
+        "name": "get_presence",
+        "person_id": "mom",
+        "status": 200,
+        "round": 1,
+        "from": "mom"
+      },
+      {
+        "name": "get_presence",
+        "person_id": "dad",
+        "status": 200,
+        "round": 1,
+        "from": "dad"
+      },
+      {
+        "name": "get_presence",
+        "person_id": "sibling",
+        "status": 200,
+        "round": 1,
+        "from": "sibling"
+      },
+      {
+        "name": "get_presence",
+        "person_id": "mom",
+        "status": 200,
+        "round": 2,
+        "from": "mom"
+      },
+      {
+        "name": "get_presence",
+        "person_id": "dad",
+        "status": 200,
+        "round": 2,
+        "from": "dad"
+      },
+      {
+        "name": "get_presence",
+        "person_id": "sibling",
+        "status": 200,
+        "round": 2,
+        "from": "sibling"
+      }
+    ],
+    "status": "awaiting_approval",
+    "approved_at": null
+  }
+}

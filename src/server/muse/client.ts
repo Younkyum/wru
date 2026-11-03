@@ -84,6 +84,16 @@ export const DEFAULT_MODEL = 'muse-spark-1.3';
 export const DEFAULT_MAX_CALLS = 300;
 /** 한 차례 2~7초. minimal이면 더 빠르고, 협상 규칙을 따르기엔 low로 충분했다 */
 export const DEFAULT_REASONING_EFFORT = 'low';
+/** 추론 + 출력 토큰 상한. 200이면 추론만 하다 잘렸고, 2000이면 low에서 여유가 있었다 */
+export const DEFAULT_MAX_COMPLETION_TOKENS = 2000;
+
+/** base URL로 provider 이름을 정한다 (Meta Model API · Baseten 둘 다 OpenAI 호환 Chat Completions) */
+export function providerOf(baseUrl: string): string {
+  const host = new URL(baseUrl).host;
+  if (host.endsWith('api.meta.ai')) return 'Meta Model API';
+  if (host.endsWith('baseten.co')) return 'Baseten';
+  return host;
+}
 export const DEFAULT_MAX_USD = 5;
 /** muse-spark-1.3 Standard 요금 (USD / 1M tokens). https://dev.meta.ai/docs/pricing-rate-limits */
 export const PRICE_PER_MTOK = { input: 1.25, output: 4.25 };

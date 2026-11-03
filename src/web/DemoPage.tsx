@@ -51,7 +51,7 @@ export interface VideoOverlay {
 const HL_GROUP: Record<string, string> = {
   phones: 'phones', mom: 'phones', dad: 'phones', sibling: 'phones', roles: 'phones',
   diag: 'matrix', 'dad-mom': 'matrix', grid: 'matrix',
-  request: 'muse', response: 'muse', split: 'muse', rewrite: 'muse',
+  request: 'muse', response: 'muse', split: 'muse', rewrite: 'muse', tools: 'muse',
   ...Object.fromEntries(
     ['off', 'on', 'filter_only'].flatMap((k) => ['logs', 'bound', 'actual'].map((part) => [`${k}-${part}`, 'leak-sub'])),
   ),
@@ -485,6 +485,7 @@ function MusePanel({ turn, shown }: { turn: MuseTurnView | null | undefined; sho
   const hlReq = useHl('muse', 'request');
   const hlRes = useHl('muse', 'response');
   const hlRewrite = useHl('muse', 'rewrite');
+  const hlTools = useHl('muse', 'tools');
   return (
     <>
       <div className="side-head">
@@ -513,10 +514,10 @@ function MusePanel({ turn, shown }: { turn: MuseTurnView | null | undefined; sho
               </span>
             </div>
             <pre className="code">{compact(turn.user)}</pre>
+          </div>
+          <div className={`io-col${hlTools}`}>
             <div className="io-label">Tool calls with Dad's own token (real gateway)</div>
-            <pre className="code code-tools">
-              {turn.tool_exchange.map((t) => `${t.call} → ${t.result}`).join('\n')}
-            </pre>
+            <pre className="code code-tools">{turn.tool_exchange.map((t) => `${t.call} → ${t.result}`).join('\n')}</pre>
           </div>
           <div className={`io-col${hlRes}`}>
             <div className="io-label">Response (one JSON object)</div>
@@ -628,17 +629,17 @@ function VideoScene({ scene }: { scene: VideoOverlay['scene'] & string }) {
         <li><b>WhereCtx</b> status only, from each person's own server</li>
         <li><b>Agent tokens</b> each token reads only its owner's status</li>
         <li><b>Muse</b> offer · counter · commit → roles only</li>
-        <li><b>Privacy gate</b> the log looks the same even if the agent knows the location</li>
+        <li><b>Privacy gate</b> no location text reaches the log, even if the agent knows it</li>
         <li><b>Self-hosted</b> npm start, one server per family</li>
       </ul>
-      <div className="scene-note">This recording uses a mock Muse with the same JSON format. Set MODEL_API_KEY (Meta Model API) to call Muse Spark</div>
+      <div className="scene-note">Muse Spark (muse-spark-1.3) via the Meta Model API · the negotiation is replayed from a recorded live run</div>
     </div>
   );
 }
 
 const CONDITION_LABEL: Record<Condition, { title: string; desc: string }> = {
   off: { title: 'Privacy gate off', desc: 'Naive agent chat: neighborhood, distance and exact ETA as-is' },
-  filter_only: { title: 'Gate on · agent knows its location', desc: 'Exact location given to the agent; the log stays the same' },
+  filter_only: { title: 'Gate on · agent knows its location', desc: 'Exact location given to the agent; none of its words reach the log' },
   on: { title: 'Privacy gate on (default)', desc: 'Agents can only say their status and a rough ETA' },
 };
 
@@ -696,7 +697,7 @@ function LeakCard({ k, report }: { k: Condition; report: LeakReport }) {
         </div>
       </div>
       <div className={`actual${hlActual}`}>
-        <div className="actual-label">What a rule-based attacker actually found</div>
+        <div className="actual-label">What {report.adversary === 'meta' ? 'a Muse attacker' : 'a rule-based attacker'} actually found</div>
         <Metric label="home" rate={g.home_rate} chance={report.chance} />
         <Metric label="school" rate={g.school_rate} chance={report.chance} />
       </div>
