@@ -23,7 +23,7 @@ WRU assigns roles without any person, agent or log seeing coordinates.
 | commit | from, subtask_id | Settled |
 | refuse | from, subtask_id, reason_code | I can't (busy_in_transit, deadline_unreachable, …; templates only) |
 
-- Each agent sends the model only its own state, an ETA range, minutes to the deadline and the messages so far. The model answers with one JSON object (`response_format: json_object`) that says which subtask to go for, how good a fit, and which message type.
+- Each agent's prompt carries only the minutes to the deadline and the messages so far. The agent reads its own state and ETA range through a tool call. The model answers with one JSON object (strict `response_format: json_schema`) that says which subtask to go for, how good a fit, and which message type.
 - WRU checks every model reply. It checks the token, validates the schema, publishes every reason as a status template, and decides which commits stand. A commit stands only if the agent's claim has gone a full round unbeaten, and only within capacity (one task per person). Anything still open after the maximum rounds is unassigned.
 - The outcome follows from status. At 17:30 Dad gets the pickup and Brother gets the milk; at 17:52 nobody can make the deadline and both stay unassigned.
 - With a real Meta Model API key, any output that fails schema validation or the location check falls back to the template decision for the same input.
@@ -52,7 +52,7 @@ We give an attacker only the negotiation log and ask which of Seoul's 25 distric
 
 The best-case attacker groups identical logs and picks the right answer in hindsight, so no attacker can beat it on our 50 scenarios at district level. With the gate on, 50 different families produce only 9 distinct logs. The Muse attacker lands at chance (4%), and the ceiling is 28%. Most of that comes from the coarse status ("on the way, within 20 min"), which the family chose to share. When an agent secretly knows its exact location, none of that text is published, but its choices can still shift with what it knows: 10 logs and a 32% ceiling. We report that as measured. Real Muse is not deterministic, and with 50 scenarios a few points are within noise. The deterministic mock run gave 5 logs and a 22% ceiling.
 
-Quality-gate tests check API responses, the event log, every demo render, samples, the leak report and the docs for coordinate keys, decimal coordinates, street addresses, school names and Seoul place names: zero hits. The full suite has over 130 tests.
+Quality-gate tests check API responses, the event log, every demo render, samples, the leak report and the docs for coordinate keys, decimal coordinates, street addresses, school names and Seoul place names: zero hits. The full suite has over 150 tests.
 
 ## Built during the hackathon vs. before
 
